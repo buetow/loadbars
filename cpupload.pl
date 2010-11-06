@@ -119,6 +119,7 @@ sub graph_stats ($$) {
 
 	loop {
    		my ($x, $y) = (0, 0);
+
 		for my $key (sort keys %GLOBAL_STATS) {
 			my ($host, $name) = split ';', $key;
 			my %stat = map { my ($k, $v) = split '='; $k => $v } split ';', $GLOBAL_STATS{$key};
@@ -177,8 +178,9 @@ sub graph_stats ($$) {
 			
 			$x += $width + 1;
 		
-			usleep $GLOBAL_CONF{sleep} * 100000;
 		};
+
+		usleep $GLOBAL_CONF{sleep} * 1000000;
 
 	};
 
@@ -212,11 +214,11 @@ sub display_stats () {
 }
 
 sub main (@_) {
-   	my $host = shift;
-	$host = 'localhost' unless defined $host;
+   	my @hosts = @_;
+	@hosts = 'localhost' unless @hosts;
 
    	my @threads;
-	push @threads, threads->create('get_remote_stat', $host);
+	push @threads, threads->create('get_remote_stat', $_) for @hosts;
 	push @threads, threads->create('display_stats');
 
 	while (<STDIN>) {

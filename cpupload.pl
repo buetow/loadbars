@@ -15,8 +15,8 @@ use threads;
 use threads::shared;
 
 use constant {
-	WIDTH => 1000,
-	HEIGHT => 1000,
+	WIDTH => 800,
+	HEIGHT => 600,
 	DEPTH => 16,
 };
 
@@ -82,23 +82,14 @@ sub get_remote_stat ($) {
 		while (<$out>) {
 		   	/^cpu/ && do {
 				my ($name, $load) = parse_cpu_line $_;
-				$GLOBAL_STATS{"$host;$name"} =
-					join ';', map { $_ . '=' . $load->{$_} } keys %$load;
+				$GLOBAL_STATS{"$host;$name"} = join ';', map { $_ . '=' . $load->{$_} } keys %$load;
 			}
 		}
 	}
 }
 
-sub draw_frame {
-   	my ($app, %args) = @_;
-
-#	$app->fill($args{ bg }, $args{ bg_color });
-	$app->fill($args{rect}, $args{rect_color});
-	$app->update($args{bg});
-}
-
-sub graph_stats ($$) {
-   	my ($app,$colors) = @_;
+sub graph_stats ($$$) {
+   	my ($app, $rects, $colors) = @_;
 
    	my $width = WIDTH / (keys %GLOBAL_STATS) - 1;
    	my ($x, $y) = (0, 0);
@@ -113,29 +104,29 @@ sub graph_stats ($$) {
 			perc_user => ($stat{user}/($stat{TOTAL}/100))
 		);
 
-		#$load{perc_total} = sum @load{qw{perc_idle perc_iowait perc_system perc_user}};
-
-
 		my $height_user = $load{perc_user}/(HEIGHT/10000);
-		my $rect_user = SDL::Rect->new(-height => $height_user, -width => $width, -x => $x, -y => HEIGHT - $height_user);
-		$app->fill($rect_user, $colors->{red});
-		$app->update($rect_user);
+		$y = HEIGHT - $height_user;
+		my $rect_user = SDL::Rect->new(-height => $height_user, -width => $width, -x => $x, -y => $y);
 
 		my $height_system = $load{perc_system}/(HEIGHT/10000);
-		my $rect_system = SDL::Rect->new(-height => $height_system, -width => $width, -x => $x, -y => HEIGHT - $height_user - $height_system);
-		$app->fill($rect_system, $colors->{yellow});
-		$app->update($rect_system);
+		$y -= $height_system;
+		my $rect_system = SDL::Rect->new(-height => $height_system, -width => $width, -x => $x, -y => $y);
 
 		my $height_iowait = $load{perc_iowait}/(HEIGHT/10000);
-		my $rect_iowait = SDL::Rect->new(-height => $height_iowait, -width => $width, -x => $x, -y => HEIGHT - $height_user - $height_system - $height_iowait);
-		$app->fill($rect_iowait, $colors->{blue});
-		$app->update($rect_iowait);
+		$y -= $height_iowait;
+		my $rect_iowait = SDL::Rect->new(-height => $height_iowait, -width => $width, -x => $x, -y => $y);
 
 		my $height_idle = $load{perc_idle}/(HEIGHT/10000);
-		my $rect_idle = SDL::Rect->new(-height => $height_idle, -width => $width, -x => $x, -y => HEIGHT - $height_user - $height_system - $height_iowait - $height_idle);
-		$app->fill($rect_idle, $colors->{blue});
-		$app->update($rect_idle);
+		$y -= $height_idle;
+		my $rect_idle = SDL::Rect->new(-height => $height_idle, -width => $width, -x => $x, -y => $y);
 
+
+		$app->fill($rect_idle, $colors->{blue});
+		$app->fill($rect_iowait, $colors->{blue});
+		$app->fill($rect_system, $colors->{yellow});
+		$app->fill($rect_user, $colors->{red});
+
+		$app->update($_) for $rect_idle, $rect_iowait, $rect_system, $rect_user;
 		
 		$x += $width + 1;
 
@@ -151,6 +142,9 @@ sub graph_stats ($$) {
 }
 
 sub display_stats () {
+	# Wait until first results are available
+	sleep 1 until %GLOBAL_STATS;
+
 	my $app = SDL::App->new(
 		-width => WIDTH,
 		-height => HEIGHT,
@@ -164,15 +158,16 @@ sub display_stats () {
 		blue => SDL::Color->new(-r => 0x00, -g => 0x00, -b => 0xff),
 		black => SDL::Color->new(-r => 0x00, -g => 0x00, -b => 0x00),
 	};
+
+	my $rects = {
+	};
    	
 	$SIG{STOP} = sub {
 		say "Shutting down display_stats";
 		threads->exit();
 	};
 
-	# Wait until first results are available
-	sleep 1 until %GLOBAL_STATS;
-	graph_stats $app, $colors;;
+	graph_stats $app, $rects, $colors;;
 }
 
 sub main () {

@@ -7,6 +7,9 @@ use warnings;
 use IPC::Open2;
 use Data::Dumper;
 
+use Tk;
+use Tk::Graph;
+
 use threads;
 use threads::shared;
 
@@ -17,8 +20,6 @@ my %GLOBAL_CONF  :shared;
 
 %GLOBAL_CONF = (
 	events => 20,
-	header => 10,
-	size => 10,
 	'sleep' => 1,
 );
 
@@ -77,42 +78,40 @@ sub get_remote_stat ($) {
 	}
 }
 
+sub graph_stats ($) {
+   	my $mw = shift;
+
+	my $data = { };
+	my $ca = $mw->Graph(-type => 'BARS')->pack(-expand => 1, -fill => 'both');
+
+	$ca->configure(-variable => $data);
+	$mw->repeat($GLOBAL_CONF{sleep}*100, sub {
+			for my $key (sort keys %GLOBAL_STATS) {
+				my ($host, $name) = split ';', $key;
+				$host = substr $host, 0, 16 if length $host > 16;
+				$data->{"$host $name"} = $GLOBAL_STATS{$key};
+			}
+
+			$ca->set($data);
+	      }
+	);
+
+	return undef;
+}
+
 sub display_stats () {
+   	my $mw = MainWindow->new;
+
 	$SIG{STOP} = sub {
 		say "Shutting down display_stats";
 		threads->exit();
 	};
 
-   	my $size = $GLOBAL_CONF{size};
-   	my $line_counter = $GLOBAL_CONF{header} - 1;
-
 	# Wait until first results are available
 	sleep 1 until %GLOBAL_STATS;
+	graph_stats $mw;
 
-	my $header_closure = sub {
-		return if ++$line_counter % $GLOBAL_CONF{header};
-		$line_counter = 0;
-
-		my (@header) = ('', '');
-
-		for my $key (sort keys %GLOBAL_STATS) {
-			my ($host, $name) = split ';', $key;
-			$header[0] .= sprintf "%${size}s ", $host;
-			$header[1] .= sprintf "%${size}s ", $name;
-		}
-
-		say @header;
-	};
-
-   	loop { 
-		$header_closure->();
-
-		my $line = '';
-		$line .= sprintf "%${size}d", $GLOBAL_STATS{$_} for sort keys %GLOBAL_STATS;
-		say $line;
-
-	   	sleep $GLOBAL_CONF{sleep};
-	}
+	MainLoop;
 }
 
 sub main () {
@@ -124,7 +123,6 @@ sub main () {
 		/^q/ && last;
 		/^s/ && do { $GLOBAL_CONF{sleep} = <STDIN> };
 		/^e/ && do { $GLOBAL_CONF{events} = <STDIN> };
-		/^h/ && do { $GLOBAL_CONF{header} = <STDIN> };
 	}
 
 	for (@threads) {

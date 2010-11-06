@@ -87,7 +87,7 @@ sub display_stats () {
    	my $line_counter = $GLOBAL_CONF{header} - 1;
 
 	# Wait until first results are available
-	sleep $GLOBAL_CONF{sleep} until %GLOBAL_STATS;
+	sleep 1 until %GLOBAL_STATS;
 
 	my $header_closure = sub {
 		return if ++$line_counter % $GLOBAL_CONF{header};

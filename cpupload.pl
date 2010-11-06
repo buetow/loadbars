@@ -11,13 +11,15 @@ use SDL::App;
 use SDL::Rect;
 use SDL::Color;
 
+use Time::HiRes 'usleep';
+
 use threads;
 use threads::shared;
 
 use constant {
-	WIDTH => 800,
-	HEIGHT => 600,
-	DEPTH => 16,
+	WIDTH => 100,
+	HEIGHT => 500,
+	DEPTH => 8,
 };
 
 $| = 1;
@@ -33,19 +35,6 @@ my %GLOBAL_CONF  :shared;
 sub say (@) { print "$_\n" for @_; return undef }
 sub debugsay (@) { say "DEBUG: $_" for @_; return undef }
 
-sub reduce (&@) {
-	my ($func, @params) = @_;
-
-	my $sub;
-	$sub = sub { 
-		my ($elem, @rest) = @_;
-		$func->($elem, @rest == 1 ? $rest[0] : $sub->(@rest));
-	};
-
-	return $sub->($func, @params);
-}
-
-#sub sum (@) { reduce { $_[0] + $_[1] } @_ }
 sub sum (@) { 
    my $sum = 0;
    $sum += $_ for @_;
@@ -57,9 +46,12 @@ sub loop (&) { $_[0]->() while 1 }
 sub parse_cpu_line ($) {
    	my %load;
 	@load{qw(name user nice system iowait irq softirq)} = split ' ', shift;
+	my $name = $load{name};
+	delete $load{name};
+
 	$load{TOTAL} = sum @load{qw(user nice system iowait)};
 
-	return ($load{name}, \%load);
+	return ($name, \%load);
 }
 
 sub get_remote_stat ($) {
@@ -88,55 +80,93 @@ sub get_remote_stat ($) {
 	}
 }
 
-sub graph_stats ($$$) {
-   	my ($app, $rects, $colors) = @_;
+sub get_rect ($$) {
+   	my ($rects, $name) = @_;
+
+	return $rects->{$name} if exists $rects->{$name};
+	return $rects->{$name} = SDL::Rect->new();
+}
+
+sub get_jiffies_diff ($$) {
+   	my ($prev_stat, $stat) = @_;
+
+	return $stat unless defined $prev_stat;
+	return map { $_ => $stat->{$_} - $prev_stat->{$_} } keys %$stat;
+}
+
+sub normalize_loads (%) {
+   	my (%loads) = @_;
+
+	return %loads unless exists $loads{TOTAL};
+
+	my $total = $loads{TOTAL} == 0 ? 1 : $loads{TOTAL};
+	return map { $_ => $loads{$_} / ($total / 100) } keys %loads;
+}
+
+sub graph_stats ($$) {
+   	my ($app, $colors) = @_;
 
    	my $width = WIDTH / (keys %GLOBAL_STATS) - 1;
-   	my ($x, $y) = (0, 0);
 
-	for my $key (sort keys %GLOBAL_STATS) {
-		my ($host, $name) = split ';', $key;
-		my %stat = map { my ($k, $v) = split '='; $k => $v } split ';', $GLOBAL_STATS{$key};
-		my %load = (
-			perc_idle => ($stat{nice}/($stat{TOTAL}/100)),
-			perc_iowait => ($stat{iowait}/($stat{TOTAL}/100)),
-			perc_system => ($stat{system}/($stat{TOTAL}/100)),
-			perc_user => ($stat{user}/($stat{TOTAL}/100))
-		);
+	my $rects = {};
+	my %prev_stat;
 
-		my $height_user = $load{perc_user}/(HEIGHT/10000);
-		$y = HEIGHT - $height_user;
-		my $rect_user = SDL::Rect->new(-height => $height_user, -width => $width, -x => $x, -y => $y);
+	loop {
+   		my ($x, $y) = (0, 0);
+		for my $key (sort keys %GLOBAL_STATS) {
+			my ($host, $name) = split ';', $key;
+			my %stat = map { my ($k, $v) = split '='; $k => $v } split ';', $GLOBAL_STATS{$key};
 
-		my $height_system = $load{perc_system}/(HEIGHT/10000);
-		$y -= $height_system;
-		my $rect_system = SDL::Rect->new(-height => $height_system, -width => $width, -x => $x, -y => $y);
+			my %loads = normalize_loads get_jiffies_diff $prev_stat{$key}, \%stat;
 
-		my $height_iowait = $load{perc_iowait}/(HEIGHT/10000);
-		$y -= $height_iowait;
-		my $rect_iowait = SDL::Rect->new(-height => $height_iowait, -width => $width, -x => $x, -y => $y);
+			$prev_stat{$key} = \%stat;
 
-		my $height_idle = $load{perc_idle}/(HEIGHT/10000);
-		$y -= $height_idle;
-		my $rect_idle = SDL::Rect->new(-height => $height_idle, -width => $width, -x => $x, -y => $y);
+			my %heights = map { $_ => $loads{$_} * (HEIGHT/50) } keys %loads;
+			next unless exists $heights{user};
 
+			my $rect_user = get_rect $rects, "$key;user";
+			my $rect_system = get_rect $rects, "$key;system";
+			my $rect_iowait = get_rect $rects, "$key;iowait";
+			my $rect_nice = get_rect $rects, "$key;nice";
+	
 
-		$app->fill($rect_idle, $colors->{blue});
-		$app->fill($rect_iowait, $colors->{blue});
-		$app->fill($rect_system, $colors->{yellow});
-		$app->fill($rect_user, $colors->{red});
-
-		$app->update($_) for $rect_idle, $rect_iowait, $rect_system, $rect_user;
+			$y = HEIGHT - $heights{user};
+			$rect_user->width($width);
+			$rect_user->height($heights{user});
+			$rect_user->x($x);
+			$rect_user->y($y);
 		
-		$x += $width + 1;
+			$y -= $heights{system};
+			$rect_system->width($width);
+			$rect_system->height($heights{system});
+			$rect_system->x($x);
+			$rect_system->y($y);
+		
+			$y -= $heights{iowait};
+			$rect_iowait->width($width);
+			$rect_iowait->height($heights{iowait});
+			$rect_iowait->x($x);
+			$rect_iowait->y($y);
+		
+			$y -= $heights{nice};
+			$rect_nice->width($width);
+			$rect_nice->height($heights{nice});
+			$rect_nice->x($x);
+			$rect_nice->y($y);
+	
+			$app->fill($rect_nice, $colors->{green});
+			$app->fill($rect_iowait, $colors->{black});
+			$app->fill($rect_system, $colors->{yellow});
+			$app->fill($rect_user, $colors->{red});
+		
+			$app->update($_) for $rect_nice, $rect_iowait, $rect_system, $rect_user;
+			
+			$x += $width + 1;
+		
+			usleep $GLOBAL_CONF{sleep} * 1000000;
+		};
 
-		say $GLOBAL_STATS{$key};
-		system('vmstat');
-		print Dumper %stat;
-		print Dumper %load;
-	}
-
-   	loop { sleep 1 };
+	};
 
 	return undef;
 }
@@ -159,26 +189,26 @@ sub display_stats () {
 		black => SDL::Color->new(-r => 0x00, -g => 0x00, -b => 0x00),
 	};
 
-	my $rects = {
-	};
-   	
 	$SIG{STOP} = sub {
 		say "Shutting down display_stats";
 		threads->exit();
 	};
 
-	graph_stats $app, $rects, $colors;;
+	graph_stats $app, $colors;;
 }
 
-sub main () {
+sub main (@_) {
+   	my $host = shift;
+	$host = 'localhost' unless defined $host;
+
    	my @threads;
-	push @threads, threads->create('get_remote_stat', 'localhost');
+	push @threads, threads->create('get_remote_stat', $host);
 	push @threads, threads->create('display_stats');
 
 	while (<STDIN>) {
 		/^q/ && last;
-		/^s/ && do { $GLOBAL_CONF{sleep} = <STDIN> };
-		/^e/ && do { $GLOBAL_CONF{events} = <STDIN> };
+		/^s/ && do { chomp ($GLOBAL_CONF{sleep} = <STDIN>) };
+		/^e/ && do { chomp ($GLOBAL_CONF{events} = <STDIN>) };
 	}
 
 	for (@threads) {
@@ -190,6 +220,6 @@ sub main () {
 	exit 0;
 }
 
-main;
+main @ARGV;
 
 

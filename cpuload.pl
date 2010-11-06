@@ -20,6 +20,8 @@ use constant {
 	WIDTH => 1200,
 	HEIGHT => 200,
 	DEPTH => 8,
+	PROMPT => 'cpuload> ',
+	VERSION => 'cpuload 0.1 2010 (c) Paul Buetow <cpuload@dev.buetow.org>',
 };
 
 $| = 1;
@@ -29,8 +31,8 @@ my %GLOBAL_CONF  :shared;
 
 %GLOBAL_CONF = (
 	average => 20,
-	events => 500,
-	'sleep' => 0.1,
+	samples => 100,
+	interval => 0.1,
 );
 
 sub say (@) { print "$_\n" for @_; return undef }
@@ -45,7 +47,7 @@ sub sum (@) {
 sub loop (&) { $_[0]->() while 1 }
 
 sub parse_cpu_line ($) {
-   	my %load;
+	my %load;
 	@load{qw(name user nice system iowait irq softirq)} = split ' ', shift;
 	my $name = $load{name};
 	delete $load{name};
@@ -60,7 +62,7 @@ sub get_remote_stat ($) {
 
 	loop {
 		my $pid = open2 my $out, my $in, qq{ 
-		   	ssh $host 'for i in \$(seq 1000); do cat /proc/stat; sleep 0.1; done'
+			ssh $host 'for i in \$(seq 1000); do cat /proc/stat; sleep 0.1; done'
 		} or die "Error: $!\n";
 
 		$SIG{STOP} = sub {
@@ -70,7 +72,7 @@ sub get_remote_stat ($) {
 		};
 
 		while (<$out>) {
-		   	/^cpu/ && do {
+	   	/^cpu/ && do {
 				my ($name, $load) = parse_cpu_line $_;
 				$GLOBAL_STATS{"$host;$name"} = join ';', map { $_ . '=' . $load->{$_} } keys %$load;
 			}
@@ -79,14 +81,14 @@ sub get_remote_stat ($) {
 }
 
 sub get_rect ($$) {
-   	my ($rects, $name) = @_;
+	my ($rects, $name) = @_;
 
 	return $rects->{$name} if exists $rects->{$name};
 	return $rects->{$name} = SDL::Rect->new();
 }
 
 sub normalize_loads (%) {
-   	my %loads = @_;
+  	my %loads = @_;
 
 	return %loads unless exists $loads{TOTAL};
 
@@ -109,9 +111,9 @@ sub get_load_average (@) {
 }
 
 sub graph_stats ($$) {
-   	my ($app, $colors) = @_;
+  	my ($app, $colors) = @_;
 
-   	my $width = WIDTH / (keys %GLOBAL_STATS) - 1;
+	my $width = WIDTH / (keys %GLOBAL_STATS) - 1;
 
 	my $rects = {};
 	my %prev_stats;
@@ -180,7 +182,7 @@ sub graph_stats ($$) {
 		
 		};
 
-		usleep $GLOBAL_CONF{sleep} * 1000000;
+		usleep $GLOBAL_CONF{interval} * 1000000;
 
 	};
 
@@ -197,11 +199,11 @@ sub display_stats () {
 		-depth => DEPTH,
 	);
 
-   	my $colors = {
+  	my $colors = {
 		red => SDL::Color->new(-r => 0xff, -g => 0x00, -b => 0x00),
 		orange => SDL::Color->new(-r => 0xff, -g => 0x40, -b => 0x00),
 		yellow => SDL::Color->new(-r => 0xff, -g => 0xa0, -b => 0x00),
-		green => SDL::Color->new(-r => 0x00, -g => 0xff, -b => 0x00),
+		green => SDL::Color->new(-r => 0x00, -g => 0x90, -b => 0x00),
 		blue => SDL::Color->new(-r => 0x00, -g => 0x00, -b => 0xff),
 		black => SDL::Color->new(-r => 0x00, -g => 0x00, -b => 0x00),
 	};
@@ -214,19 +216,47 @@ sub display_stats () {
 	graph_stats $app, $colors;;
 }
 
+sub print_help () {
+	print <<"END";
+a - Set number of samples for calculating average loads ($GLOBAL_CONF{average})
+i - Set update interval in seconds ($GLOBAL_CONF{interval})
+s - Set number of samples until ssh reconnects ($GLOBAL_CONF{samples})
+h - Print this help screen
+v - Print version
+q - Quit
+END
+}
+
+sub set_value (*) {
+	my $key = shift;
+
+	print "Please enter new value (old value: $GLOBAL_CONF{$key}): ";
+	chomp ($GLOBAL_CONF{$key} = <STDIN>);
+
+	return undef;
+}
+
 sub main (@_) {
-   	my @hosts = @_;
+  	my @hosts = @_;
 	@hosts = 'localhost' unless @hosts;
 
-   	my @threads;
+  	my @threads;
 	push @threads, threads->create('get_remote_stat', $_) for @hosts;
 	push @threads, threads->create('display_stats');
 
+	say VERSION;
+	say "Type 'h' for help menu";
+	print PROMPT;
+
 	while (<STDIN>) {
+		/^a/ && do { set_value average };
+		/^s/ && do { set_value samples };
+		/^i/ && do { set_value interval };
+		/^h/ && do { print_help };
+		/^v/ && do { say VERSION };
 		/^q/ && last;
-		/^s/ && do { chomp ($GLOBAL_CONF{sleep} = <STDIN>) };
-		/^e/ && do { chomp ($GLOBAL_CONF{events} = <STDIN>) };
-		/^a/ && do { chomp ($GLOBAL_CONF{average} = <STDIN>) };
+
+		say; print PROMPT;
 	}
 
 	for (@threads) {

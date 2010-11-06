@@ -11,14 +11,14 @@ use SDL::App;
 use SDL::Rect;
 use SDL::Color;
 
-use Time::HiRes 'usleep';
+use Time::HiRes qw(usleep gettimeofday);
 
 use threads;
 use threads::shared;
 
 use constant {
-	WIDTH => 100,
-	HEIGHT => 500,
+	WIDTH => 800,
+	HEIGHT => 600,
 	DEPTH => 8,
 };
 
@@ -28,8 +28,8 @@ my %GLOBAL_STATS :shared;
 my %GLOBAL_CONF  :shared;
 
 %GLOBAL_CONF = (
-	events => 100,
-	'sleep' => 0.2,
+	events => 1000,
+	'sleep' => 0.1,
 );
 
 sub say (@) { print "$_\n" for @_; return undef }
@@ -58,11 +58,8 @@ sub get_remote_stat ($) {
    	my $host = shift;
 
 	loop {
-		my $sleep = $GLOBAL_CONF{sleep};
-		my $events = $GLOBAL_CONF{events};
-
 		my $pid = open2 my $out, my $in, qq{ 
-		   	ssh $host 'for i in \$(seq $events); do cat /proc/stat; sleep $sleep; done'
+		   	ssh $host 'for i in \$(seq 1000); do cat /proc/stat; sleep 0.1; done'
 		} or die "Error: $!\n";
 
 		$SIG{STOP} = sub {
@@ -91,6 +88,8 @@ sub get_jiffies_diff ($$) {
    	my ($prev_stat, $stat) = @_;
 
 	return $stat unless defined $prev_stat;
+	return $stat if $stat->{TOTAL} == $prev_stat->{TOTAL};
+
 	return map { $_ => $stat->{$_} - $prev_stat->{$_} } keys %$stat;
 }
 
@@ -128,6 +127,8 @@ sub graph_stats ($$) {
 			my $rect_system = get_rect $rects, "$key;system";
 			my $rect_iowait = get_rect $rects, "$key;iowait";
 			my $rect_nice = get_rect $rects, "$key;nice";
+
+			debugsay %loads;
 	
 
 			$y = HEIGHT - $heights{user};
@@ -163,7 +164,7 @@ sub graph_stats ($$) {
 			
 			$x += $width + 1;
 		
-			usleep $GLOBAL_CONF{sleep} * 1000000;
+			usleep $GLOBAL_CONF{sleep} * 100000;
 		};
 
 	};

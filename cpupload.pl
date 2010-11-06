@@ -28,7 +28,8 @@ my %GLOBAL_STATS :shared;
 my %GLOBAL_CONF  :shared;
 
 %GLOBAL_CONF = (
-	events => 1000,
+	average => 25,
+	events => 500,
 	'sleep' => 0.1,
 );
 
@@ -84,20 +85,27 @@ sub get_rect ($$) {
 	return $rects->{$name} = SDL::Rect->new();
 }
 
-sub get_jiffies_diff  {
-   	my ($prev_stat, %stat) = @_;
-
-	return \%stat if $stat{TOTAL} == $prev_stat->{TOTAL};
-	return map { $_ => $stat{$_} - $prev_stat->{$_} } keys %stat;
-}
-
 sub normalize_loads (%) {
-   	my (%loads) = @_;
+   	my %loads = @_;
 
 	return %loads unless exists $loads{TOTAL};
 
 	my $total = $loads{TOTAL} == 0 ? 1 : $loads{TOTAL};
 	return map { $_ => $loads{$_} / ($total / 100) } keys %loads;
+}
+
+sub get_load_average (@) {
+	my @loads = @_;	
+	my %load_average;
+
+	for my $l (@loads) {
+		for my $key (keys %$l) {
+			$load_average{$key} += $l->{$key};
+		}
+	}
+
+	$load_average{$_} /= @loads for keys %load_average;
+	return %load_average;
 }
 
 sub graph_stats ($$) {
@@ -106,7 +114,8 @@ sub graph_stats ($$) {
    	my $width = WIDTH / (keys %GLOBAL_STATS) - 1;
 
 	my $rects = {};
-	my %prev_stat;
+	my %prev_stats;
+	my %last_loads;
 
 	loop {
    		my ($x, $y) = (0, 0);
@@ -114,41 +123,38 @@ sub graph_stats ($$) {
 			my ($host, $name) = split ';', $key;
 			my %stat = map { my ($k, $v) = split '='; $k => $v } split ';', $GLOBAL_STATS{$key};
 
-			unless (exists $prev_stat{$key}) {
-				$prev_stat{$key} = \%stat;
+			unless (exists $prev_stats{$key}) {
+				$prev_stats{$key} = \%stat;
 				next;
 			}
 
-			my %loads = get_jiffies_diff($prev_stat{$key}, %stat);
-			%loads = normalize_loads %loads;
-			$prev_stat{$key} = \%stat;
+			my $prev_stat = $prev_stats{$key};
+			my %loads = $stat{TOTAL} == $prev_stat->{TOTAL} ? %stat : map { $_ => $stat{$_} - $prev_stat->{$_} } keys %stat;
+			$prev_stats{$key} = \%stat;
 
-			my %heights = map { $loads{$_} && $_ => $loads{$_} * (HEIGHT/50) } grep { defined $loads{$_} } keys %loads;
+			%loads = normalize_loads %loads;
+			push @{$last_loads{$key}}, \%loads;
+			shift @{$last_loads{$key}} while @{$last_loads{$key}} >= $GLOBAL_CONF{average};
+			my %load_average = get_load_average @{$last_loads{$key}};
+
+			my %heights = map { $_ => defined $load_average{$_} ? $load_average{$_} * (HEIGHT/100) : 1 } keys %load_average;
 
 			my $rect_user = get_rect $rects, "$key;user";
 			my $rect_system = get_rect $rects, "$key;system";
 			my $rect_iowait = get_rect $rects, "$key;iowait";
 			my $rect_nice = get_rect $rects, "$key;nice";
 
-			debugsay %loads;
-	
 			$y = HEIGHT - $heights{user};
 			$rect_user->width($width);
 			$rect_user->height($heights{user});
 			$rect_user->x($x);
 			$rect_user->y($y);
-		
+
 			$y -= $heights{system};
 			$rect_system->width($width);
 			$rect_system->height($heights{system});
 			$rect_system->x($x);
 			$rect_system->y($y);
-		
-			$y -= $heights{iowait};
-			$rect_iowait->width($width);
-			$rect_iowait->height($heights{iowait});
-			$rect_iowait->x($x);
-			$rect_iowait->y($y);
 		
 			$y -= $heights{nice};
 			$rect_nice->width($width);
@@ -156,16 +162,22 @@ sub graph_stats ($$) {
 			$rect_nice->x($x);
 			$rect_nice->y($y);
 	
-			$app->fill($rect_nice, $colors->{green});
-			$app->fill($rect_iowait, $colors->{black});
-			$app->fill($rect_system, $colors->{yellow});
-			$app->fill($rect_user, $colors->{red});
+			$y -= $heights{iowait};
+			$rect_iowait->width($width);
+			$rect_iowait->height($heights{iowait});
+			$rect_iowait->x($x);
+			$rect_iowait->y($y);
 		
+			$app->fill($rect_iowait, $colors->{black});
+			$app->fill($rect_nice, $colors->{green});
+			$app->fill($rect_system, $colors->{blue});
+			$app->fill($rect_user, $load_average{user} >= 90 ? $colors->{red} : $colors->{yellow});
+
 			$app->update($_) for $rect_nice, $rect_iowait, $rect_system, $rect_user;
 			
 			$x += $width + 1;
 		
-			usleep $GLOBAL_CONF{sleep} * 1000000;
+			usleep $GLOBAL_CONF{sleep} * 100000;
 		};
 
 	};
@@ -211,6 +223,7 @@ sub main (@_) {
 		/^q/ && last;
 		/^s/ && do { chomp ($GLOBAL_CONF{sleep} = <STDIN>) };
 		/^e/ && do { chomp ($GLOBAL_CONF{events} = <STDIN>) };
+		/^a/ && do { chomp ($GLOBAL_CONF{average} = <STDIN>) };
 	}
 
 	for (@threads) {

@@ -84,13 +84,11 @@ sub get_rect ($$) {
 	return $rects->{$name} = SDL::Rect->new();
 }
 
-sub get_jiffies_diff ($$) {
-   	my ($prev_stat, $stat) = @_;
+sub get_jiffies_diff  {
+   	my ($prev_stat, %stat) = @_;
 
-	return $stat unless defined $prev_stat;
-	return $stat if $stat->{TOTAL} == $prev_stat->{TOTAL};
-
-	return map { $_ => $stat->{$_} - $prev_stat->{$_} } keys %$stat;
+	return \%stat if $stat{TOTAL} == $prev_stat->{TOTAL};
+	return map { $_ => $stat{$_} - $prev_stat->{$_} } keys %stat;
 }
 
 sub normalize_loads (%) {
@@ -116,12 +114,16 @@ sub graph_stats ($$) {
 			my ($host, $name) = split ';', $key;
 			my %stat = map { my ($k, $v) = split '='; $k => $v } split ';', $GLOBAL_STATS{$key};
 
-			my %loads = normalize_loads get_jiffies_diff $prev_stat{$key}, \%stat;
+			unless (exists $prev_stat{$key}) {
+				$prev_stat{$key} = \%stat;
+				next;
+			}
 
+			my %loads = get_jiffies_diff($prev_stat{$key}, %stat);
+			%loads = normalize_loads %loads;
 			$prev_stat{$key} = \%stat;
 
-			my %heights = map { $_ => $loads{$_} * (HEIGHT/50) } keys %loads;
-			next unless exists $heights{user};
+			my %heights = map { $loads{$_} && $_ => $loads{$_} * (HEIGHT/50) } grep { defined $loads{$_} } keys %loads;
 
 			my $rect_user = get_rect $rects, "$key;user";
 			my $rect_system = get_rect $rects, "$key;system";
@@ -130,7 +132,6 @@ sub graph_stats ($$) {
 
 			debugsay %loads;
 	
-
 			$y = HEIGHT - $heights{user};
 			$rect_user->width($width);
 			$rect_user->height($heights{user});
@@ -164,7 +165,7 @@ sub graph_stats ($$) {
 			
 			$x += $width + 1;
 		
-			usleep $GLOBAL_CONF{sleep} * 100000;
+			usleep $GLOBAL_CONF{sleep} * 1000000;
 		};
 
 	};

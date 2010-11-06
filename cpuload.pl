@@ -31,7 +31,7 @@ my %GLOBAL_CONF  :shared;
 
 %GLOBAL_CONF = (
 	average => 20,
-	samples => 100,
+	samples => 1000,
 	interval => 0.1,
 );
 
@@ -58,11 +58,11 @@ sub parse_cpu_line ($) {
 }
 
 sub get_remote_stat ($) {
-   	my $host = shift;
+	my $host = shift;
 
 	loop {
 		my $pid = open2 my $out, my $in, qq{ 
-			ssh $host 'for i in \$(seq 1000); do cat /proc/stat; sleep 0.1; done'
+			ssh $host 'for i in \$(seq $GLOBAL_CONF{samples}); do cat /proc/stat; sleep 0.1; done'
 		} or die "Error: $!\n";
 
 		$SIG{STOP} = sub {
@@ -120,7 +120,7 @@ sub graph_stats ($$) {
 	my %last_loads;
 
 	loop {
-   		my ($x, $y) = (0, 0);
+		my ($x, $y) = (0, 0);
 
 		for my $key (sort keys %GLOBAL_STATS) {
 			my ($host, $name) = split ';', $key;

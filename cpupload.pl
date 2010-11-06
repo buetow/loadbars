@@ -16,9 +16,10 @@ my %GLOBAL_STATS :shared;
 my %GLOBAL_CONF  :shared;
 
 %GLOBAL_CONF = (
-	'sleep' => 1,
-	size => 10,
 	events => 20,
+	header => 10,
+	size => 10,
+	'sleep' => 1,
 );
 
 sub say (@) {
@@ -48,14 +49,6 @@ sub parse_cpu_line ($) {
 	$load{TOTAL} = sum @load{qw(user)};
 
 	return ($load{name}, \%load);
-}
-
-sub get_local_stat () {
-   	open my $fh, '/proc/stat' or die "$!: /proc/stat\n";
-	my @stat = <$fh>;
-	close $fh;
-
-	return @stat;
 }
 
 sub get_remote_stat ($) {
@@ -91,13 +84,19 @@ sub display_stats () {
 	};
 
    	my $size = $GLOBAL_CONF{size};
+   	my $line_counter = $GLOBAL_CONF{header} - 1;
 
-	my $print_header = sub {
-		sleep $GLOBAL_CONF{sleep} until %GLOBAL_STATS;
+	# Wait until first results are available
+	sleep $GLOBAL_CONF{sleep} until %GLOBAL_STATS;
 
-	   	my (@header) = ('', '');
+	my $header_closure = sub {
+		return if ++$line_counter % $GLOBAL_CONF{header};
+		$line_counter = 0;
+
+		my (@header) = ('', '');
+
 		for my $key (sort keys %GLOBAL_STATS) {
-	      		my ($host, $name) = split ';', $key;
+			my ($host, $name) = split ';', $key;
 			$header[0] .= sprintf "%${size}s ", $host;
 			$header[1] .= sprintf "%${size}s ", $name;
 		}
@@ -105,19 +104,11 @@ sub display_stats () {
 		say @header;
 	};
 
-	$print_header->();
-	my $header_counter = 0;
-
    	loop { 
-		unless (++$header_counter % 10) {
-			$header_counter = 0;
-			$print_header->();
-		}
+		$header_closure->();
 
 		my $line = '';
-
 		$line .= sprintf "%${size}d", $GLOBAL_STATS{$_} for sort keys %GLOBAL_STATS;
-
 		say $line;
 
 	   	sleep $GLOBAL_CONF{sleep};
@@ -131,9 +122,9 @@ sub main () {
 
 	while (<STDIN>) {
 		/^q/ && last;
-		/^s/ && do {
-		   $GLOBAL_CONF{sleep} = <STDIN>;
-		};
+		/^s/ && do { $GLOBAL_CONF{sleep} = <STDIN> };
+		/^e/ && do { $GLOBAL_CONF{events} = <STDIN> };
+		/^h/ && do { $GLOBAL_CONF{header} = <STDIN> };
 	}
 
 	for (@threads) {

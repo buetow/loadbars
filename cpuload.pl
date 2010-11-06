@@ -17,8 +17,8 @@ use threads;
 use threads::shared;
 
 use constant {
-	WIDTH => 800,
-	HEIGHT => 600,
+	WIDTH => 1200,
+	HEIGHT => 200,
 	DEPTH => 8,
 };
 
@@ -28,7 +28,7 @@ my %GLOBAL_STATS :shared;
 my %GLOBAL_CONF  :shared;
 
 %GLOBAL_CONF = (
-	average => 25,
+	average => 20,
 	events => 500,
 	'sleep' => 0.1,
 );
@@ -172,7 +172,7 @@ sub graph_stats ($$) {
 			$app->fill($rect_iowait, $colors->{black});
 			$app->fill($rect_nice, $colors->{green});
 			$app->fill($rect_system, $colors->{blue});
-			$app->fill($rect_user, $load_average{user} >= 90 ? $colors->{red} : $colors->{yellow});
+			$app->fill($rect_user, $load_average{user} >= 90 ? $colors->{red} : ( $load_average{user} >= 70 ? $colors->{orange} : $colors->{yellow}));
 
 			$app->update($_) for $rect_nice, $rect_iowait, $rect_system, $rect_user;
 			
@@ -199,7 +199,8 @@ sub display_stats () {
 
    	my $colors = {
 		red => SDL::Color->new(-r => 0xff, -g => 0x00, -b => 0x00),
-		yellow => SDL::Color->new(-r => 0xff, -g => 0xa5, -b => 0x00),
+		orange => SDL::Color->new(-r => 0xff, -g => 0x40, -b => 0x00),
+		yellow => SDL::Color->new(-r => 0xff, -g => 0xa0, -b => 0x00),
 		green => SDL::Color->new(-r => 0x00, -g => 0xff, -b => 0x00),
 		blue => SDL::Color->new(-r => 0x00, -g => 0x00, -b => 0xff),
 		black => SDL::Color->new(-r => 0x00, -g => 0x00, -b => 0x00),

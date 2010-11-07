@@ -241,7 +241,7 @@ sub graph_stats ($$) {
 			$app->fill($rect_system, $load_average{system} > 30
 			      	? $colors->{purple} 
 				: $colors->{blue});
-			$app->fill($rect_user, $system_n_user > 90 
+			$app->fill($rect_user, $system_n_user > 97 
 			      	? $colors->{red} 
 				: ( $system_n_user > 70 
 					? $colors->{orange} 

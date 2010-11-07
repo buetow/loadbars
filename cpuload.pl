@@ -38,7 +38,7 @@ my %CONF  :shared;
 	interval => 0.1,
 	sshopts => '',
 	cpuregexp => 'cpu',
-	total => 0,
+	toggle => 0,
 );
 
 sub say (@) { print "$_\n" for @_; return undef }
@@ -302,11 +302,15 @@ sub stop_threads (@) {
 	return undef;
 }
 
+sub set_toggle_regexp () {
+	$CONF{cpuregexp} = $CONF{toggle} ? 'cpu ' : 'cpu';
+}
+
 sub toggle_cpus ($@) {
 	my ($display, @threads) = @_;
 
-	$CONF{total} = ! $CONF{total};
-	$CONF{cpuregexp} = $CONF{total} ? 'cpu ' : 'cpu';
+	$CONF{toggle} = ! $CONF{toggle};
+	set_toggle_regexp;
 
 	$_->kill('USR1') for @threads;
 	%STATS = ();
@@ -339,9 +343,16 @@ END
 
 sub main () {
  	my $hosts = ''; 
-	GetOptions ('hosts=s' => \$hosts);
+	GetOptions (
+		'hosts=s' => \$hosts,
+		'averate=i' => \$CONF{average},
+		'interval=i' => \$CONF{interval},
+		'samples=i' => \$CONF{samples},
+		'toggle=i' => \$CONF{toggle},
+	);
   	my @hosts = split ',', $hosts;
 	@hosts = 'localhost' unless @hosts;
+	set_toggle_regexp;
 
   	my ($display, @threads) = create_threads @hosts;
 

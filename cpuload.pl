@@ -119,15 +119,30 @@ sub get_load_average (@) {
 sub graph_stats ($$) {
   	my ($app, $colors) = @_;
 
+	sleep 1 until %STATS;
+
 	my $rects = {};
 	my %prev_stats;
 	my %last_loads;
+	my $width = WIDTH / (keys %STATS) - 1;
+	my $rect_bg = SDL::Rect->new();
+
+	# Toggle CPUs
+	$SIG{USR1} = sub {
+		%STATS = ();
+		sleep 1 until %STATS;
+		$width = WIDTH / (keys %STATS) - 1;
+
+		$rect_bg->width(WIDTH);
+		$rect_bg->height(HEIGHT);
+		$app->fill($rect_bg, $colors->{black});
+		$app->update($rect_bg);
+
+		%prev_stats = ();
+		%last_loads = ();
+	};
 
 	loop {
-		my $width = do { 
-		   sleep 1 until %STATS;
-		   WIDTH / (keys %STATS) - 1
-		};
 		my ($x, $y) = (0, 0);
 
 		for my $key (sort keys %STATS) {
@@ -199,8 +214,6 @@ sub graph_stats ($$) {
 
 sub display_stats () {
 	# Wait until first results are available
-	sleep 1 until %STATS;
-
 	my $app = SDL::App->new(
 		-width => WIDTH,
 		-height => HEIGHT,
@@ -225,18 +238,6 @@ sub display_stats () {
 	graph_stats $app, $colors;;
 }
 
-sub print_help () {
-	print <<"END";
-1 - Toggle CPUs
-a - Set number of samples for calculating average loads ($CONF{average})
-i - Set update interval in seconds ($CONF{interval})
-s - Set number of samples until ssh reconnects ($CONF{samples})
-h - Print this help screen
-v - Print version
-q - Quit
-END
-}
-
 sub create_threads (\@;*) {
    	my ($hosts, $flag) = @_;
 
@@ -256,15 +257,16 @@ sub stop_threads (@) {
 	return undef;
 }
 
-sub toggle_cpus (\@@) {
-	my ($threads, @hosts) = @_;
+sub toggle_cpus ($\@@) {
+	my ($display, $threads, @hosts) = @_;
 
 	stop_threads @$threads;
+
+	$display->kill('USR1');
 
 	$CONF{total} = ! $CONF{total};
 	$CONF{cpuregexp} = $CONF{total} ? 'cpu ' : 'cpu';
 
-	%STATS = ();
 	(undef, @$threads) = create_threads @hosts, no_display;
 
 	return undef;
@@ -279,6 +281,18 @@ sub set_value (*) {
 	return undef;
 }
 
+sub print_help () {
+	print <<"END";
+1 - Toggle CPUs
+a - Set number of samples for calculating average loads ($CONF{average})
+i - Set update interval in seconds ($CONF{interval})
+s - Set number of samples until ssh reconnects ($CONF{samples})
+h - Print this help screen
+v - Print version
+q - Quit
+END
+}
+
 sub main (@_) {
   	my @hosts = @_;
 
@@ -290,7 +304,7 @@ sub main (@_) {
 	print PROMPT;
 
 	while (<STDIN>) {
-		/^1/ && do { toggle_cpus @threads, @hosts };
+		/^1/ && do { toggle_cpus $display, @threads, @hosts };
 		/^a/ && do { set_value average };
 		/^s/ && do { set_value samples };
 		/^i/ && do { set_value interval };

@@ -7,6 +7,8 @@ use warnings;
 use IPC::Open2;
 use Data::Dumper;
 
+use Getopt::Long;
+
 use SDL::App;
 use SDL::Rect;
 use SDL::Color;
@@ -235,7 +237,7 @@ sub graph_stats ($$) {
 			$app->fill($rect_iowait, $colors->{black});
 			$app->fill($rect_nice, $colors->{green});
 			$app->fill($rect_system, $colors->{blue});
-			$app->fill($rect_system, $load_average{system} > 20
+			$app->fill($rect_system, $load_average{system} > 30
 			      	? $colors->{purple} 
 				: $colors->{blue});
 			$app->fill($rect_user, $system_n_user > 90 
@@ -335,10 +337,12 @@ q 	- Quit
 END
 }
 
-sub main (@_) {
-  	my @hosts = @_;
-
+sub main () {
+ 	my $hosts = ''; 
+	GetOptions ('hosts=s' => \$hosts);
+  	my @hosts = split ',', $hosts;
 	@hosts = 'localhost' unless @hosts;
+
   	my ($display, @threads) = create_threads @hosts;
 
 	say VERSION . ' ' . COPYRIGHT;
@@ -364,6 +368,6 @@ sub main (@_) {
 	exit 0;
 }
 
-main @ARGV;
+main;
 
 

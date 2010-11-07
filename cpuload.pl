@@ -189,7 +189,8 @@ sub graph_stats ($$) {
 			}
 
 			my $prev_stat = $prev_stats{$key};
-			my %loads = null $stat{TOTAL} == null $prev_stat->{TOTAL} ? %stat : map { $_ => $stat{$_} - $prev_stat->{$_} } keys %stat;
+			my %loads = null $stat{TOTAL} == null $prev_stat->{TOTAL} 
+				? %stat : map { $_ => $stat{$_} - $prev_stat->{$_} } keys %stat;
 			$prev_stats{$key} = \%stat;
 
 			%loads = normalize_loads %loads;
@@ -197,25 +198,27 @@ sub graph_stats ($$) {
 			shift @{$last_loads{$key}} while @{$last_loads{$key}} >= $CONF{average};
 			my %load_average = get_load_average @{$last_loads{$key}};
 
-			my %heights = map { $_ => defined $load_average{$_} ? $load_average{$_} * (HEIGHT/100) : 1 } keys %load_average;
+			my %heights = map { 
+				$_ => defined $load_average{$_} ? $load_average{$_} * (HEIGHT/100) : 1 
+			} keys %load_average;
 
 			my $rect_user = get_rect $rects, "$key;user";
 			my $rect_system = get_rect $rects, "$key;system";
 			my $rect_iowait = get_rect $rects, "$key;iowait";
 			my $rect_nice = get_rect $rects, "$key;nice";
 
-			$y = HEIGHT - $heights{user};
-			$rect_user->width($width);
-			$rect_user->height($heights{user});
-			$rect_user->x($x);
-			$rect_user->y($y);
-
-			$y -= $heights{system};
+			$y = HEIGHT - $heights{system};
 			$rect_system->width($width);
 			$rect_system->height($heights{system});
 			$rect_system->x($x);
 			$rect_system->y($y);
 		
+			$y -= $heights{user};
+			$rect_user->width($width);
+			$rect_user->height($heights{user});
+			$rect_user->x($x);
+			$rect_user->y($y);
+
 			$y -= $heights{nice};
 			$rect_nice->width($width);
 			$rect_nice->height($heights{nice});
@@ -231,16 +234,17 @@ sub graph_stats ($$) {
 			$app->fill($rect_iowait, $colors->{black});
 			$app->fill($rect_nice, $colors->{green});
 			$app->fill($rect_system, $colors->{blue});
-			$app->fill($rect_user, $load_average{user} >= 90 ? $colors->{red} : ( $load_average{user} >= 70 ? $colors->{orange} : $colors->{yellow}));
+			$app->fill($rect_user, $load_average{user} >= 90 
+			      	? $colors->{red} 
+				: ( $load_average{user} >= 70 
+					? $colors->{orange} 
+					: $colors->{yellow}));
 
 			$app->update($_) for $rect_nice, $rect_iowait, $rect_system, $rect_user;
-			
 			$x += $width + 1;
-		
 		};
 
 		usleep $CONF{interval} * 1000000;
-
 	};
 
 	return undef;
@@ -314,13 +318,14 @@ sub set_value (*) {
 
 sub print_help () {
 	print <<"END";
-1 - Toggle CPUs
-a - Set number of samples for calculating average loads ($CONF{average})
-i - Set update interval in seconds ($CONF{interval})
-s - Set number of samples until ssh reconnects ($CONF{samples})
-h - Print this help screen
-v - Print version
-q - Quit
+1 	- Toggle CPUs
+a 	- Set number of samples for calculating average loads ($CONF{average})
+i 	- Set update interval in seconds ($CONF{interval})
+s 	- Set number of samples until ssh reconnects ($CONF{samples})
+h 	- Print this help screen
+!<cmd> 	- Run a shell command
+v 	- Print version
+q 	- Quit
 END
 }
 
@@ -340,6 +345,7 @@ sub main (@_) {
 		/^s/ && do { set_value samples };
 		/^i/ && do { set_value interval };
 		/^h/ && do { print_help };
+		/^!(.*)/ && do { system $1 };
 		/^v/ && do { say VERSION };
 		/^q/ && last;
 

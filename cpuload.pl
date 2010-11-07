@@ -65,6 +65,7 @@ sub get_remote_stat ($) {
 
 	my $bash = "for i in \$(seq $CONF{samples}); do cat /proc/stat; sleep 0.1; done";
 	my $cmd = $host eq 'localhost' ? $bash : "ssh $CONF{sshopts} $host '$bash'";
+	my $sigusr1 = 0;
 
 	loop {
 		my $pid = open2 my $out, my $in, $cmd or die "Error: $!\n";
@@ -75,12 +76,22 @@ sub get_remote_stat ($) {
 			threads->exit();
 		};
 
+		# Toggle CPUs
+		$SIG{USR1} = sub {
+		   	$sigusr1 = 1;
+		};
+
 		my $cpuregexp = qr/$CONF{cpuregexp}/;
 
 		while (<$out>) {
 	   		/$cpuregexp/ && do {
 				my ($name, $load) = parse_cpu_line $_;
 				$STATS{"$host;$name"} = join ';', map { $_ . '=' . $load->{$_} } keys %$load;
+			};
+
+			if ($sigusr1) {
+				$cpuregexp = qr/$CONF{cpuregexp}/;
+				$sigusr1 = 0;
 			}
 		}
 	}
@@ -283,14 +294,11 @@ sub stop_threads (@) {
 sub toggle_cpus ($\@@) {
 	my ($display, $threads, @hosts) = @_;
 
-	stop_threads @$threads;
-
-	$display->kill('USR1');
-
 	$CONF{total} = ! $CONF{total};
 	$CONF{cpuregexp} = $CONF{total} ? 'cpu ' : 'cpu';
 
-	(undef, @$threads) = create_threads @hosts, no_display;
+	$_->kill('USR1') for @$threads;
+	$display->kill('USR1');
 
 	return undef;
 }

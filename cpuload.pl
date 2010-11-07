@@ -231,12 +231,16 @@ sub graph_stats ($$) {
 			$rect_iowait->y($y);
 	
 			my $system_n_user = sum @load_average{qw(user system)};
+
 			$app->fill($rect_iowait, $colors->{black});
 			$app->fill($rect_nice, $colors->{green});
 			$app->fill($rect_system, $colors->{blue});
-			$app->fill($rect_user, $system_n_user >= 90 
+			$app->fill($rect_system, $load_average{system} > 50
+			      	? $colors->{purple} 
+				: $colors->{blue});
+			$app->fill($rect_user, $system_n_user > 90 
 			      	? $colors->{red} 
-				: ( $system_n_user >= 70 
+				: ( $system_n_user > 70 
 					? $colors->{orange} 
 					: $colors->{yellow}));
 
@@ -265,6 +269,7 @@ sub display_stats () {
 		yellow => SDL::Color->new(-r => 0xff, -g => 0xa0, -b => 0x00),
 		green => SDL::Color->new(-r => 0x00, -g => 0x90, -b => 0x00),
 		blue => SDL::Color->new(-r => 0x00, -g => 0x00, -b => 0xff),
+		purple => SDL::Color->new(-r => 0xa0, -g => 0x20, -b => 0xf0),
 		black => SDL::Color->new(-r => 0x00, -g => 0x00, -b => 0x00),
 	};
 

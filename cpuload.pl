@@ -50,17 +50,15 @@ sub sum (@) {
 sub loop (&) { $_[0]->() while 1 }
 
 sub parse_cpu_line ($) {
-	my %load;
-	@load{qw(name user nice system iowait irq softirq)} = split ' ', shift;
-	my $name = $load{name};
-	delete $load{name};
+	my ($name, %load);
 
+	($name, @load{qw(user nice system iowait irq softirq)}) = split ' ', shift;
 	$load{TOTAL} = sum @load{qw(user nice system iowait)};
 
 	return ($name, \%load);
 }
 
-sub get_remote_stat ($) {
+sub get_stat ($) {
 	my $host = shift;
 
 	my $bash = "for i in \$(seq $CONF{samples}); do cat /proc/stat; sleep 0.1; done";
@@ -71,7 +69,7 @@ sub get_remote_stat ($) {
 		my $pid = open2 my $out, my $in, $cmd or die "Error: $!\n";
 
 		$SIG{STOP} = sub {
-			say "Shutting down get_remote_stat($host) & PID $pid";
+			say "Shutting down get_stat($host) & PID $pid";
 			kill 1, $pid;
 			threads->exit();
 		};
@@ -86,7 +84,8 @@ sub get_remote_stat ($) {
 		while (<$out>) {
 	   		/$cpuregexp/ && do {
 				my ($name, $load) = parse_cpu_line $_;
-				$STATS{"$host;$name"} = join ';', map { $_ . '=' . $load->{$_} } keys %$load;
+				$STATS{"$host;$name"} = join ';', 
+				   	map { $_ . '=' . $load->{$_} } keys %$load;
 			};
 
 			if ($sigusr1) {
@@ -160,7 +159,6 @@ sub graph_stats ($$) {
 
 	# Toggle CPUs
 	$SIG{USR1} = sub {
-		%STATS = ();
 		wait_for_stats;
 	};
 
@@ -280,7 +278,7 @@ sub create_threads (\@;*) {
    	my ($hosts, $flag) = @_;
 
 	my @threads;
-	push @threads, threads->create('get_remote_stat', $_) for @$hosts;
+	push @threads, threads->create('get_stat', $_) for @$hosts;
 
 	return (undef, @threads) if defined $flag;
 	return (threads->create('display_stats'), @threads);
@@ -295,13 +293,14 @@ sub stop_threads (@) {
 	return undef;
 }
 
-sub toggle_cpus ($\@@) {
-	my ($display, $threads, @hosts) = @_;
+sub toggle_cpus ($@) {
+	my ($display, @threads) = @_;
 
 	$CONF{total} = ! $CONF{total};
 	$CONF{cpuregexp} = $CONF{total} ? 'cpu ' : 'cpu';
 
-	$_->kill('USR1') for @$threads;
+	$_->kill('USR1') for @threads;
+	%STATS = ();
 	$display->kill('USR1');
 
 	return undef;
@@ -340,7 +339,7 @@ sub main (@_) {
 	print PROMPT;
 
 	while (<STDIN>) {
-		/^1/ && do { toggle_cpus $display, @threads, @hosts };
+		/^1/ && do { toggle_cpus $display, @threads };
 		/^a/ && do { set_value average };
 		/^s/ && do { set_value samples };
 		/^i/ && do { set_value interval };

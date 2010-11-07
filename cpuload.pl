@@ -21,18 +21,20 @@ use constant {
 	HEIGHT => 200,
 	DEPTH => 8,
 	PROMPT => 'cpuload> ',
-	VERSION => 'cpuload 0.1 2010 (c) Paul Buetow <cpuload@dev.buetow.org>',
+	VERSION => 'cpuload 0.1 2010 (c) Paul Buetow <cpuload@mx.buetow.org>',
 };
 
 $| = 1;
 
-my %GLOBAL_STATS :shared;
-my %GLOBAL_CONF  :shared;
+my %STATS :shared;
+my %CONF  :shared;
 
-%GLOBAL_CONF = (
-	average => 20,
+%CONF = (
+	average => 30,
 	samples => 1000,
 	interval => 0.1,
+	sshopts => '',
+	cpuregexp => '/cpu',
 );
 
 sub say (@) { print "$_\n" for @_; return undef }
@@ -60,21 +62,24 @@ sub parse_cpu_line ($) {
 sub get_remote_stat ($) {
 	my $host = shift;
 
+	my $bash = "for i in \$(seq $CONF{samples}); do cat /proc/stat; sleep 0.1; done";
+	my $cmd = $host eq 'localhost' ? $bash : "ssh $CONF{sshopts} '$bash'";
+
 	loop {
-		my $pid = open2 my $out, my $in, qq{ 
-			ssh $host 'for i in \$(seq $GLOBAL_CONF{samples}); do cat /proc/stat; sleep 0.1; done'
-		} or die "Error: $!\n";
+		my $pid = open2 my $out, my $in, $cmd or die "Error: $!\n";
 
 		$SIG{STOP} = sub {
-			say "Shutting down get_remote_stat($host) & $pid";
+			say "Shutting down get_remote_stat($host) & PID $pid";
 			kill 1, $pid;
 			threads->exit();
 		};
 
+		my $cpuregexp = $CONF{cpuregexp};
+
 		while (<$out>) {
-	   	/^cpu/ && do {
+	   		/^cpu/ && do {
 				my ($name, $load) = parse_cpu_line $_;
-				$GLOBAL_STATS{"$host;$name"} = join ';', map { $_ . '=' . $load->{$_} } keys %$load;
+				$STATS{"$host;$name"} = join ';', map { $_ . '=' . $load->{$_} } keys %$load;
 			}
 		}
 	}
@@ -113,7 +118,7 @@ sub get_load_average (@) {
 sub graph_stats ($$) {
   	my ($app, $colors) = @_;
 
-	my $width = WIDTH / (keys %GLOBAL_STATS) - 1;
+	my $width = WIDTH / (keys %STATS) - 1;
 
 	my $rects = {};
 	my %prev_stats;
@@ -122,9 +127,9 @@ sub graph_stats ($$) {
 	loop {
 		my ($x, $y) = (0, 0);
 
-		for my $key (sort keys %GLOBAL_STATS) {
+		for my $key (sort keys %STATS) {
 			my ($host, $name) = split ';', $key;
-			my %stat = map { my ($k, $v) = split '='; $k => $v } split ';', $GLOBAL_STATS{$key};
+			my %stat = map { my ($k, $v) = split '='; $k => $v } split ';', $STATS{$key};
 
 			unless (exists $prev_stats{$key}) {
 				$prev_stats{$key} = \%stat;
@@ -137,7 +142,7 @@ sub graph_stats ($$) {
 
 			%loads = normalize_loads %loads;
 			push @{$last_loads{$key}}, \%loads;
-			shift @{$last_loads{$key}} while @{$last_loads{$key}} >= $GLOBAL_CONF{average};
+			shift @{$last_loads{$key}} while @{$last_loads{$key}} >= $CONF{average};
 			my %load_average = get_load_average @{$last_loads{$key}};
 
 			my %heights = map { $_ => defined $load_average{$_} ? $load_average{$_} * (HEIGHT/100) : 1 } keys %load_average;
@@ -182,7 +187,7 @@ sub graph_stats ($$) {
 		
 		};
 
-		usleep $GLOBAL_CONF{interval} * 1000000;
+		usleep $CONF{interval} * 1000000;
 
 	};
 
@@ -191,7 +196,7 @@ sub graph_stats ($$) {
 
 sub display_stats () {
 	# Wait until first results are available
-	sleep 1 until %GLOBAL_STATS;
+	sleep 1 until %STATS;
 
 	my $app = SDL::App->new(
 		-width => WIDTH,
@@ -201,7 +206,7 @@ sub display_stats () {
 
   	my $colors = {
 		red => SDL::Color->new(-r => 0xff, -g => 0x00, -b => 0x00),
-		orange => SDL::Color->new(-r => 0xff, -g => 0x40, -b => 0x00),
+		orange => SDL::Color->new(-r => 0xff, -g => 0x70, -b => 0x00),
 		yellow => SDL::Color->new(-r => 0xff, -g => 0xa0, -b => 0x00),
 		green => SDL::Color->new(-r => 0x00, -g => 0x90, -b => 0x00),
 		blue => SDL::Color->new(-r => 0x00, -g => 0x00, -b => 0xff),
@@ -218,9 +223,9 @@ sub display_stats () {
 
 sub print_help () {
 	print <<"END";
-a - Set number of samples for calculating average loads ($GLOBAL_CONF{average})
-i - Set update interval in seconds ($GLOBAL_CONF{interval})
-s - Set number of samples until ssh reconnects ($GLOBAL_CONF{samples})
+a - Set number of samples for calculating average loads ($CONF{average})
+i - Set update interval in seconds ($CONF{interval})
+s - Set number of samples until ssh reconnects ($CONF{samples})
 h - Print this help screen
 v - Print version
 q - Quit
@@ -230,8 +235,8 @@ END
 sub set_value (*) {
 	my $key = shift;
 
-	print "Please enter new value (old value: $GLOBAL_CONF{$key}): ";
-	chomp ($GLOBAL_CONF{$key} = <STDIN>);
+	print "Please enter new value (old value: $CONF{$key}): ";
+	chomp ($CONF{$key} = <STDIN>);
 
 	return undef;
 }

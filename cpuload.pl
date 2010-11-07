@@ -21,7 +21,8 @@ use constant {
 	HEIGHT => 200,
 	DEPTH => 8,
 	PROMPT => 'cpuload> ',
-	VERSION => 'cpuload v0.1 2010 (c) Paul Buetow <cpuload@mx.buetow.org>',
+	VERSION => 'cpuload v0.1',
+	COPYRIGHT => '2010 (c) Paul Buetow <cpuload@mx.buetow.org>',
 };
 
 $| = 1;
@@ -334,7 +335,7 @@ sub main (@_) {
 	@hosts = 'localhost' unless @hosts;
   	my ($display, @threads) = create_threads @hosts;
 
-	say VERSION;
+	say VERSION . ' ' . COPYRIGHT;
 	say "Type 'h' for help menu";
 	print PROMPT;
 

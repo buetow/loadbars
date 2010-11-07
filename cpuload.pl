@@ -21,7 +21,7 @@ use constant {
 	HEIGHT => 200,
 	DEPTH => 8,
 	PROMPT => 'cpuload> ',
-	VERSION => 'cpuload 0.1 2010 (c) Paul Buetow <cpuload@mx.buetow.org>',
+	VERSION => 'cpuload v0.1 2010 (c) Paul Buetow <cpuload@mx.buetow.org>',
 };
 
 $| = 1;
@@ -34,7 +34,8 @@ my %CONF  :shared;
 	samples => 1000,
 	interval => 0.1,
 	sshopts => '',
-	cpuregexp => '/cpu',
+	cpuregexp => 'cpu',
+	total => 0,
 );
 
 sub say (@) { print "$_\n" for @_; return undef }
@@ -74,10 +75,10 @@ sub get_remote_stat ($) {
 			threads->exit();
 		};
 
-		my $cpuregexp = $CONF{cpuregexp};
+		my $cpuregexp = qr/$CONF{cpuregexp}/;
 
 		while (<$out>) {
-	   		/^cpu/ && do {
+	   		/$cpuregexp/ && do {
 				my ($name, $load) = parse_cpu_line $_;
 				$STATS{"$host;$name"} = join ';', map { $_ . '=' . $load->{$_} } keys %$load;
 			}
@@ -118,13 +119,12 @@ sub get_load_average (@) {
 sub graph_stats ($$) {
   	my ($app, $colors) = @_;
 
-	my $width = WIDTH / (keys %STATS) - 1;
-
 	my $rects = {};
 	my %prev_stats;
 	my %last_loads;
 
 	loop {
+		my $width = WIDTH / (keys %STATS) - 1;
 		my ($x, $y) = (0, 0);
 
 		for my $key (sort keys %STATS) {
@@ -202,6 +202,7 @@ sub display_stats () {
 		-width => WIDTH,
 		-height => HEIGHT,
 		-depth => DEPTH,
+		-title => VERSION,
 	);
 
   	my $colors = {
@@ -223,6 +224,7 @@ sub display_stats () {
 
 sub print_help () {
 	print <<"END";
+1 - Toggle CPUs
 a - Set number of samples for calculating average loads ($CONF{average})
 i - Set update interval in seconds ($CONF{interval})
 s - Set number of samples until ssh reconnects ($CONF{samples})
@@ -230,6 +232,39 @@ h - Print this help screen
 v - Print version
 q - Quit
 END
+}
+
+sub create_threads (\@;*) {
+   	my ($hosts, $flag) = @_;
+
+	my @threads;
+	push @threads, threads->create('get_remote_stat', $_) for @$hosts;
+
+	return (undef, @threads) if defined $flag;
+	return (threads->create('display_stats'), @threads);
+}
+
+sub stop_threads (@) {
+	for (@_) {
+		$_->kill('STOP');
+		$_->join();
+	}
+
+	return undef;
+}
+
+sub toggle_cpus (\@@) {
+	my ($threads, @hosts) = @_;
+
+	stop_threads @$threads;
+
+	$CONF{total} = ! $CONF{total};
+	$CONF{cpuregexp} = $CONF{total} ? 'cpu ' : 'cpu';
+
+	%STATS = ();
+	(undef, @$threads) = create_threads @hosts, no_display;
+
+	return undef;
 }
 
 sub set_value (*) {
@@ -243,17 +278,16 @@ sub set_value (*) {
 
 sub main (@_) {
   	my @hosts = @_;
-	@hosts = 'localhost' unless @hosts;
 
-  	my @threads;
-	push @threads, threads->create('get_remote_stat', $_) for @hosts;
-	push @threads, threads->create('display_stats');
+	@hosts = 'localhost' unless @hosts;
+  	my ($display, @threads) = create_threads @hosts;
 
 	say VERSION;
 	say "Type 'h' for help menu";
 	print PROMPT;
 
 	while (<STDIN>) {
+		/^1/ && do { toggle_cpus @threads, @hosts };
 		/^a/ && do { set_value average };
 		/^s/ && do { set_value samples };
 		/^i/ && do { set_value interval };
@@ -264,10 +298,7 @@ sub main (@_) {
 		say; print PROMPT;
 	}
 
-	for (@threads) {
-		$_->kill('STOP');
-		$_->join();
-	}
+	stop_threads @threads, $display;
 
 	say "Good bye";
 	exit 0;

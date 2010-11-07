@@ -168,6 +168,8 @@ sub graph_stats ($$) {
 
 		for my $key (sort keys %STATS) {
 			my ($host, $name) = split ';', $key;
+			next unless defined $STATS{$key};
+
 			my %stat = map { my ($k, $v) = split '='; $k => $v } split ';', $STATS{$key};
 
 			unless (exists $prev_stats{$key}) {

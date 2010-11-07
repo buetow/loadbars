@@ -129,6 +129,11 @@ sub draw_background ($$$) {
 	$app->update($rect);
 }
 
+sub null ($) {
+   	my $arg = shift;
+	return defined $arg ? $arg : 0;
+}
+
 sub graph_stats ($$) {
   	my ($app, $colors) = @_;
 
@@ -155,6 +160,7 @@ sub graph_stats ($$) {
 		if ($new_num_stats != $num_stats) {
 			%prev_stats = ();
 			%last_loads = ();
+	
 			$num_stats = $new_num_stats;
 			$width = WIDTH / $num_stats - 1;
 			draw_background $app, $colors, $rect_bg;
@@ -170,7 +176,7 @@ sub graph_stats ($$) {
 			}
 
 			my $prev_stat = $prev_stats{$key};
-			my %loads = $stat{TOTAL} == $prev_stat->{TOTAL} ? %stat : map { $_ => $stat{$_} - $prev_stat->{$_} } keys %stat;
+			my %loads = null $stat{TOTAL} == null $prev_stat->{TOTAL} ? %stat : map { $_ => $stat{$_} - $prev_stat->{$_} } keys %stat;
 			$prev_stats{$key} = \%stat;
 
 			%loads = normalize_loads %loads;

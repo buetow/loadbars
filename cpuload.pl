@@ -118,12 +118,15 @@ sub get_load_average (@) {
 
 sub wait_for_stats () {
 	sleep 1 until %STATS;
-	my $count;
+}
 
-	do {
-		$count = %STATS;
-	   	sleep 2;
-	} until $count == %STATS;
+sub draw_background ($$$) {
+   	my ($app, $colors, $rect) = @_;
+
+	$rect->width(WIDTH);
+	$rect->height(HEIGHT);
+	$app->fill($rect, $colors->{black});
+	$app->update($rect);
 }
 
 sub graph_stats ($$) {
@@ -131,30 +134,31 @@ sub graph_stats ($$) {
 
 	wait_for_stats;
 
+	my $num_stats = keys %STATS;
+	my $width = WIDTH / $num_stats - 1;
+
 	my $rects = {};
 	my %prev_stats;
 	my %last_loads;
-	my $width = WIDTH / (keys %STATS) - 1;
 	my $rect_bg = SDL::Rect->new();
 
 	# Toggle CPUs
 	$SIG{USR1} = sub {
 		%STATS = ();
 		wait_for_stats;
-
-		$width = WIDTH / (keys %STATS) - 1;
-
-		$rect_bg->width(WIDTH);
-		$rect_bg->height(HEIGHT);
-		$app->fill($rect_bg, $colors->{black});
-		$app->update($rect_bg);
-
-		%prev_stats = ();
-		%last_loads = ();
 	};
 
 	loop {
 		my ($x, $y) = (0, 0);
+
+		my $new_num_stats = keys %STATS;
+		if ($new_num_stats != $num_stats) {
+			%prev_stats = ();
+			%last_loads = ();
+			$num_stats = $new_num_stats;
+			$width = WIDTH / $num_stats - 1;
+			draw_background $app, $colors, $rect_bg;
+		}
 
 		for my $key (sort keys %STATS) {
 			my ($host, $name) = split ';', $key;

@@ -235,7 +235,7 @@ sub graph_stats ($$) {
 			$app->fill($rect_iowait, $colors->{black});
 			$app->fill($rect_nice, $colors->{green});
 			$app->fill($rect_system, $colors->{blue});
-			$app->fill($rect_system, $load_average{system} > 50
+			$app->fill($rect_system, $load_average{system} > 20
 			      	? $colors->{purple} 
 				: $colors->{blue});
 			$app->fill($rect_user, $system_n_user > 90 

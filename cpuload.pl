@@ -63,7 +63,7 @@ sub get_remote_stat ($) {
 	my $host = shift;
 
 	my $bash = "for i in \$(seq $CONF{samples}); do cat /proc/stat; sleep 0.1; done";
-	my $cmd = $host eq 'localhost' ? $bash : "ssh $CONF{sshopts} '$bash'";
+	my $cmd = $host eq 'localhost' ? $bash : "ssh $CONF{sshopts} $host '$bash'";
 
 	loop {
 		my $pid = open2 my $out, my $in, $cmd or die "Error: $!\n";

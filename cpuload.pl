@@ -116,10 +116,20 @@ sub get_load_average (@) {
 	return %load_average;
 }
 
+sub wait_for_stats () {
+	sleep 1 until %STATS;
+	my $count;
+
+	do {
+		$count = %STATS;
+	   	sleep 2;
+	} until $count == %STATS;
+}
+
 sub graph_stats ($$) {
   	my ($app, $colors) = @_;
 
-	sleep 1 until %STATS;
+	wait_for_stats;
 
 	my $rects = {};
 	my %prev_stats;
@@ -130,7 +140,8 @@ sub graph_stats ($$) {
 	# Toggle CPUs
 	$SIG{USR1} = sub {
 		%STATS = ();
-		sleep 1 until %STATS;
+		wait_for_stats;
+
 		$width = WIDTH / (keys %STATS) - 1;
 
 		$rect_bg->width(WIDTH);

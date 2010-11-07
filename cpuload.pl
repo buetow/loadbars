@@ -124,7 +124,10 @@ sub graph_stats ($$) {
 	my %last_loads;
 
 	loop {
-		my $width = WIDTH / (keys %STATS) - 1;
+		my $width = do { 
+		   sleep 1 until %STATS;
+		   WIDTH / (keys %STATS) - 1
+		};
 		my ($x, $y) = (0, 0);
 
 		for my $key (sort keys %STATS) {

@@ -351,6 +351,7 @@ sub main () {
 		'interval=i' => \$CONF{interval},
 		'samples=i' => \$CONF{samples},
 		'toggle=i' => \$CONF{toggle},
+		'ssh=s' => \$CONF{sshopts},
 	);
 
   	my @hosts = split ',', $hosts;

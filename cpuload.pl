@@ -229,13 +229,14 @@ sub graph_stats ($$) {
 			$rect_iowait->height($heights{iowait});
 			$rect_iowait->x($x);
 			$rect_iowait->y($y);
-		
+	
+			my $system_n_user = sum @load_average{qw(user system)};
 			$app->fill($rect_iowait, $colors->{black});
 			$app->fill($rect_nice, $colors->{green});
 			$app->fill($rect_system, $colors->{blue});
-			$app->fill($rect_user, $load_average{user} >= 90 
+			$app->fill($rect_user, $system_n_user >= 90 
 			      	? $colors->{red} 
-				: ( $load_average{user} >= 70 
+				: ( $system_n_user >= 70 
 					? $colors->{orange} 
 					: $colors->{yellow}));
 

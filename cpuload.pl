@@ -8,6 +8,7 @@ use IPC::Open2;
 use Data::Dumper;
 
 use Getopt::Long;
+use Term::ReadLine;
 
 use SDL::App;
 use SDL::Rect;
@@ -342,14 +343,16 @@ END
 }
 
 sub main () {
- 	my $hosts = ''; 
+ 	my ($config, $hosts) = ('', '');
 	GetOptions (
+		'config=s' => \$config,
 		'hosts=s' => \$hosts,
 		'averate=i' => \$CONF{average},
 		'interval=i' => \$CONF{interval},
 		'samples=i' => \$CONF{samples},
 		'toggle=i' => \$CONF{toggle},
 	);
+
   	my @hosts = split ',', $hosts;
 	@hosts = 'localhost' unless @hosts;
 	set_toggle_regexp;
@@ -358,19 +361,24 @@ sub main () {
 
 	say VERSION . ' ' . COPYRIGHT;
 	say "Type 'h' for help menu";
-	print PROMPT;
 
-	while (<STDIN>) {
+	my $term = new Term::ReadLine VERSION;
+	while ( defined( $_ = $term->readline(PROMPT) ) ) {
+        	$term->addhistory($_);
+        	chomp;
+
+        	my ( $cmd, @args ) = split /\s+/;
+        	next unless defined $cmd;
+        	$_ = shift @args if $cmd eq '';
+
 		/^1/ && do { toggle_cpus $display, @threads };
 		/^a/ && do { set_value average };
 		/^s/ && do { set_value samples };
 		/^i/ && do { set_value interval };
 		/^h/ && do { print_help };
 		/^!(.*)/ && do { system $1 };
-		/^v/ && do { say VERSION };
+		/^v/ && do { say VERSION . ' ' . COPYRIGHT };
 		/^q/ && last;
-
-		say; print PROMPT;
 	}
 
 	stop_threads @threads, $display;

@@ -241,11 +241,13 @@ sub graph_stats ($$) {
 			$app->fill($rect_system, $load_average{system} > 30
 			      	? $colors->{purple} 
 				: $colors->{blue});
-			$app->fill($rect_user, $system_n_user > 97 
+			$app->fill($rect_user, $system_n_user > 90 
 			      	? $colors->{red} 
 				: ( $system_n_user > 70 
 					? $colors->{orange} 
-					: $colors->{yellow}));
+					: ( $system_n_user > 50 
+						? $colors->{yellow0} 
+						: $colors->{yellow})));
 
 			$app->update($_) for $rect_nice, $rect_iowait, $rect_system, $rect_user;
 			$x += $width + 1;
@@ -269,7 +271,8 @@ sub display_stats () {
   	my $colors = {
 		red => SDL::Color->new(-r => 0xff, -g => 0x00, -b => 0x00),
 		orange => SDL::Color->new(-r => 0xff, -g => 0x70, -b => 0x00),
-		yellow => SDL::Color->new(-r => 0xff, -g => 0xa0, -b => 0x00),
+		yellow0 => SDL::Color->new(-r => 0xff, -g => 0xa0, -b => 0x00),
+		yellow => SDL::Color->new(-r => 0xff, -g => 0xc0, -b => 0x00),
 		green => SDL::Color->new(-r => 0x00, -g => 0x90, -b => 0x00),
 		blue => SDL::Color->new(-r => 0x00, -g => 0x00, -b => 0xff),
 		purple => SDL::Color->new(-r => 0xa0, -g => 0x20, -b => 0xf0),

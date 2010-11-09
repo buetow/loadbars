@@ -1,5 +1,5 @@
 #!/usr/bin/perl
-# cpuload.pl 2010 (c) Paul Buetow
+# loadbars.pl 2010 (c) Paul Buetow
 
 use strict;
 use warnings;
@@ -23,9 +23,9 @@ use constant {
 	WIDTH => 1200,
 	HEIGHT => 200,
 	DEPTH => 8,
-	PROMPT => 'cpuload> ',
-	VERSION => 'cpuload v0.1',
-	COPYRIGHT => '2010 (c) Paul Buetow <cpuload@mx.buetow.org>',
+	PROMPT => 'loadbars> ',
+	VERSION => 'loadbars v0.0.1',
+	COPYRIGHT => '2010 (c) Paul Buetow <loadbars@mx.buetow.org>',
 };
 
 $| = 1;

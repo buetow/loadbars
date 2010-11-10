@@ -24,7 +24,7 @@ use constant {
 	HEIGHT => 200,
 	DEPTH => 8,
 	PROMPT => 'loadbars> ',
-	VERSION => 'loadbars v0.0.1',
+	VERSION => 'loadbars v0.0.2',
 	COPYRIGHT => '2010 (c) Paul Buetow <loadbars@mx.buetow.org>',
 };
 
@@ -40,6 +40,7 @@ my %CONF  :shared;
 	sshopts => '',
 	cpuregexp => 'cpu',
 	toggle => 0,
+	scale => 1,
 );
 
 sub say (@) { print "$_\n" for @_; return undef }
@@ -116,17 +117,17 @@ sub normalize_loads (%) {
 	return map { $_ => $loads{$_} / ($total / 100) } keys %loads;
 }
 
-sub get_load_average (@) {
-	my @loads = @_;	
+sub get_load_average ($@) {
+	my ($scale, @loads) = @_;	
 	my %load_average;
 
 	for my $l (@loads) {
-		for my $key (keys %$l) {
-			$load_average{$key} += $l->{$key};
-		}
+		$load_average{$_} += $l->{$_} for keys %$l;
 	}
 
-	$load_average{$_} /= @loads for keys %load_average;
+	my $div = @loads / $scale;
+	$load_average{$_} /= $div for keys %load_average;
+
 	return %load_average;
 }
 
@@ -169,6 +170,7 @@ sub graph_stats ($$) {
 	loop {
 		my ($x, $y) = (0, 0);
 
+		my $scale = $CONF{scale};
 		my $new_num_stats = keys %STATS;
 		if ($new_num_stats != $num_stats) {
 			%prev_stats = ();
@@ -198,7 +200,7 @@ sub graph_stats ($$) {
 			%loads = normalize_loads %loads;
 			push @{$last_loads{$key}}, \%loads;
 			shift @{$last_loads{$key}} while @{$last_loads{$key}} >= $CONF{average};
-			my %load_average = get_load_average @{$last_loads{$key}};
+			my %load_average = get_load_average $scale, @{$last_loads{$key}};
 
 			my %heights = map { 
 				$_ => defined $load_average{$_} ? $load_average{$_} * (HEIGHT/100) : 1 
@@ -336,6 +338,7 @@ sub print_help () {
 	print <<"END";
 1 	- Toggle CPUs
 a 	- Set number of samples for calculating average loads ($CONF{average})
+c 	- Set scale factor ($CONF{scale})
 i 	- Set update interval in seconds ($CONF{interval})
 s 	- Set number of samples until ssh reconnects ($CONF{samples})
 h 	- Print this help screen
@@ -350,6 +353,7 @@ sub main () {
 	GetOptions (
 		'config=s' => \$config,
 		'hosts=s' => \$hosts,
+		'scale=s' => \$hosts,
 		'averate=i' => \$CONF{average},
 		'interval=i' => \$CONF{interval},
 		'samples=i' => \$CONF{samples},
@@ -377,6 +381,7 @@ sub main () {
 
 		/^1/ && do { toggle_cpus $display, @threads };
 		/^a/ && do { set_value average };
+		/^c/ && do { set_value scale };
 		/^s/ && do { set_value samples };
 		/^i/ && do { set_value interval };
 		/^h/ && do { print_help };

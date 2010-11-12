@@ -13,6 +13,7 @@ use Term::ReadLine;
 use SDL::App;
 use SDL::Rect;
 use SDL::Color;
+use SDL::Event;
 
 use Time::HiRes qw(usleep gettimeofday);
 
@@ -20,18 +21,21 @@ use threads;
 use threads::shared;
 
 use constant {
-	WIDTH => 1200,
-	HEIGHT => 200,
 	DEPTH => 8,
 	PROMPT => 'loadbars> ',
-	VERSION => 'loadbars v0.0.2',
+	VERSION => 'loadbars v0.0.3',
 	COPYRIGHT => '2010 (c) Paul Buetow <loadbars@mx.buetow.org>',
+	NULL => 0,
+	MSG_SET_DIMENSION => 1,
+	MSG_TOGGLE_FULLSCREEN => 2,
 };
+
 
 $| = 1;
 
 my %STATS :shared;
 my %CONF  :shared;
+my $MSG   :shared;
 
 %CONF = (
 	average => 30,
@@ -39,8 +43,10 @@ my %CONF  :shared;
 	interval => 0.1,
 	sshopts => '',
 	cpuregexp => 'cpu',
-	toggle => 0,
+	toggle => 1,
 	scale => 1,
+	width => 1200,
+	height => 200,
 );
 
 sub say (@) { print "$_\n" for @_; return undef }
@@ -63,7 +69,7 @@ sub parse_cpu_line ($) {
 	return ($name, \%load);
 }
 
-sub get_stat ($) {
+sub thr_get_stat ($) {
 	my $host = shift;
 
 	my $bash = "if [ -e /proc/stat ]; then proc=/proc/stat; else proc=/usr/compat/linux/proc/stat; fi; for i in \$(seq $CONF{samples}); do cat \$proc; sleep 0.1; done";
@@ -138,8 +144,8 @@ sub wait_for_stats () {
 sub draw_background ($$$) {
    	my ($app, $colors, $rect) = @_;
 
-	$rect->width(WIDTH);
-	$rect->height(HEIGHT);
+	$rect->width($CONF{width});
+	$rect->height($CONF{height});
 	$app->fill($rect, $colors->{black});
 	$app->update($rect);
 }
@@ -155,7 +161,7 @@ sub graph_stats ($$) {
 	wait_for_stats;
 
 	my $num_stats = keys %STATS;
-	my $width = WIDTH / $num_stats - 1;
+	my $width = $CONF{width} / $num_stats - 1;
 
 	my $rects = {};
 	my %prev_stats;
@@ -167,17 +173,29 @@ sub graph_stats ($$) {
 		wait_for_stats;
 	};
 
+	# Set new window dimensions 
+	$SIG{USR2} = sub {
+	   	if ($MSG == MSG_SET_DIMENSION) {
+			$width = $CONF{width} / $num_stats - 1;
+			$app->resize($CONF{width}, $CONF{height});
+
+		} elsif ($MSG == MSG_TOGGLE_FULLSCREEN) {
+		   	$app->fullscreen();
+		}
+	};
+
 	loop {
 		my ($x, $y) = (0, 0);
 
 		my $scale = $CONF{scale};
+
 		my $new_num_stats = keys %STATS;
 		if ($new_num_stats != $num_stats) {
 			%prev_stats = ();
 			%last_loads = ();
 	
 			$num_stats = $new_num_stats;
-			$width = WIDTH / $num_stats - 1;
+			$width = $CONF{width} / $num_stats - 1;
 			draw_background $app, $colors, $rect_bg;
 		}
 
@@ -203,7 +221,7 @@ sub graph_stats ($$) {
 			my %load_average = get_load_average $scale, @{$last_loads{$key}};
 
 			my %heights = map { 
-				$_ => defined $load_average{$_} ? $load_average{$_} * (HEIGHT/100) : 1 
+				$_ => defined $load_average{$_} ? $load_average{$_} * ($CONF{height}/100) : 1 
 			} keys %load_average;
 
 			my $rect_user = get_rect $rects, "$key;user";
@@ -211,7 +229,7 @@ sub graph_stats ($$) {
 			my $rect_iowait = get_rect $rects, "$key;iowait";
 			my $rect_nice = get_rect $rects, "$key;nice";
 
-			$y = HEIGHT - $heights{system};
+			$y = $CONF{height} - $heights{system};
 			$rect_system->width($width);
 			$rect_system->height($heights{system});
 			$rect_system->x($x);
@@ -261,13 +279,14 @@ sub graph_stats ($$) {
 	return undef;
 }
 
-sub display_stats () {
+sub thr_display_stats () {
 	# Wait until first results are available
 	my $app = SDL::App->new(
-		-width => WIDTH,
-		-height => HEIGHT,
+		-width => $CONF{width},
+		-height => $CONF{height},
 		-depth => DEPTH,
 		-title => VERSION,
+		-resizeable => 0,
 	);
 
   	my $colors = {
@@ -286,17 +305,25 @@ sub display_stats () {
 		threads->exit();
 	};
 
+	$app->add_event_handler( sub { debugsay shift->type; return 1 } );
+
 	graph_stats $app, $colors;;
 }
 
-sub create_threads (\@;*) {
-   	my ($hosts, $flag) = @_;
+sub send_message ($$) {
+   	my ($thread, $message) = @_;
+
+	$MSG = $message;
+	$thread->kill('USR2');
+}
+
+sub create_threads (\@) {
+   	my ($hosts) = @_;
 
 	my @threads;
-	push @threads, threads->create('get_stat', $_) for @$hosts;
+	push @threads, threads->create('thr_get_stat', $_) for @$hosts;
 
-	return (undef, @threads) if defined $flag;
-	return (threads->create('display_stats'), @threads);
+	return (threads->create('thr_display_stats'), @threads);
 }
 
 sub stop_threads (@) {
@@ -310,6 +337,8 @@ sub stop_threads (@) {
 
 sub set_toggle_regexp () {
 	$CONF{cpuregexp} = $CONF{toggle} ? 'cpu ' : 'cpu';
+
+	return undef;
 }
 
 sub toggle_cpus ($@) {
@@ -325,13 +354,33 @@ sub toggle_cpus ($@) {
 	return undef;
 }
 
-sub set_value (*) {
-	my $key = shift;
+sub toggle_fullscreen ($) {
+   	my $display = shift;
 
-	print "Please enter new value (old value: $CONF{$key}): ";
-	chomp ($CONF{$key} = <STDIN>);
+	send_message $display, MSG_TOGGLE_FULLSCREEN;
 
 	return undef;
+}
+
+
+sub set_value (*;*) {
+	my ($key, $type) = @_;
+
+	print "Please enter new value for $key (old value: $CONF{$key}): ";
+	chomp ($CONF{$key} = <STDIN>);
+
+	$CONF{$key} = int $CONF{$key} if defined $type and $type eq 'int';
+
+	return undef;
+}
+
+sub set_dimensions ($) {
+   	my $display = shift;
+
+	set_value width;
+	set_value height;
+
+	send_message $display, MSG_SET_DIMENSION;
 }
 
 sub print_help () {
@@ -339,6 +388,7 @@ sub print_help () {
 1 	- Toggle CPUs
 a 	- Set number of samples for calculating average loads ($CONF{average})
 c 	- Set scale factor ($CONF{scale})
+d 	- Set window dimensions ($CONF{width} $CONF{height}})
 i 	- Set update interval in seconds ($CONF{interval})
 s 	- Set number of samples until ssh reconnects ($CONF{samples})
 h 	- Print this help screen
@@ -359,6 +409,8 @@ sub main () {
 		'samples=i' => \$CONF{samples},
 		'toggle=i' => \$CONF{toggle},
 		'ssh=s' => \$CONF{sshopts},
+		'width=i' => \$CONF{width},
+		'height=i' => \$CONF{height},
 	);
 
   	my @hosts = split ',', $hosts;
@@ -371,17 +423,20 @@ sub main () {
 	say "Type 'h' for help menu";
 
 	my $term = new Term::ReadLine VERSION;
+
 	while ( defined( $_ = $term->readline(PROMPT) ) ) {
         	$term->addhistory($_);
         	chomp;
 
-        	my ( $cmd, @args ) = split /\s+/;
+        	my ($cmd, @args) = split /\s+/;
         	next unless defined $cmd;
         	$_ = shift @args if $cmd eq '';
 
 		/^1/ && do { toggle_cpus $display, @threads };
 		/^a/ && do { set_value average };
 		/^c/ && do { set_value scale };
+		/^d/ && do { set_dimensions $display };
+		#/^f/ && do { toggle_fullscreen $display };
 		/^s/ && do { set_value samples };
 		/^i/ && do { set_value interval };
 		/^h/ && do { print_help };
@@ -390,12 +445,10 @@ sub main () {
 		/^q/ && last;
 	}
 
-	stop_threads @threads, $display;
+	stop_threads @threads,$display;
 
 	say "Good bye";
 	exit 0;
 }
 
 main;
-
-

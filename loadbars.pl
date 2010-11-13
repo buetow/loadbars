@@ -169,9 +169,7 @@ sub graph_stats ($$) {
 	my $rect_bg = SDL::Rect->new();
 
 	# Toggle CPUs
-	$SIG{USR1} = sub {
-		wait_for_stats;
-	};
+	$SIG{USR1} = sub { wait_for_stats };
 
 	# Set new window dimensions 
 	$SIG{USR2} = sub {
@@ -203,7 +201,9 @@ sub graph_stats ($$) {
 			my ($host, $name) = split ';', $key;
 			next unless defined $STATS{$key};
 
-			my %stat = map { my ($k, $v) = split '='; $k => $v } split ';', $STATS{$key};
+			my %stat = map { 
+			   	my ($k, $v) = split '='; $k => $v 
+			} split ';', $STATS{$key};
 
 			unless (exists $prev_stats{$key}) {
 				$prev_stats{$key} = \%stat;
@@ -212,7 +212,10 @@ sub graph_stats ($$) {
 
 			my $prev_stat = $prev_stats{$key};
 			my %loads = null $stat{TOTAL} == null $prev_stat->{TOTAL} 
-				? %stat : map { $_ => $stat{$_} - $prev_stat->{$_} } keys %stat;
+				? %stat : map { 
+					$_ => $stat{$_} - $prev_stat->{$_} 
+				} keys %stat;
+
 			$prev_stats{$key} = \%stat;
 
 			%loads = normalize_loads %loads;
@@ -403,7 +406,13 @@ sub dispatch_table () {
 		width => { help => 'Set windows width', mode => 4, type => 'i' },
 	);
 
-	my %d_by_short = map { $d{$_}{cmd} => $d{$_} } grep { exists $d{$_}{cmd} } keys %d;
+	my %d_by_short = map { 
+	   	$d{$_}{cmd} => $d{$_} 
+
+	} grep { 
+	   	exists $d{$_}{cmd} 
+
+	} keys %d;
 
 	my $closure = sub ($;$) {
 		my ($arg, @rest) = @_;
@@ -428,19 +437,46 @@ sub dispatch_table () {
 			(exists $cb->{cb} ? $cb->{cb} : sub { set_value $cmd })->(@args);
 
 		} elsif ($arg eq 'help') {
-			join "\n", map { "$_\t- $d_by_short{$_}{help}" } grep { $d_by_short{$_}{mode} & 1 and exists $d_by_short{$_}{help} } sort keys %d_by_short
+			join "\n", map { 
+				"$_\t- $d_by_short{$_}{help}" 
+
+			} grep { 
+			   	$d_by_short{$_}{mode} & 1 and exists $d_by_short{$_}{help}
+
+			} sort keys %d_by_short
 
 		} elsif ($arg eq 'usage') {
-			join "\n", map { "--$_ <V>\t- $d{$_}{help}" } grep { $d{$_}{mode} & 2 and exists $d{$_}{help} } sort keys %d
+			join "\n", map { 
+			   	"--$_ <V>\t- $d{$_}{help}" 
+
+			} grep { 
+			   	$d{$_}{mode} & 2 and exists $d{$_}{help} 
+
+			} sort keys %d
 
 		} elsif ($arg eq 'options') {
-			map { "$_=".$d{$_}{type} => (defined $d{$_}{var} ? $d{$_}{var} : \$CONF{$_}) } grep { $d{$_}{mode} & 4 and exists $d{$_}{type} } sort keys %d
+			map { 
+			   	"$_=".$d{$_}{type} => (defined $d{$_}{var} ? $d{$_}{var} : \$CONF{$_})
+
+			} grep { 
+			   	$d{$_}{mode} & 4 and exists $d{$_}{type} 
+
+			} sort keys %d
 		} 
 	};
 
 	$d{help}{cb} = sub { say $closure->('help') };
 	$d{configuration}{cb} = sub { 
-		say sort map { "$_->[0] = $_->[1]" } grep { defined $_->[1] } map { [$_ => exists $d{$_}{var} ? ${$d{$_}{var}} : $CONF{$_}] } keys %d;
+		say sort map { 
+		   	"$_->[0] = $_->[1]" 
+
+		} grep { 
+		   	defined $_->[1] 
+
+		} map { 
+		   	[$_ => exists $d{$_}{var} ? ${$d{$_}{var}} : $CONF{$_}] 
+
+		} keys %d
 	};
 
 	return (\$hosts, $closure);
@@ -448,7 +484,6 @@ sub dispatch_table () {
 
 sub main () {
    	my ($hosts, $dispatch) = dispatch_table;
-
 	GetOptions ($dispatch->('options'));
 
   	my @hosts = split ',', $$hosts;
@@ -456,11 +491,10 @@ sub main () {
 	set_toggle_regexp;
 
   	my ($display, @threads) = create_threads @hosts;
+	my $term = new Term::ReadLine VERSION;
 
 	say VERSION . ' ' . COPYRIGHT;
 	say "Type 'h' for help menu";
-
-	my $term = new Term::ReadLine VERSION;
 
 	while ( defined( $_ = $term->readline(PROMPT) ) ) {
         	$term->addhistory($_);
@@ -470,7 +504,7 @@ sub main () {
         	next unless defined $cmd;
         	$_ = shift @args if $cmd eq '';
 
-		last if $dispatch->('command', $_, $display, @threads );
+		last if $dispatch->('command', $_, $display, @threads);
 	}
 
 	stop_threads @threads,$display;

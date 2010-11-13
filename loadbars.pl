@@ -305,8 +305,6 @@ sub thr_display_stats () {
 		threads->exit();
 	};
 
-	$app->add_event_handler( sub { debugsay shift->type; return 1 } );
-
 	graph_stats $app, $colors;;
 }
 
@@ -381,39 +379,79 @@ sub set_dimensions ($) {
 	set_value height;
 
 	send_message $display, MSG_SET_DIMENSION;
+
+	return 0;
 }
 
-sub print_help () {
-	print <<"END";
-1 	- Toggle CPUs
-a 	- Set number of samples for calculating average loads ($CONF{average})
-c 	- Set scale factor ($CONF{scale})
-d 	- Set window dimensions ($CONF{width} $CONF{height}})
-i 	- Set update interval in seconds ($CONF{interval})
-s 	- Set number of samples until ssh reconnects ($CONF{samples})
-h 	- Print this help screen
-!<cmd> 	- Run a shell command
-v 	- Print version
-q 	- Quit
-END
+sub dispatch_table () {
+ 	my $hosts = '';
+
+	my %d = ( 
+		average => { cmd => 'a', help => 'Set number of samples for calculating average loads', mode => 7, type => 'i' },
+		configuration => { cmd => 'c', help => 'Show current configuration', mode => 7 },
+		#dimension => { cmd => 'd', help => 'Set windows dimensions', mode => 1, type => 'i', cb => \&set_dimensions },
+		height => { help => 'Set windows height', mode => 4, type => 'i' },
+		help => { cmd => 'h', help => 'Print this help screen', mode => 1 },
+		hosts => { help => 'Comma separated list of hosts', var => \$hosts, mode => 6, type => 's' },
+		interval => { cmd => 'i', help => 'Set update interval in seconds', mode => 7, type => 's' },
+		quit => { cmd => 'q', help => 'Quit', mode => 1, cb => sub { -1 } },
+		samples => { cmd => 's', help => 'Set number of samples until ssh reconnects', mode => 7, type => 'i' },
+		scale => { cmd => 'c', help => 'Set scale factor', mode => 7, type => 's' },
+		sshopts => { help => 'Set SSH options', mode => 4, type => 's' },
+		toggle => { cmd => '1', help => 'Toggle CPUs', mode => 7, type => 'i', cb => \&toggle_cpus },
+		version => { cmd => 'v', help => 'Print version', mode => 3, cb => sub { say VERSION . ' ' . COPYRIGHT } },
+		width => { help => 'Set windows width', mode => 4, type => 'i' },
+	);
+
+	my %d_by_short = map { $d{$_}{cmd} => $d{$_} } grep { exists $d{$_}{cmd} } keys %d;
+
+	my $closure = sub ($;$) {
+		my ($arg, @rest) = @_;
+
+		if ($arg eq 'command') {
+			my ($cmd, @args) = @rest;
+
+			my $cb = $d{$cmd};
+			$cb = $d_by_short{$cmd} unless defined $cb;
+
+			unless (defined $cb) {
+				system $cmd;	
+				return 0;
+			}
+
+			if (length $cmd == 1) {
+				for my $key (grep { exists $d{$_}{cmd} } keys %d) {
+					do { $cmd = $key; last } if $d{$key}{cmd} eq $cmd
+				}
+			}
+
+			(exists $cb->{cb} ? $cb->{cb} : sub { set_value $cmd })->(@args);
+
+		} elsif ($arg eq 'help') {
+			join "\n", map { "$_\t- $d_by_short{$_}{help}" } grep { $d_by_short{$_}{mode} & 1 and exists $d_by_short{$_}{help} } sort keys %d_by_short
+
+		} elsif ($arg eq 'usage') {
+			join "\n", map { "--$_ <V>\t- $d{$_}{help}" } grep { $d{$_}{mode} & 2 and exists $d{$_}{help} } sort keys %d
+
+		} elsif ($arg eq 'options') {
+			map { "$_=".$d{$_}{type} => (defined $d{$_}{var} ? $d{$_}{var} : \$CONF{$_}) } grep { $d{$_}{mode} & 4 and exists $d{$_}{type} } sort keys %d
+		} 
+	};
+
+	$d{help}{cb} = sub { say $closure->('help') };
+	$d{configuration}{cb} = sub { 
+		say sort map { "$_->[0] = $_->[1]" } grep { defined $_->[1] } map { [$_ => exists $d{$_}{var} ? ${$d{$_}{var}} : $CONF{$_}] } keys %d;
+	};
+
+	return (\$hosts, $closure);
 }
 
 sub main () {
- 	my ($config, $hosts) = ('', '');
-	GetOptions (
-		'config=s' => \$config,
-		'hosts=s' => \$hosts,
-		'scale=s' => \$hosts,
-		'averate=i' => \$CONF{average},
-		'interval=i' => \$CONF{interval},
-		'samples=i' => \$CONF{samples},
-		'toggle=i' => \$CONF{toggle},
-		'ssh=s' => \$CONF{sshopts},
-		'width=i' => \$CONF{width},
-		'height=i' => \$CONF{height},
-	);
+   	my ($hosts, $dispatch) = dispatch_table;
 
-  	my @hosts = split ',', $hosts;
+	GetOptions ($dispatch->('options'));
+
+  	my @hosts = split ',', $$hosts;
 	@hosts = 'localhost' unless @hosts;
 	set_toggle_regexp;
 
@@ -432,17 +470,7 @@ sub main () {
         	next unless defined $cmd;
         	$_ = shift @args if $cmd eq '';
 
-		/^1/ && do { toggle_cpus $display, @threads };
-		/^a/ && do { set_value average };
-		/^c/ && do { set_value scale };
-		/^d/ && do { set_dimensions $display };
-		#/^f/ && do { toggle_fullscreen $display };
-		/^s/ && do { set_value samples };
-		/^i/ && do { set_value interval };
-		/^h/ && do { print_help };
-		/^!(.*)/ && do { system $1 };
-		/^v/ && do { say VERSION . ' ' . COPYRIGHT };
-		/^q/ && last;
+		last if $dispatch->('command', $_, $display, @threads );
 	}
 
 	stop_threads @threads,$display;

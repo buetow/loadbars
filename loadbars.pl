@@ -51,7 +51,7 @@ use threads::shared;
 use constant {
 	DEPTH => 8,
 	PROMPT => 'loadbars> ',
-	VERSION => 'loadbars v0.0.3',
+	VERSION => 'loadbars v0.0.4',
 	COPYRIGHT => '2010 (c) Paul Buetow <loadbars@mx.buetow.org>',
 	NULL => 0,
 	MSG_SET_DIMENSION => 1,
@@ -101,7 +101,7 @@ sub thr_get_stat ($) {
 	my $host = shift;
 
 	my $bash = "if [ -e /proc/stat ]; then proc=/proc/stat; else proc=/usr/compat/linux/proc/stat; fi; for i in \$(seq $CONF{samples}); do cat \$proc; sleep 0.1; done";
-	my $cmd = $host eq 'localhost' ? $bash : "ssh $CONF{sshopts} $host '$bash'";
+	my $cmd = $host eq 'localhost' ? $bash : "ssh -o StrictHostKeyChecking=no $CONF{sshopts} $host '$bash'";
 	my $sigusr1 = 0;
 
 	loop {
@@ -511,12 +511,19 @@ sub dispatch_table () {
 }
 
 sub main () {
-   	my ($hosts, $dispatch) = dispatch_table;
+	my ($hosts, $dispatch) = dispatch_table;
 	GetOptions ($dispatch->('options'));
+	set_toggle_regexp;
 
   	my @hosts = split ',', $$hosts;
-	@hosts = 'localhost' unless @hosts;
-	set_toggle_regexp;
+
+	if (@hosts) {
+		system 'ssh-add';
+
+	} else {
+		@hosts = 'localhost';
+	}
+
 
   	my ($display, @threads) = create_threads @hosts;
 	my $term = new Term::ReadLine VERSION;

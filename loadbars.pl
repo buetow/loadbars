@@ -51,7 +51,7 @@ use threads::shared;
 use constant {
 	DEPTH => 8,
 	PROMPT => 'loadbars> ',
-	VERSION => 'loadbars v0.0.4',
+	VERSION => 'loadbars v0.1-beta5',
 	COPYRIGHT => '2010 (c) Paul Buetow <loadbars@mx.buetow.org>',
 	NULL => 0,
 	MSG_SET_DIMENSION => 1,
@@ -68,7 +68,7 @@ my $MSG   :shared;
 %CONF = (
 	average => 30,
 	samples => 1000,
-	interval => 0.1,
+	inter => 0.1,
 	sshopts => '',
 	cpuregexp => 'cpu',
 	toggle => 1,
@@ -304,7 +304,7 @@ sub graph_stats ($$) {
 			$x += $width + 1;
 		};
 
-		usleep $CONF{interval} * 1000000;
+		usleep $CONF{inter} * 1000000;
 	};
 
 	return undef;
@@ -417,21 +417,26 @@ sub set_dimensions ($) {
 sub dispatch_table () {
  	my $hosts = '';
 
+	# mode 1: Option is shown in the online help menu
+	# mode 2: Option is shown in the 'usage' screen from the command line
+	# mode 4: Option is used to generate the GetOptions parameters for Getopt::Long
+	# Combinations: Like chmod(1)
+
 	my %d = ( 
 		average => { cmd => 'a', help => 'Set number of samples for calculating average loads', mode => 7, type => 'i' },
-		configuration => { cmd => 'c', help => 'Show current configuration', mode => 7 },
+		configuration => { cmd => 'c', help => 'Show current configuration', mode => 5 },
 		#dimension => { cmd => 'd', help => 'Set windows dimensions', mode => 1, type => 'i', cb => \&set_dimensions },
-		height => { help => 'Set windows height', mode => 4, type => 'i' },
-		help => { cmd => 'h', help => 'Print this help screen', mode => 1 },
+		height => { help => 'Set windows height', mode => 6, type => 'i' },
+		help => { cmd => 'h', help => 'Print this help screen', mode => 3 },
 		hosts => { help => 'Comma separated list of hosts', var => \$hosts, mode => 6, type => 's' },
-		interval => { cmd => 'i', help => 'Set update interval in seconds', mode => 7, type => 's' },
+		inter => { cmd => 'i', help => 'Set update interval in seconds', mode => 7, type => 's' },
 		quit => { cmd => 'q', help => 'Quit', mode => 1, cb => sub { -1 } },
 		samples => { cmd => 's', help => 'Set number of samples until ssh reconnects', mode => 7, type => 'i' },
-		scale => { cmd => 'c', help => 'Set scale factor', mode => 7, type => 's' },
+		scale => { cmd => 'c', help => 'Set scale factor (1.0 means 100%)', mode => 7, type => 's' },
 		sshopts => { help => 'Set SSH options', mode => 4, type => 's' },
-		toggle => { cmd => '1', help => 'Toggle CPUs', mode => 7, type => 'i', cb => \&toggle_cpus },
-		version => { cmd => 'v', help => 'Print version', mode => 3, cb => sub { say VERSION . ' ' . COPYRIGHT } },
-		width => { help => 'Set windows width', mode => 4, type => 'i' },
+		toggle => { cmd => '1', help => 'Toggle CPUs (0 or 1)', mode => 7, type => 'i', cb => \&toggle_cpus },
+		version => { cmd => 'v', help => 'Print version', mode => 1, cb => sub { say VERSION . ' ' . COPYRIGHT } },
+		width => { help => 'Set windows width', mode => 6, type => 'i' },
 	);
 
 	my %d_by_short = map { 
@@ -475,7 +480,11 @@ sub dispatch_table () {
 
 		} elsif ($arg eq 'usage') {
 			join "\n", map { 
-			   	"--$_ <V>\t- $d{$_}{help}" 
+					if ($_ eq 'help') {
+			   		"--$_\t\t- $d{$_}{help}" 
+					} else {
+			   		"--$_ <ARG>\t- $d{$_}{help}" 
+					}
 
 			} grep { 
 			   	$d{$_}{mode} & 2 and exists $d{$_}{help} 
@@ -512,7 +521,14 @@ sub dispatch_table () {
 
 sub main () {
 	my ($hosts, $dispatch) = dispatch_table;
-	GetOptions ($dispatch->('options'));
+   my $help;
+	GetOptions ('help|?' => \$help, $dispatch->('options'));
+
+   if (defined $help) {
+		say $dispatch->('usage');
+		exit 0;
+	}
+
 	set_toggle_regexp;
 
   	my @hosts = split ',', $$hosts;
@@ -529,7 +545,7 @@ sub main () {
 	my $term = new Term::ReadLine VERSION;
 
 	say VERSION . ' ' . COPYRIGHT;
-	say "Type 'h' for help menu";
+	say 'Type \'h\' for help menu. Or start program with --help for startup options.';
 
 	while ( defined( $_ = $term->readline(PROMPT) ) ) {
         	$term->addhistory($_);

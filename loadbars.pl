@@ -72,7 +72,7 @@ my $MSG   :shared;
 	sshopts => '',
 	cpuregexp => 'cpu',
 	toggle => 1,
-	scale => 1,
+	factor => 1,
 	width => 1200,
 	height => 200,
 );
@@ -152,14 +152,14 @@ sub normalize_loads (%) {
 }
 
 sub get_load_average ($@) {
-	my ($scale, @loads) = @_;	
+	my ($factor, @loads) = @_;	
 	my %load_average;
 
 	for my $l (@loads) {
 		$load_average{$_} += $l->{$_} for keys %$l;
 	}
 
-	my $div = @loads / $scale;
+	my $div = @loads / $factor;
 	$load_average{$_} /= $div for keys %load_average;
 
 	return %load_average;
@@ -213,7 +213,7 @@ sub graph_stats ($$) {
 	loop {
 		my ($x, $y) = (0, 0);
 
-		my $scale = $CONF{scale};
+		my $factor = $CONF{factor};
 
 		my $new_num_stats = keys %STATS;
 		if ($new_num_stats != $num_stats) {
@@ -249,7 +249,7 @@ sub graph_stats ($$) {
 			%loads = normalize_loads %loads;
 			push @{$last_loads{$key}}, \%loads;
 			shift @{$last_loads{$key}} while @{$last_loads{$key}} >= $CONF{average};
-			my %load_average = get_load_average $scale, @{$last_loads{$key}};
+			my %load_average = get_load_average $factor, @{$last_loads{$key}};
 
 			my %heights = map { 
 				$_ => defined $load_average{$_} ? $load_average{$_} * ($CONF{height}/100) : 1 
@@ -432,7 +432,7 @@ sub dispatch_table () {
 		inter => { cmd => 'i', help => 'Set update interval in seconds', mode => 7, type => 's' },
 		quit => { cmd => 'q', help => 'Quit', mode => 1, cb => sub { -1 } },
 		samples => { cmd => 's', help => 'Set number of samples until ssh reconnects', mode => 7, type => 'i' },
-		scale => { cmd => 'f', help => 'Set scale factor (1.0 means 100%)', mode => 7, type => 's' },
+		factor => { cmd => 'f', help => 'Set scale factor (1.0 means 100%)', mode => 7, type => 's' },
 		sshopts => { help => 'Set SSH options', mode => 4, type => 's' },
 		toggle => { cmd => '1', help => 'Toggle CPUs (0 or 1)', mode => 7, type => 'i', cb => \&toggle_cpus },
 		version => { cmd => 'v', help => 'Print version', mode => 1, cb => sub { say VERSION . ' ' . COPYRIGHT } },

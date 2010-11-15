@@ -51,7 +51,7 @@ use threads::shared;
 use constant {
 	DEPTH => 8,
 	PROMPT => 'loadbars> ',
-	VERSION => 'loadbars v0.1-beta5',
+	VERSION => 'loadbars v0.1-beta6',
 	COPYRIGHT => '2010 (c) Paul Buetow <loadbars@mx.buetow.org>',
 	NULL => 0,
 	MSG_SET_DIMENSION => 1,
@@ -432,7 +432,7 @@ sub dispatch_table () {
 		inter => { cmd => 'i', help => 'Set update interval in seconds', mode => 7, type => 's' },
 		quit => { cmd => 'q', help => 'Quit', mode => 1, cb => sub { -1 } },
 		samples => { cmd => 's', help => 'Set number of samples until ssh reconnects', mode => 7, type => 'i' },
-		scale => { cmd => 'c', help => 'Set scale factor (1.0 means 100%)', mode => 7, type => 's' },
+		scale => { cmd => 'l', help => 'Set scale factor (1.0 means 100%)', mode => 7, type => 's' },
 		sshopts => { help => 'Set SSH options', mode => 4, type => 's' },
 		toggle => { cmd => '1', help => 'Toggle CPUs (0 or 1)', mode => 7, type => 'i', cb => \&toggle_cpus },
 		version => { cmd => 'v', help => 'Print version', mode => 1, cb => sub { say VERSION . ' ' . COPYRIGHT } },

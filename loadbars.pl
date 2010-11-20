@@ -222,7 +222,7 @@ sub graph_stats ($$) {
 		}
 	};
 
-	my ($t1, $t2, $t_diff) = (Time::HiRes::time(), undef, undef);
+	my ($t1, $t2) = (Time::HiRes::time(), undef);
 
 	loop {
 		my ($x, $y) = (0, 0);
@@ -318,7 +318,6 @@ sub graph_stats ($$) {
 
 TIMER:
 		$t2 = Time::HiRes::time();
-		$t_diff = $t2 - $t1;
 
 		if ($CONF{inter} > $t2 - $t1) {
 			usleep 10000;

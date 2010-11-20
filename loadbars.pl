@@ -316,12 +316,12 @@ sub graph_stats ($$) {
 			$x += $width + 1;
 		};
 
-TIMER:
+TIMEKEEPER:
 		$t2 = Time::HiRes::time();
 
 		if ($CONF{inter} > $t2 - $t1) {
 			usleep 10000;
-			goto TIMER;
+			goto TIMEKEEPER;
 		}
 
 		$t1 = $t2;

@@ -1,5 +1,5 @@
 #!/usr/bin/perl
-#
+
 # loadbars (c) 2010, Dipl.-Inform. (FH) Paul Buetow
 #
 # 	E-Mail: loadbars@mx.buetow.org 	WWW: http://loadbars.buetow.org
@@ -33,7 +33,6 @@ use strict;
 use warnings;
 
 use IPC::Open2;
-use Data::Dumper;
 
 use Getopt::Long;
 use Term::ReadLine;
@@ -51,13 +50,12 @@ use threads::shared;
 use constant {
 	DEPTH => 8,
 	PROMPT => 'loadbars> ',
-	VERSION => 'loadbars v0.1-beta8',
+	VERSION => 'loadbars v0.1-beta8-pre2',
 	COPYRIGHT => '2010 (c) Paul Buetow <loadbars@mx.buetow.org>',
 	NULL => 0,
 	MSG_SET_DIMENSION => 1,
 	MSG_TOGGLE_FULLSCREEN => 2,
 };
-
 
 $| = 1;
 
@@ -100,11 +98,24 @@ sub parse_cpu_line ($) {
 sub thr_get_stat ($) {
 	my $host = shift;
 
-	my $bash = "if [ -e /proc/stat ]; then proc=/proc/stat; else proc=/usr/compat/linux/proc/stat; fi; for i in \$(seq $CONF{samples}); do cat \$proc; sleep 0.1; done";
-	my $cmd = $host eq 'localhost' ? $bash : "ssh -o StrictHostKeyChecking=no $CONF{sshopts} $host '$bash'";
 	my $sigusr1 = 0;
 
 	loop {
+		my $bash = <<"BASH";
+			if [ -e /proc/stat ]; then 
+				proc=/proc/stat
+			else 
+			   	proc=/usr/compat/linux/proc/stat
+			fi
+			
+			for i in \$(seq $CONF{samples}); do 
+			   	cat \$proc
+				sleep $CONF{inter}
+			done
+BASH
+		my $cmd = $host eq 'localhost' ? $bash 
+			: "ssh -o StrictHostKeyChecking=no $CONF{sshopts} $host '$bash'";
+
 		my $pid = open2 my $out, my $in, $cmd or die "Error: $!\n";
 
 		$SIG{STOP} = sub {
@@ -292,13 +303,11 @@ sub graph_stats ($$) {
 			$app->fill($rect_system, $load_average{system} > 30
 			      	? $colors->{purple} 
 				: $colors->{blue});
-			$app->fill($rect_user, $system_n_user > 90 
-			      	? $colors->{red} 
-				: ( $system_n_user > 70 
-					? $colors->{orange} 
-					: ( $system_n_user > 50 
-						? $colors->{yellow0} 
-						: $colors->{yellow})));
+			$app->fill($rect_user, $system_n_user > 99 ? $colors->{white} 
+			      	: ($system_n_user > 90 ? $colors->{red} 
+				: ($system_n_user > 70 ? $colors->{orange} 
+				: ($system_n_user > 50 ? $colors->{yellow0} 
+				: ($colors->{yellow})))));
 
 			$app->update($_) for $rect_nice, $rect_iowait, $rect_system, $rect_user;
 			$x += $width + 1;
@@ -321,14 +330,15 @@ sub thr_display_stats () {
 	);
 
   	my $colors = {
-		red => SDL::Color->new(-r => 0xff, -g => 0x00, -b => 0x00),
+		black => SDL::Color->new(-r => 0x00, -g => 0x00, -b => 0x00),
+		blue => SDL::Color->new(-r => 0x00, -g => 0x00, -b => 0xff),
+		green => SDL::Color->new(-r => 0x00, -g => 0x90, -b => 0x00),
 		orange => SDL::Color->new(-r => 0xff, -g => 0x70, -b => 0x00),
+		purple => SDL::Color->new(-r => 0xa0, -g => 0x20, -b => 0xf0),
+		red => SDL::Color->new(-r => 0xff, -g => 0x00, -b => 0x00),
+		white => SDL::Color->new(-r => 0xff, -g => 0xff, -b => 0xff),
 		yellow0 => SDL::Color->new(-r => 0xff, -g => 0xa0, -b => 0x00),
 		yellow => SDL::Color->new(-r => 0xff, -g => 0xc0, -b => 0x00),
-		green => SDL::Color->new(-r => 0x00, -g => 0x90, -b => 0x00),
-		blue => SDL::Color->new(-r => 0x00, -g => 0x00, -b => 0xff),
-		purple => SDL::Color->new(-r => 0xa0, -g => 0x20, -b => 0xf0),
-		black => SDL::Color->new(-r => 0x00, -g => 0x00, -b => 0x00),
 	};
 
 	$SIG{STOP} = sub {
@@ -520,10 +530,10 @@ sub dispatch_table () {
 
 sub main () {
 	my ($hosts, $dispatch) = dispatch_table;
-   my $help;
+	my $help;
 	GetOptions ('help|?' => \$help, $dispatch->('options'));
 
-   if (defined $help) {
+	if (defined $help) {
 		say $dispatch->('usage');
 		exit 0;
 	}
@@ -538,7 +548,6 @@ sub main () {
 	} else {
 		@hosts = 'localhost';
 	}
-
 
   	my ($display, @threads) = create_threads @hosts;
 	my $term = new Term::ReadLine VERSION;

@@ -50,7 +50,7 @@ use threads::shared;
 use constant {
 	DEPTH => 8,
 	PROMPT => 'loadbars> ',
-	VERSION => 'loadbars v0.1-beta8-pre2',
+	VERSION => 'loadbars v0.1-beta8-pre3',
 	COPYRIGHT => '2010 (c) Paul Buetow <loadbars@mx.buetow.org>',
 	NULL => 0,
 	MSG_SET_DIMENSION => 1,
@@ -216,10 +216,13 @@ sub graph_stats ($$) {
 			$width = $CONF{width} / $num_stats - 1;
 			$app->resize($CONF{width}, $CONF{height});
 
+		# FS not yet supported 				
 		} elsif ($MSG == MSG_TOGGLE_FULLSCREEN) {
 		   	$app->fullscreen();
 		}
 	};
+
+	my ($t1, $t2, $t_diff) = (Time::HiRes::time(), undef, undef);
 
 	loop {
 		my ($x, $y) = (0, 0);
@@ -313,7 +316,16 @@ sub graph_stats ($$) {
 			$x += $width + 1;
 		};
 
-		usleep $CONF{inter} * 1000000;
+TIMER:
+		$t2 = Time::HiRes::time();
+		$t_diff = $t2 - $t1;
+
+		if ($CONF{inter} > $t2 - $t1) {
+			usleep 10000;
+			goto TIMER;
+		}
+
+		$t1 = $t2;
 	};
 
 	return undef;
@@ -439,7 +451,7 @@ sub dispatch_table () {
 		height => { menupos => 2,  help => 'Set windows height', mode => 6, type => 'i' },
 		help => { menupos => 1,  cmd => 'h', help => 'Print this help screen', mode => 3 },
 		hosts => { menupos => 4,  help => 'Comma separated list of hosts', var => \$hosts, mode => 6, type => 's' },
-		inter => { menupos => 4,  cmd => 'i', help => 'Set update interval in seconds', mode => 7, type => 's' },
+		inter => { menupos => 4,  cmd => 'i', help => 'Set update interval in seconds (default 0.1)', mode => 7, type => 's' },
 		quit => { menupos => 5,  cmd => 'q', help => 'Quit', mode => 1, cb => sub { -1 } },
 		samples => { menupos => 4,  cmd => 's', help => 'Set number of samples until ssh reconnects', mode => 7, type => 'i' },
 		sshopts => { menupos => 4,  help => 'Set SSH options', mode => 4, type => 's' },

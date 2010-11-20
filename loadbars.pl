@@ -51,7 +51,7 @@ use threads::shared;
 use constant {
 	DEPTH => 8,
 	PROMPT => 'loadbars> ',
-	VERSION => 'loadbars v0.1-beta7',
+	VERSION => 'loadbars v0.1-beta8',
 	COPYRIGHT => '2010 (c) Paul Buetow <loadbars@mx.buetow.org>',
 	NULL => 0,
 	MSG_SET_DIMENSION => 1,
@@ -423,20 +423,19 @@ sub dispatch_table () {
 	# Combinations: Like chmod(1)
 
 	my %d = ( 
-		average => { cmd => 'a', help => 'Set number of samples for calculating average loads', mode => 7, type => 'i' },
-		configuration => { cmd => 'c', help => 'Show current configuration', mode => 5 },
-		#dimension => { cmd => 'd', help => 'Set windows dimensions', mode => 1, type => 'i', cb => \&set_dimensions },
-		height => { help => 'Set windows height', mode => 6, type => 'i' },
-		help => { cmd => 'h', help => 'Print this help screen', mode => 3 },
-		hosts => { help => 'Comma separated list of hosts', var => \$hosts, mode => 6, type => 's' },
-		inter => { cmd => 'i', help => 'Set update interval in seconds', mode => 7, type => 's' },
-		quit => { cmd => 'q', help => 'Quit', mode => 1, cb => sub { -1 } },
-		samples => { cmd => 's', help => 'Set number of samples until ssh reconnects', mode => 7, type => 'i' },
-		factor => { cmd => 'f', help => 'Set scale factor (1.0 means 100%)', mode => 7, type => 's' },
-		sshopts => { help => 'Set SSH options', mode => 4, type => 's' },
-		toggle => { cmd => '1', help => 'Toggle CPUs (0 or 1)', mode => 7, type => 'i', cb => \&toggle_cpus },
-		version => { cmd => 'v', help => 'Print version', mode => 1, cb => sub { say VERSION . ' ' . COPYRIGHT } },
-		width => { help => 'Set windows width', mode => 6, type => 'i' },
+		average => { menupos => 4,  cmd => 'a', help => 'Set number of samples for calculating average loads', mode => 7, type => 'i' },
+		configuration => { menupos => 4,  cmd => 'c', help => 'Show current configuration', mode => 5 },
+		factor => { menupos => 4,  cmd => 'f', help => 'Set scale factor (1.0 means 100%)', mode => 7, type => 's' },
+		height => { menupos => 2,  help => 'Set windows height', mode => 6, type => 'i' },
+		help => { menupos => 1,  cmd => 'h', help => 'Print this help screen', mode => 3 },
+		hosts => { menupos => 4,  help => 'Comma separated list of hosts', var => \$hosts, mode => 6, type => 's' },
+		inter => { menupos => 4,  cmd => 'i', help => 'Set update interval in seconds', mode => 7, type => 's' },
+		quit => { menupos => 5,  cmd => 'q', help => 'Quit', mode => 1, cb => sub { -1 } },
+		samples => { menupos => 4,  cmd => 's', help => 'Set number of samples until ssh reconnects', mode => 7, type => 'i' },
+		sshopts => { menupos => 4,  help => 'Set SSH options', mode => 4, type => 's' },
+		toggle => { menupos => 4,  cmd => '1', help => 'Toggle CPUs (0 or 1)', mode => 7, type => 'i', cb => \&toggle_cpus },
+		version => { menupos => 3,  cmd => 'v', help => 'Print version', mode => 1, cb => sub { say VERSION . ' ' . COPYRIGHT } },
+		width => { menupos => 2,  help => 'Set windows width', mode => 6, type => 'i' },
 	);
 
 	my %d_by_short = map { 
@@ -476,7 +475,7 @@ sub dispatch_table () {
 			} grep { 
 			   	$d_by_short{$_}{mode} & 1 and exists $d_by_short{$_}{help}
 
-			} sort keys %d_by_short
+			} sort { $d_by_short{$a}{menupos} <=> $d_by_short{$b}{menupos} } sort keys %d_by_short
 
 		} elsif ($arg eq 'usage') {
 			join "\n", map { 
@@ -489,7 +488,7 @@ sub dispatch_table () {
 			} grep { 
 			   	$d{$_}{mode} & 2 and exists $d{$_}{help} 
 
-			} sort keys %d
+			} sort { $d{$a}{menupos} <=> $d{$b}{menupos} } sort keys %d
 
 		} elsif ($arg eq 'options') {
 			map { 

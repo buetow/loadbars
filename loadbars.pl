@@ -42,6 +42,8 @@ use SDL::Rect;
 use SDL::Color;
 use SDL::Event;
 
+use SDL::TTF qw();
+
 use Time::HiRes qw(usleep gettimeofday);
 
 use threads;

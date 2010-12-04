@@ -52,7 +52,7 @@ use threads::shared;
 use constant {
 	DEPTH => 8,
 	PROMPT => 'loadbars> ',
-	VERSION => 'loadbars v0.1-beta8-pre4',
+	VERSION => 'loadbars v0.1-beta8-pre5',
 	COPYRIGHT => '2010 (c) Paul Buetow <loadbars@mx.buetow.org>',
 	NULL => 0,
 	MSG_SET_DIMENSION => 1,
@@ -107,7 +107,7 @@ sub thr_get_stat ($) {
 			if [ -e /proc/stat ]; then 
 				proc=/proc/stat
 			else 
-			   	proc=/usr/compat/linux/proc/stat
+			   	proc=/compat/linux/proc/stat
 			fi
 			
 			for i in \$(seq $CONF{samples}); do 

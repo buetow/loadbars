@@ -1,6 +1,6 @@
 #!/usr/bin/perl
 
-# loadbars (c) 2010, Dipl.-Inform. (FH) Paul Buetow
+# loadbars (c) 2010-2011, Dipl.-Inform. (FH) Paul Buetow
 #
 # 	E-Mail: loadbars@mx.buetow.org 	WWW: http://loadbars.buetow.org
 #
@@ -52,11 +52,12 @@ use threads::shared;
 use constant {
 	DEPTH => 8,
 	PROMPT => 'loadbars> ',
-	VERSION => 'loadbars v0.1-beta8-pre5',
-	COPYRIGHT => '2010 (c) Paul Buetow <loadbars@mx.buetow.org>',
+	VERSION => 'loadbars v0.1-beta8-pre6',
+	COPYRIGHT => '2010-2011 (c) Paul Buetow <loadbars@mx.buetow.org>',
 	NULL => 0,
 	MSG_SET_DIMENSION => 1,
 	MSG_TOGGLE_FULLSCREEN => 2,
+	MSG_DISPLAY_HELP => 3,
 };
 
 $| = 1;
@@ -196,6 +197,18 @@ sub null ($) {
 	return defined $arg ? $arg : 0;
 }
 
+sub display_colors_help ($) {
+	my $colors = shift;
+
+	my $help = SDL::App->new(
+		-width => 400,
+		-height => 400,
+		-depth => DEPTH,
+		-title => VERSION,
+		-resizeable => 0,
+	);
+}
+
 sub graph_stats ($$) {
   	my ($app, $colors) = @_;
 
@@ -221,6 +234,9 @@ sub graph_stats ($$) {
 		# FS not yet supported 				
 		} elsif ($MSG == MSG_TOGGLE_FULLSCREEN) {
 		   	$app->fullscreen();
+		
+		} elsif ($MSG == MSG_DISPLAY_HELP) {
+		   	display_colors_help($colors);
 		}
 	};
 
@@ -333,7 +349,6 @@ TIMEKEEPER:
 }
 
 sub thr_display_stats () {
-	# Wait until first results are available
 	my $app = SDL::App->new(
 		-width => $CONF{width},
 		-height => $CONF{height},
@@ -454,6 +469,7 @@ sub dispatch_table () {
 		hosts => { menupos => 4,  help => 'Comma separated list of hosts', var => \$hosts, mode => 6, type => 's' },
 		inter => { menupos => 4,  cmd => 'i', help => 'Set update interval in seconds (default 0.1)', mode => 7, type => 's' },
 		quit => { menupos => 5,  cmd => 'q', help => 'Quit', mode => 1, cb => sub { -1 } },
+		colorshelp => { menupos => 5,  cmd => 'l', help => 'Shows colors', mode => 1, cb => sub { -1 } },
 		samples => { menupos => 4,  cmd => 's', help => 'Set number of samples until ssh reconnects', mode => 7, type => 'i' },
 		sshopts => { menupos => 7,  cmd => 'o', help => 'Set SSH options', mode => 7, type => 's' },
 		toggle => { menupos => 4,  cmd => '1', help => 'Toggle CPUs (0 or 1)', mode => 7, type => 'i', cb => \&toggle_cpus },

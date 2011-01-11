@@ -67,6 +67,11 @@ use constant {
 	WHITE => SDL::Color->new(-r => 0xff, -g => 0xff, -b => 0xff),
 	YELLOW0 => SDL::Color->new(-r => 0xff, -g => 0xa0, -b => 0x00),
 	YELLOW => SDL::Color->new(-r => 0xff, -g => 0xc0, -b => 0x00),
+	SYSTEM_PURPLE => 30,
+	USER_WHITE => 99,
+	USER_RED => 90,
+	USER_ORANGE => 70,
+	USER_YELLOW0 => 50,
 };
 
 $| = 1;
@@ -329,13 +334,13 @@ sub graph_stats ($) {
 			$app->fill($rect_iowait, BLACK);
 			$app->fill($rect_nice, GREEN);
 			$app->fill($rect_system, BLUE);
-			$app->fill($rect_system, $load_average{system} > 30
+			$app->fill($rect_system, $load_average{system} > SYSTEM_PURPLE
 			      	? PURPLE 
 				: BLUE);
-			$app->fill($rect_user, $system_n_user > 99 ? WHITE 
-			      	: ($system_n_user > 90 ? RED 
-				: ($system_n_user > 70 ? ORANGE 
-				: ($system_n_user > 50 ? YELLOW0 
+			$app->fill($rect_user, $system_n_user > USER_WHITE ? WHITE 
+			      	: ($system_n_user > USER_RED ? RED 
+				: ($system_n_user > USER_ORANGE ? ORANGE 
+				: ($system_n_user > USER_YELLOW0 ? YELLOW0 
 				: (YELLOW)))));
 
 			$app->update($_) for $rect_nice, $rect_iowait, $rect_system, $rect_user;

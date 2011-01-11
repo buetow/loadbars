@@ -42,7 +42,8 @@ use SDL::Rect;
 use SDL::Color;
 use SDL::Event;
 
-#use SDL::TTF qw();
+use SDL::Surface;
+use SDL::Font;
 
 use Time::HiRes qw(usleep gettimeofday);
 
@@ -52,12 +53,27 @@ use threads::shared;
 use constant {
 	DEPTH => 8,
 	PROMPT => 'loadbars> ',
-	VERSION => 'loadbars v0.1-beta8-pre6',
+	VERSION => 'loadbars v0.1.0',
 	COPYRIGHT => '2010-2011 (c) Paul Buetow <loadbars@mx.buetow.org>',
 	NULL => 0,
 	MSG_SET_DIMENSION => 1,
-	MSG_TOGGLE_FULLSCREEN => 2,
-	MSG_DISPLAY_HELP => 3,
+	MSG_TOGGLE_TXT => 2,
+	FONT => SDL::Font->new('font.png'),
+	BLACK => SDL::Color->new(-r => 0x00, -g => 0x00, -b => 0x00),
+	BLUE => SDL::Color->new(-r => 0x00, -g => 0x00, -b => 0xff),
+	GREEN => SDL::Color->new(-r => 0x00, -g => 0x90, -b => 0x00),
+	ORANGE => SDL::Color->new(-r => 0xff, -g => 0x70, -b => 0x00),
+	PURPLE => SDL::Color->new(-r => 0xa0, -g => 0x20, -b => 0xf0),
+	RED => SDL::Color->new(-r => 0xff, -g => 0x00, -b => 0x00),
+	WHITE => SDL::Color->new(-r => 0xff, -g => 0xff, -b => 0xff),
+	YELLOW0 => SDL::Color->new(-r => 0xff, -g => 0xa0, -b => 0x00),
+	YELLOW => SDL::Color->new(-r => 0xff, -g => 0xc0, -b => 0x00),
+	SYSTEM_PURPLE => 30,
+	USER_WHITE => 99,
+	USER_RED => 90,
+	USER_ORANGE => 70,
+	USER_YELLOW0 => 50,
+	RESERVERD_HEIGHT => 50,
 };
 
 $| = 1;
@@ -72,7 +88,8 @@ my $MSG   :shared;
 	inter => 0.1,
 	sshopts => '',
 	cpuregexp => 'cpu',
-	toggle => 1,
+	toggletxt => 1,
+	togglecpu => 1,
 	factor => 1,
 	width => 1200,
 	height => 200,
@@ -119,7 +136,10 @@ BASH
 		my $cmd = $host eq 'localhost' ? $bash 
 			: "ssh -o StrictHostKeyChecking=no $CONF{sshopts} $host '$bash'";
 
-		my $pid = open2 my $out, my $in, $cmd or die "Error: $!\n";
+		my $pid = open2 my $out, my $in, $cmd or do {
+			say "Warning: $!";
+			return;
+		};
 
 		$SIG{STOP} = sub {
 			say "Shutting down get_stat($host) & PID $pid";
@@ -183,12 +203,12 @@ sub wait_for_stats () {
 	sleep 1 until %STATS;
 }
 
-sub draw_background ($$$) {
-   	my ($app, $colors, $rect) = @_;
+sub draw_background ($$) {
+   	my ($app, $rect) = @_;
 
 	$rect->width($CONF{width});
 	$rect->height($CONF{height});
-	$app->fill($rect, $colors->{black});
+	$app->fill($rect, BLACK);
 	$app->update($rect);
 }
 
@@ -197,20 +217,8 @@ sub null ($) {
 	return defined $arg ? $arg : 0;
 }
 
-sub display_colors_help ($) {
-	my $colors = shift;
-
-	my $help = SDL::App->new(
-		-width => 400,
-		-height => 400,
-		-depth => DEPTH,
-		-title => VERSION,
-		-resizeable => 0,
-	);
-}
-
-sub graph_stats ($$) {
-  	my ($app, $colors) = @_;
+sub graph_stats ($) {
+  	my ($app) = @_;
 
 	wait_for_stats;
 
@@ -221,6 +229,7 @@ sub graph_stats ($$) {
 	my %prev_stats;
 	my %last_loads;
 	my $rect_bg = SDL::Rect->new();
+	my $display_txt = $CONF{toggletxt};
 
 	# Toggle CPUs
 	$SIG{USR1} = sub { wait_for_stats };
@@ -231,13 +240,11 @@ sub graph_stats ($$) {
 			$width = $CONF{width} / $num_stats - 1;
 			$app->resize($CONF{width}, $CONF{height});
 
-		# FS not yet supported 				
-		} elsif ($MSG == MSG_TOGGLE_FULLSCREEN) {
-		   	$app->fullscreen();
-		
-		} elsif ($MSG == MSG_DISPLAY_HELP) {
-		   	display_colors_help($colors);
+		} elsif ($MSG == MSG_TOGGLE_TXT) {
+		   	$display_txt = $CONF{toggletxt};
 		}
+
+		$MSG = NULL;
 	};
 
 	my ($t1, $t2) = (Time::HiRes::time(), undef);
@@ -254,7 +261,7 @@ sub graph_stats ($$) {
 	
 			$num_stats = $new_num_stats;
 			$width = $CONF{width} / $num_stats - 1;
-			draw_background $app, $colors, $rect_bg;
+			draw_background $app, $rect_bg;
 		}
 
 		for my $key (sort keys %STATS) {
@@ -318,17 +325,24 @@ sub graph_stats ($$) {
 	
 			my $system_n_user = sum @load_average{qw(user system)};
 
-			$app->fill($rect_iowait, $colors->{black});
-			$app->fill($rect_nice, $colors->{green});
-			$app->fill($rect_system, $colors->{blue});
-			$app->fill($rect_system, $load_average{system} > 30
-			      	? $colors->{purple} 
-				: $colors->{blue});
-			$app->fill($rect_user, $system_n_user > 99 ? $colors->{white} 
-			      	: ($system_n_user > 90 ? $colors->{red} 
-				: ($system_n_user > 70 ? $colors->{orange} 
-				: ($system_n_user > 50 ? $colors->{yellow0} 
-				: ($colors->{yellow})))));
+			$app->fill($rect_iowait, BLACK);
+			$app->fill($rect_nice, GREEN);
+			$app->fill($rect_system, BLUE);
+			$app->fill($rect_system, $load_average{system} > SYSTEM_PURPLE
+			      	? PURPLE 
+				: BLUE);
+			$app->fill($rect_user, $system_n_user > USER_WHITE ? WHITE 
+			      	: ($system_n_user > USER_RED ? RED 
+				: ($system_n_user > USER_ORANGE ? ORANGE 
+				: ($system_n_user > USER_YELLOW0 ? YELLOW0 
+				: (YELLOW)))));
+
+			if ($display_txt) {
+				$app->print($x, 5, sprintf  "%d%s", $load_average{nice}, 'ni');
+				$app->print($x, 25, sprintf "%d%s", $load_average{user}, 'us');
+				$app->print($x, 45, sprintf "%d%s", $load_average{system}, 'sy');
+				$app->print($x, 65, sprintf "%d%s", $system_n_user, 'su');
+			}
 
 			$app->update($_) for $rect_nice, $rect_iowait, $rect_system, $rect_user;
 			$x += $width + 1;
@@ -351,30 +365,19 @@ TIMEKEEPER:
 sub thr_display_stats () {
 	my $app = SDL::App->new(
 		-width => $CONF{width},
-		-height => $CONF{height},
+		-height => $CONF{height}.
 		-depth => DEPTH,
 		-title => VERSION,
 		-resizeable => 0,
 	);
-
-  	my $colors = {
-		black => SDL::Color->new(-r => 0x00, -g => 0x00, -b => 0x00),
-		blue => SDL::Color->new(-r => 0x00, -g => 0x00, -b => 0xff),
-		green => SDL::Color->new(-r => 0x00, -g => 0x90, -b => 0x00),
-		orange => SDL::Color->new(-r => 0xff, -g => 0x70, -b => 0x00),
-		purple => SDL::Color->new(-r => 0xa0, -g => 0x20, -b => 0xf0),
-		red => SDL::Color->new(-r => 0xff, -g => 0x00, -b => 0x00),
-		white => SDL::Color->new(-r => 0xff, -g => 0xff, -b => 0xff),
-		yellow0 => SDL::Color->new(-r => 0xff, -g => 0xa0, -b => 0x00),
-		yellow => SDL::Color->new(-r => 0xff, -g => 0xc0, -b => 0x00),
-	};
 
 	$SIG{STOP} = sub {
 		say "Shutting down display_stats";
 		threads->exit();
 	};
 
-	graph_stats $app, $colors;;
+
+	graph_stats $app
 }
 
 sub send_message ($$) {
@@ -402,17 +405,17 @@ sub stop_threads (@) {
 	return undef;
 }
 
-sub set_toggle_regexp () {
-	$CONF{cpuregexp} = $CONF{toggle} ? 'cpu ' : 'cpu';
+sub set_togglecpu_regexp () {
+	$CONF{cpuregexp} = $CONF{togglecpu} ? 'cpu ' : 'cpu';
 
 	return undef;
 }
 
-sub toggle_cpus ($@) {
+sub togglecpu ($@) {
 	my ($display, @threads) = @_;
 
-	$CONF{toggle} = ! $CONF{toggle};
-	set_toggle_regexp;
+	$CONF{togglecpu} = ! $CONF{togglecpu};
+	set_togglecpu_regexp;
 
 	$_->kill('USR1') for @threads;
 	%STATS = ();
@@ -421,14 +424,16 @@ sub toggle_cpus ($@) {
 	return undef;
 }
 
-sub toggle_fullscreen ($) {
-   	my $display = shift;
+sub toggletxt ($@) {
+	my ($display, @threads) = @_;
 
-	send_message $display, MSG_TOGGLE_FULLSCREEN;
+	$CONF{toggletxt} = ! $CONF{toggletxt};
+
+	$MSG = MSG_TOGGLE_TXT;
+	$display->kill('USR2');
 
 	return undef;
 }
-
 
 sub set_value (*;*) {
 	my ($key, $type) = @_;
@@ -452,6 +457,7 @@ sub set_dimensions ($) {
 	return 0;
 }
 
+
 sub dispatch_table () {
  	my $hosts = '';
 
@@ -469,10 +475,10 @@ sub dispatch_table () {
 		hosts => { menupos => 4,  help => 'Comma separated list of hosts', var => \$hosts, mode => 6, type => 's' },
 		inter => { menupos => 4,  cmd => 'i', help => 'Set update interval in seconds (default 0.1)', mode => 7, type => 's' },
 		quit => { menupos => 5,  cmd => 'q', help => 'Quit', mode => 1, cb => sub { -1 } },
-		colorshelp => { menupos => 5,  cmd => 'l', help => 'Shows colors', mode => 1, cb => sub { -1 } },
 		samples => { menupos => 4,  cmd => 's', help => 'Set number of samples until ssh reconnects', mode => 7, type => 'i' },
 		sshopts => { menupos => 7,  cmd => 'o', help => 'Set SSH options', mode => 7, type => 's' },
-		toggle => { menupos => 4,  cmd => '1', help => 'Toggle CPUs (0 or 1)', mode => 7, type => 'i', cb => \&toggle_cpus },
+		togglecpu => { menupos => 4,  cmd => '1', help => 'Toggle CPUs (0 or 1)', mode => 7, type => 'i', cb => \&togglecpu },
+		toggletxt => { menupos => 4,  cmd => '2', help => 'Toggle display text (0 or 1)', mode => 7, type => 'i', cb => \&toggletxt },
 		version => { menupos => 3,  cmd => 'v', help => 'Print version', mode => 1, cb => sub { say VERSION . ' ' . COPYRIGHT } },
 		width => { menupos => 2,  help => 'Set windows width', mode => 6, type => 'i' },
 	);
@@ -484,6 +490,14 @@ sub dispatch_table () {
 	   	exists $d{$_}{cmd} 
 
 	} keys %d;
+
+	my $textdesc = <<END;
+Explonation text display:
+	ni = Nice cpu usage
+	us = User cpu usage
+	sy = System cpu sage
+	su = System & user cpu usage
+END
 
 	my $closure = sub ($;$) {
 		my ($arg, @rest) = @_;
@@ -508,13 +522,14 @@ sub dispatch_table () {
 			(exists $cb->{cb} ? $cb->{cb} : sub { set_value $cmd })->(@args);
 
 		} elsif ($arg eq 'help') {
-			join "\n", map { 
+			(join "\n", map { 
 				"$_\t- $d_by_short{$_}{help}" 
 
 			} grep { 
 			   	$d_by_short{$_}{mode} & 1 and exists $d_by_short{$_}{help}
 
-			} sort { $d_by_short{$a}{menupos} <=> $d_by_short{$b}{menupos} } sort keys %d_by_short
+			} sort { $d_by_short{$a}{menupos} <=> $d_by_short{$b}{menupos} } sort keys %d_by_short)
+			. "\n\n$textdesc";
 
 		} elsif ($arg eq 'usage') {
 			join "\n", map { 
@@ -567,7 +582,7 @@ sub main () {
 		exit 0;
 	}
 
-	set_toggle_regexp;
+	set_togglecpu_regexp;
 
   	my @hosts = split ',', $$hosts;
 

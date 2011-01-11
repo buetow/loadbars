@@ -1,0 +1,14 @@
+Tue Jan 11 14:26:35 CET 2011
+* Removed all old screenshots
+* Added a newer one
+
+Tue Jan 11 14:01:32 CET 2011
+* Released v0.1.1
+* Extended help text ('h' command)
+* Added CHANGELOG and README files
+* Fixed a typo
+
+Tue Jan 11 13:??:?? CET 2011
+* Released v0.1.0
+* With initial font support (text display of the stats) 
+* Everything else which has been implemented up to 0.1-beta8-pre6

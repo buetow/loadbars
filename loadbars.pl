@@ -58,6 +58,15 @@ use constant {
 	MSG_SET_DIMENSION => 1,
 	MSG_TOGGLE_FULLSCREEN => 2,
 	MSG_DISPLAY_HELP => 3,
+	BLACK => SDL::Color->new(-r => 0x00, -g => 0x00, -b => 0x00),
+	BLUE => SDL::Color->new(-r => 0x00, -g => 0x00, -b => 0xff),
+	GREEN => SDL::Color->new(-r => 0x00, -g => 0x90, -b => 0x00),
+	ORANGE => SDL::Color->new(-r => 0xff, -g => 0x70, -b => 0x00),
+	PURPLE => SDL::Color->new(-r => 0xa0, -g => 0x20, -b => 0xf0),
+	RED => SDL::Color->new(-r => 0xff, -g => 0x00, -b => 0x00),
+	WHITE => SDL::Color->new(-r => 0xff, -g => 0xff, -b => 0xff),
+	YELLOW0 => SDL::Color->new(-r => 0xff, -g => 0xa0, -b => 0x00),
+	YELLOW => SDL::Color->new(-r => 0xff, -g => 0xc0, -b => 0x00),
 };
 
 $| = 1;
@@ -183,12 +192,12 @@ sub wait_for_stats () {
 	sleep 1 until %STATS;
 }
 
-sub draw_background ($$$) {
-   	my ($app, $colors, $rect) = @_;
+sub draw_background ($$) {
+   	my ($app, $rect) = @_;
 
 	$rect->width($CONF{width});
 	$rect->height($CONF{height});
-	$app->fill($rect, $colors->{black});
+	$app->fill($rect, BLACK);
 	$app->update($rect);
 }
 
@@ -197,8 +206,7 @@ sub null ($) {
 	return defined $arg ? $arg : 0;
 }
 
-sub display_colors_help ($) {
-	my $colors = shift;
+sub display_colors_help () {
 
 	my $help = SDL::App->new(
 		-width => 400,
@@ -209,8 +217,8 @@ sub display_colors_help ($) {
 	);
 }
 
-sub graph_stats ($$) {
-  	my ($app, $colors) = @_;
+sub graph_stats ($) {
+  	my ($app) = @_;
 
 	wait_for_stats;
 
@@ -236,7 +244,7 @@ sub graph_stats ($$) {
 		   	$app->fullscreen();
 		
 		} elsif ($MSG == MSG_DISPLAY_HELP) {
-		   	display_colors_help($colors);
+		   	display_colors_help;
 		}
 	};
 
@@ -254,7 +262,7 @@ sub graph_stats ($$) {
 	
 			$num_stats = $new_num_stats;
 			$width = $CONF{width} / $num_stats - 1;
-			draw_background $app, $colors, $rect_bg;
+			draw_background $app, $rect_bg;
 		}
 
 		for my $key (sort keys %STATS) {
@@ -318,17 +326,17 @@ sub graph_stats ($$) {
 	
 			my $system_n_user = sum @load_average{qw(user system)};
 
-			$app->fill($rect_iowait, $colors->{black});
-			$app->fill($rect_nice, $colors->{green});
-			$app->fill($rect_system, $colors->{blue});
+			$app->fill($rect_iowait, BLACK);
+			$app->fill($rect_nice, GREEN);
+			$app->fill($rect_system, BLUE);
 			$app->fill($rect_system, $load_average{system} > 30
-			      	? $colors->{purple} 
-				: $colors->{blue});
-			$app->fill($rect_user, $system_n_user > 99 ? $colors->{white} 
-			      	: ($system_n_user > 90 ? $colors->{red} 
-				: ($system_n_user > 70 ? $colors->{orange} 
-				: ($system_n_user > 50 ? $colors->{yellow0} 
-				: ($colors->{yellow})))));
+			      	? PURPLE 
+				: BLUE);
+			$app->fill($rect_user, $system_n_user > 99 ? WHITE 
+			      	: ($system_n_user > 90 ? RED 
+				: ($system_n_user > 70 ? ORANGE 
+				: ($system_n_user > 50 ? YELLOW0 
+				: (YELLOW)))));
 
 			$app->update($_) for $rect_nice, $rect_iowait, $rect_system, $rect_user;
 			$x += $width + 1;
@@ -357,24 +365,12 @@ sub thr_display_stats () {
 		-resizeable => 0,
 	);
 
-  	my $colors = {
-		black => SDL::Color->new(-r => 0x00, -g => 0x00, -b => 0x00),
-		blue => SDL::Color->new(-r => 0x00, -g => 0x00, -b => 0xff),
-		green => SDL::Color->new(-r => 0x00, -g => 0x90, -b => 0x00),
-		orange => SDL::Color->new(-r => 0xff, -g => 0x70, -b => 0x00),
-		purple => SDL::Color->new(-r => 0xa0, -g => 0x20, -b => 0xf0),
-		red => SDL::Color->new(-r => 0xff, -g => 0x00, -b => 0x00),
-		white => SDL::Color->new(-r => 0xff, -g => 0xff, -b => 0xff),
-		yellow0 => SDL::Color->new(-r => 0xff, -g => 0xa0, -b => 0x00),
-		yellow => SDL::Color->new(-r => 0xff, -g => 0xc0, -b => 0x00),
-	};
-
 	$SIG{STOP} = sub {
 		say "Shutting down display_stats";
 		threads->exit();
 	};
 
-	graph_stats $app, $colors;;
+	graph_stats $app
 }
 
 sub send_message ($$) {
@@ -469,7 +465,7 @@ sub dispatch_table () {
 		hosts => { menupos => 4,  help => 'Comma separated list of hosts', var => \$hosts, mode => 6, type => 's' },
 		inter => { menupos => 4,  cmd => 'i', help => 'Set update interval in seconds (default 0.1)', mode => 7, type => 's' },
 		quit => { menupos => 5,  cmd => 'q', help => 'Quit', mode => 1, cb => sub { -1 } },
-		colorshelp => { menupos => 5,  cmd => 'l', help => 'Shows colors', mode => 1, cb => sub { -1 } },
+		colorshelp => { menupos => 5,  cmd => 'l', help => 'Shows color help screen', mode => 1, cb => sub { -1 } },
 		samples => { menupos => 4,  cmd => 's', help => 'Set number of samples until ssh reconnects', mode => 7, type => 'i' },
 		sshopts => { menupos => 7,  cmd => 'o', help => 'Set SSH options', mode => 7, type => 's' },
 		toggle => { menupos => 4,  cmd => '1', help => 'Toggle CPUs (0 or 1)', mode => 7, type => 'i', cb => \&toggle_cpus },

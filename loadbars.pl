@@ -492,7 +492,7 @@ sub dispatch_table () {
 	} keys %d;
 
 	my $textdesc = <<END;
-Explonation text disaplay:
+Explonation text display:
 	ni = Nice cpu usage
 	us = User cpu usage
 	sy = System cpu sage

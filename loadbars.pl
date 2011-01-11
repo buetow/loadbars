@@ -42,7 +42,7 @@ use SDL::Rect;
 use SDL::Color;
 use SDL::Event;
 
-#use SDL::TTF qw();
+use SDL::Font;
 
 use Time::HiRes qw(usleep gettimeofday);
 
@@ -132,7 +132,10 @@ BASH
 		my $cmd = $host eq 'localhost' ? $bash 
 			: "ssh -o StrictHostKeyChecking=no $CONF{sshopts} $host '$bash'";
 
-		my $pid = open2 my $out, my $in, $cmd or die "Error: $!\n";
+		my $pid = open2 my $out, my $in, $cmd or do {
+			say "Warning: $!";
+			return;
+		};
 
 		$SIG{STOP} = sub {
 			say "Shutting down get_stat($host) & PID $pid";

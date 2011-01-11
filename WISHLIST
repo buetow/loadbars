@@ -1,1 +1,3 @@
 - Summarized CPU status, summarizing all involved servers
+- Extended text display (hostname, cpu number, etc..)
+- Stats for other stuff (e.g. memory, inodes..., disk usage)

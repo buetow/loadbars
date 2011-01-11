@@ -53,7 +53,7 @@ use threads::shared;
 use constant {
 	DEPTH => 8,
 	PROMPT => 'loadbars> ',
-	VERSION => 'loadbars v0.1.0',
+	VERSION => 'loadbars v0.1.1',
 	COPYRIGHT => '2010-2011 (c) Paul Buetow <loadbars@mx.buetow.org>',
 	NULL => 0,
 	MSG_SET_DIMENSION => 1,
@@ -73,7 +73,6 @@ use constant {
 	USER_RED => 90,
 	USER_ORANGE => 70,
 	USER_YELLOW0 => 50,
-	RESERVERD_HEIGHT => 50,
 };
 
 $| = 1;
@@ -492,11 +491,20 @@ sub dispatch_table () {
 	} keys %d;
 
 	my $textdesc = <<END;
-Explonation text display:
-	ni = Nice cpu usage
-	us = User cpu usage
-	sy = System cpu sage
-	su = System & user cpu usage
+Explanation colors:
+	Blue: System cpu usage 
+	Purple: System usage if system cpu is >30%
+	Yellow: User cpu usage 
+	Darker yellow: User usage if system & user cpu is >50%
+	Orange: User usage if system & user cpu is >70%
+	White: Usage usage if system & user cpu is >99%
+	Green: Nice cpu usage
+
+Explanation text display:
+	ni = Nice cpu usage in %
+	us = User cpu usage in %
+	sy = System cpu sage in %
+	su = System & user cpu usage in %
 END
 
 	my $closure = sub ($;$) {

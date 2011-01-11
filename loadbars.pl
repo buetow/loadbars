@@ -57,7 +57,6 @@ use constant {
 	NULL => 0,
 	MSG_SET_DIMENSION => 1,
 	MSG_TOGGLE_FULLSCREEN => 2,
-	MSG_DISPLAY_HELP => 3,
 	BLACK => SDL::Color->new(-r => 0x00, -g => 0x00, -b => 0x00),
 	BLUE => SDL::Color->new(-r => 0x00, -g => 0x00, -b => 0xff),
 	GREEN => SDL::Color->new(-r => 0x00, -g => 0x90, -b => 0x00),
@@ -211,17 +210,6 @@ sub null ($) {
 	return defined $arg ? $arg : 0;
 }
 
-sub display_colors_help () {
-
-	my $help = SDL::App->new(
-		-width => 400,
-		-height => 400,
-		-depth => DEPTH,
-		-title => VERSION,
-		-resizeable => 0,
-	);
-}
-
 sub graph_stats ($) {
   	my ($app) = @_;
 
@@ -247,9 +235,6 @@ sub graph_stats ($) {
 		# FS not yet supported 				
 		} elsif ($MSG == MSG_TOGGLE_FULLSCREEN) {
 		   	$app->fullscreen();
-		
-		} elsif ($MSG == MSG_DISPLAY_HELP) {
-		   	display_colors_help;
 		}
 	};
 
@@ -470,7 +455,6 @@ sub dispatch_table () {
 		hosts => { menupos => 4,  help => 'Comma separated list of hosts', var => \$hosts, mode => 6, type => 's' },
 		inter => { menupos => 4,  cmd => 'i', help => 'Set update interval in seconds (default 0.1)', mode => 7, type => 's' },
 		quit => { menupos => 5,  cmd => 'q', help => 'Quit', mode => 1, cb => sub { -1 } },
-		colorshelp => { menupos => 5,  cmd => 'l', help => 'Shows color help screen', mode => 1, cb => sub { -1 } },
 		samples => { menupos => 4,  cmd => 's', help => 'Set number of samples until ssh reconnects', mode => 7, type => 'i' },
 		sshopts => { menupos => 7,  cmd => 'o', help => 'Set SSH options', mode => 7, type => 's' },
 		toggle => { menupos => 4,  cmd => '1', help => 'Toggle CPUs (0 or 1)', mode => 7, type => 'i', cb => \&toggle_cpus },

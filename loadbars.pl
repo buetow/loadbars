@@ -53,11 +53,12 @@ use threads::shared;
 use constant {
 	DEPTH => 8,
 	PROMPT => 'loadbars> ',
-	VERSION => 'loadbars v0.1.1-devel',
+	VERSION => 'loadbars v0.1.2-devel',
 	COPYRIGHT => '2010-2011 (c) Paul Buetow <loadbars@mx.buetow.org>',
 	NULL => 0,
 	MSG_SET_DIMENSION => 1,
 	MSG_TOGGLE_TXT => 2,
+	MSG_TOGGLE_SUMMARY => 3,
 	FONT => SDL::Font->new('font.png'),
 	BLACK => SDL::Color->new(-r => 0x00, -g => 0x00, -b => 0x00),
 	BLUE => SDL::Color->new(-r => 0x00, -g => 0x00, -b => 0xff),
@@ -83,13 +84,14 @@ my $MSG   :shared;
 
 %CONF = (
 	average => 30,
-	samples => 1000,
-	inter => 0.1,
-	sshopts => '',
 	cpuregexp => 'cpu',
-	toggletxt => 1,
-	togglecpu => 1,
 	factor => 1,
+	inter => 0.1,
+	samples => 1000,
+	sshopts => '',
+	togglecpu => 1,
+	togglesummary => 0,
+	toggletxt => 1,
 	width => 1200,
 	height => 200,
 );
@@ -203,8 +205,10 @@ sub wait_for_stats () {
 }
 
 sub draw_background ($$) {
-   	my ($app, $rect) = @_;
+   	my ($app, $rects) = @_;
 
+
+	my $rect = get_rect $rects, 'background';
 	$rect->width($CONF{width});
 	$rect->height($CONF{height});
 	$app->fill($rect, BLACK);
@@ -214,6 +218,69 @@ sub draw_background ($$) {
 sub null ($) {
    	my $arg = shift;
 	return defined $arg ? $arg : 0;
+}
+
+sub draw_rects ($$$$$$$$) {
+	my ($app, $key, $load_average, $rects, $x, $y, $width, $display_txt) = @_;
+
+	my %heights = map { 
+		$_ => defined $load_average->{$_} ? $load_average->{$_} * ($CONF{height}/100) : 1 
+	} keys %$load_average;
+
+	my $rect_user = get_rect $rects, "$key;user";
+	my $rect_system = get_rect $rects, "$key;system";
+	my $rect_iowait = get_rect $rects, "$key;iowait";
+	my $rect_nice = get_rect $rects, "$key;nice";
+
+	$y = $CONF{height} - $heights{system};
+	$rect_system->width($width);
+	$rect_system->height($heights{system});
+	$rect_system->x($x);
+	$rect_system->y($y);
+
+	$y -= $heights{user};
+	$rect_user->width($width);
+	$rect_user->height($heights{user});
+	$rect_user->x($x);
+	$rect_user->y($y);
+
+	$y -= $heights{nice};
+	$rect_nice->width($width);
+	$rect_nice->height($heights{nice});
+	$rect_nice->x($x);
+	$rect_nice->y($y);
+
+	$y -= $heights{iowait};
+	$rect_iowait->width($width);
+	$rect_iowait->height($heights{iowait});
+	$rect_iowait->x($x);
+	$rect_iowait->y($y);
+
+	my $system_n_user = sum @{$load_average}{qw(user system)};
+
+	$app->fill($rect_iowait, BLACK);
+	$app->fill($rect_nice, GREEN);
+	$app->fill($rect_system, BLUE);
+	$app->fill($rect_system, $load_average->{system} > SYSTEM_PURPLE
+	      	? PURPLE 
+		: BLUE);
+	$app->fill($rect_user, $system_n_user > USER_WHITE ? WHITE 
+	      	: ($system_n_user > USER_RED ? RED 
+		: ($system_n_user > USER_ORANGE ? ORANGE 
+		: ($system_n_user > USER_YELLOW0 ? YELLOW0 
+		: (YELLOW)))));
+
+
+	if ($display_txt) {
+		$app->print($x, 5, sprintf  "%d%s", $load_average->{nice}, 'ni');
+		$app->print($x, 25, sprintf "%d%s", $load_average->{user}, 'us');
+		$app->print($x, 45, sprintf "%d%s", $load_average->{system}, 'sy');
+		$app->print($x, 65, sprintf "%d%s", $system_n_user, 'su');
+	}
+
+	$app->update($_) for $rect_nice, $rect_iowait, $rect_system, $rect_user;
+
+	return undef;
 }
 
 sub graph_stats ($) {
@@ -227,8 +294,9 @@ sub graph_stats ($) {
 	my $rects = {};
 	my %prev_stats;
 	my %last_loads;
-	my $rect_bg = SDL::Rect->new();
 	my $display_txt = $CONF{toggletxt};
+	my $display_summary = $CONF{togglesummary};
+	my $recv_msg = 0;
 
 	# Toggle CPUs
 	$SIG{USR1} = sub { wait_for_stats };
@@ -241,8 +309,13 @@ sub graph_stats ($) {
 
 		} elsif ($MSG == MSG_TOGGLE_TXT) {
 		   	$display_txt = $CONF{toggletxt};
+
+		} elsif ($MSG == MSG_TOGGLE_SUMMARY) {
+		   	$display_summary = $CONF{togglesummary};
+		   	say "$display_summary = $CONF{togglesummary};";
 		}
 
+		$recv_msg = 1;
 		$MSG = NULL;
 	};
 
@@ -259,12 +332,38 @@ sub graph_stats ($) {
 			%last_loads = ();
 	
 			$num_stats = $new_num_stats;
-			$width = $CONF{width} / $num_stats - 1;
-			draw_background $app, $rect_bg;
+			draw_background $app, $rects;
 		}
+
+		if ($display_summary) {
+			$width = $CONF{width} / ($num_stats -1) - 1;
+
+			my %summary;
+			my $count = 0;
+
+			for my $key (keys %STATS) {
+				my ($host, $name) = split ';', $key;
+				next unless defined $STATS{$key};
+				++$count;
+
+				for (split ';', $STATS{$key}) {
+			   		my ($k, $v) = split '='; 
+					$summary{$k} = 0 unless exists $summary{$k};
+					$summary{$k} += $v;
+				}
+			}
+
+			$STATS{'0SUMMARY;cpu'} = join ';', map { "$_=". ($summary{$_} / $count) } keys %summary;
+
+		} else {
+			$width = $CONF{width} / $num_stats - 1;
+			delete $STATS{'0SUMMARY;cpu'} if exists $STATS{'0SUMMARY;cpu'};
+		}
+
 
 		for my $key (sort keys %STATS) {
 			my ($host, $name) = split ';', $key;
+
 			next unless defined $STATS{$key};
 
 			my %stat = map { 
@@ -289,63 +388,15 @@ sub graph_stats ($) {
 			shift @{$last_loads{$key}} while @{$last_loads{$key}} >= $CONF{average};
 			my %load_average = get_load_average $factor, @{$last_loads{$key}};
 
-			my %heights = map { 
-				$_ => defined $load_average{$_} ? $load_average{$_} * ($CONF{height}/100) : 1 
-			} keys %load_average;
 
-			my $rect_user = get_rect $rects, "$key;user";
-			my $rect_system = get_rect $rects, "$key;system";
-			my $rect_iowait = get_rect $rects, "$key;iowait";
-			my $rect_nice = get_rect $rects, "$key;nice";
-
-			$y = $CONF{height} - $heights{system};
-			$rect_system->width($width);
-			$rect_system->height($heights{system});
-			$rect_system->x($x);
-			$rect_system->y($y);
-		
-			$y -= $heights{user};
-			$rect_user->width($width);
-			$rect_user->height($heights{user});
-			$rect_user->x($x);
-			$rect_user->y($y);
-
-			$y -= $heights{nice};
-			$rect_nice->width($width);
-			$rect_nice->height($heights{nice});
-			$rect_nice->x($x);
-			$rect_nice->y($y);
-	
-			$y -= $heights{iowait};
-			$rect_iowait->width($width);
-			$rect_iowait->height($heights{iowait});
-			$rect_iowait->x($x);
-			$rect_iowait->y($y);
-	
-			my $system_n_user = sum @load_average{qw(user system)};
-
-			$app->fill($rect_iowait, BLACK);
-			$app->fill($rect_nice, GREEN);
-			$app->fill($rect_system, BLUE);
-			$app->fill($rect_system, $load_average{system} > SYSTEM_PURPLE
-			      	? PURPLE 
-				: BLUE);
-			$app->fill($rect_user, $system_n_user > USER_WHITE ? WHITE 
-			      	: ($system_n_user > USER_RED ? RED 
-				: ($system_n_user > USER_ORANGE ? ORANGE 
-				: ($system_n_user > USER_YELLOW0 ? YELLOW0 
-				: (YELLOW)))));
-
-			if ($display_txt) {
-				$app->print($x, 5, sprintf  "%d%s", $load_average{nice}, 'ni');
-				$app->print($x, 25, sprintf "%d%s", $load_average{user}, 'us');
-				$app->print($x, 45, sprintf "%d%s", $load_average{system}, 'sy');
-				$app->print($x, 65, sprintf "%d%s", $system_n_user, 'su');
-			}
-
-			$app->update($_) for $rect_nice, $rect_iowait, $rect_system, $rect_user;
+			draw_rects $app, $key, \%load_average, $rects, $x, $y, $width, $display_txt;
 			$x += $width + 1;
-		};
+		}
+
+		if ($recv_msg) {
+			draw_background $app, $rects;
+			$recv_msg = 0;
+		}
 
 TIMEKEEPER:
 		$t2 = Time::HiRes::time();
@@ -410,15 +461,15 @@ sub set_togglecpu_regexp () {
 	return undef;
 }
 
-sub togglecpu ($@) {
-	my ($display, @threads) = @_;
 
-	$CONF{togglecpu} = ! $CONF{togglecpu};
-	set_togglecpu_regexp;
 
-	$_->kill('USR1') for @threads;
-	%STATS = ();
-	$display->kill('USR1');
+sub toggle ($$$@) {
+	my ($display, $key, $msg, @threads) = @_;
+
+	$CONF{$key} = $CONF{$key} == 0 ? 1 : 0;
+
+	$MSG = $msg;
+	$display->kill('USR2');
 
 	return undef;
 }
@@ -426,10 +477,24 @@ sub togglecpu ($@) {
 sub toggletxt ($@) {
 	my ($display, @threads) = @_;
 
-	$CONF{toggletxt} = ! $CONF{toggletxt};
+	toggle $display, 'toggletxt', MSG_TOGGLE_TXT, @threads;
+}
 
-	$MSG = MSG_TOGGLE_TXT;
-	$display->kill('USR2');
+sub togglesummary ($@) {
+	my ($display, @threads) = @_;
+
+	toggle $display, 'togglesummary', MSG_TOGGLE_SUMMARY, @threads;
+}
+
+sub togglecpu ($@) {
+	my ($display, @threads) = @_;
+
+	$CONF{togglecpu} = $CONF{togglecpu} == 0 ? 1 : 0;
+	set_togglecpu_regexp;
+
+	$_->kill('USR1') for @threads;
+	%STATS = ();
+	$display->kill('USR1');
 
 	return undef;
 }
@@ -478,6 +543,7 @@ sub dispatch_table () {
 		sshopts => { menupos => 7,  cmd => 'o', help => 'Set SSH options', mode => 7, type => 's' },
 		togglecpu => { menupos => 4,  cmd => '1', help => 'Toggle CPUs (0 or 1)', mode => 7, type => 'i', cb => \&togglecpu },
 		toggletxt => { menupos => 4,  cmd => '2', help => 'Toggle display text (0 or 1)', mode => 7, type => 'i', cb => \&toggletxt },
+		togglesummary => { menupos => 4,  cmd => '3', help => 'Toggle summary load bar (0 or 1)', mode => 7, type => 'i', cb => \&togglesummary },
 		version => { menupos => 3,  cmd => 'v', help => 'Print version', mode => 1, cb => sub { say VERSION . ' ' . COPYRIGHT } },
 		width => { menupos => 2,  help => 'Set windows width', mode => 6, type => 'i' },
 	);

@@ -394,11 +394,6 @@ sub graph_stats ($) {
 			$x += $width + 1;
 		}
 
-		if ($recv_msg) {
-			draw_background $app, $rects;
-			$recv_msg = 0;
-		}
-
 TIMEKEEPER:
 		$t2 = Time::HiRes::time();
 
@@ -408,6 +403,11 @@ TIMEKEEPER:
 		}
 
 		$t1 = $t2;
+
+		if ($recv_msg) {
+			draw_background $app, $rects;
+			$recv_msg = 0;
+		}
 	};
 
 	return undef;

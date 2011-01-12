@@ -83,6 +83,7 @@ my %CONF  :shared;
 my $MSG   :shared;
 
 %CONF = (
+	title => VERSION,
 	average => 30,
 	cpuregexp => 'cpu',
 	factor => 1,
@@ -417,7 +418,7 @@ sub thr_display_stats () {
 		-width => $CONF{width},
 		-height => $CONF{height}.
 		-depth => DEPTH,
-		-title => VERSION,
+		-title => $CONF{title},
 		-resizeable => 0,
 	);
 
@@ -537,6 +538,7 @@ sub dispatch_table () {
 		height => { menupos => 2,  help => 'Set windows height', mode => 6, type => 'i' },
 		help => { menupos => 1,  cmd => 'h', help => 'Print this help screen', mode => 3 },
 		hosts => { menupos => 4,  help => 'Comma separated list of hosts', var => \$hosts, mode => 6, type => 's' },
+		title => { menupos => 4,  help => 'Set the window title', var => \$CONF{title}, mode => 6, type => 's' },
 		inter => { menupos => 4,  cmd => 'i', help => 'Set update interval in seconds (default 0.1)', mode => 7, type => 's' },
 		quit => { menupos => 5,  cmd => 'q', help => 'Quit', mode => 1, cb => sub { -1 } },
 		samples => { menupos => 4,  cmd => 's', help => 'Set number of samples until ssh reconnects', mode => 7, type => 'i' },

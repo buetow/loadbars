@@ -415,10 +415,11 @@ TIMEKEEPER:
 
 sub thr_display_stats () {
 	my $app = SDL::App->new(
+		-title => $CONF{title},
+		-icon_title => $CONF{title},
 		-width => $CONF{width},
 		-height => $CONF{height}.
 		-depth => DEPTH,
-		-title => $CONF{title},
 		-resizeable => 0,
 	);
 
@@ -620,7 +621,7 @@ END
 			} grep { 
 			   	$d{$_}{mode} & 2 and exists $d{$_}{help} 
 
-			} sort { $d{$a}{menupos} <=> $d{$b}{menupos} } sort keys %d
+			} sort { $d{$a}{menupos} <=> $d{$b}{menupos} } sort keys %d;
 
 		} elsif ($arg eq 'options') {
 			map { 
@@ -629,7 +630,7 @@ END
 			} grep { 
 			   	$d{$_}{mode} & 4 and exists $d{$_}{type} 
 
-			} sort keys %d
+			} sort keys %d;
 		} 
 	};
 

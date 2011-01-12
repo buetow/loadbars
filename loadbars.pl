@@ -477,14 +477,16 @@ sub toggle ($$$@) {
 
 sub toggletxt ($@) {
 	my ($display, @threads) = @_;
-
 	toggle $display, 'toggletxt', MSG_TOGGLE_TXT, @threads;
+
+	return undef;
 }
 
 sub togglesummary ($@) {
 	my ($display, @threads) = @_;
-
 	toggle $display, 'togglesummary', MSG_TOGGLE_SUMMARY, @threads;
+
+	return undef;
 }
 
 sub togglecpu ($@) {

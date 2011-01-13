@@ -313,7 +313,6 @@ sub graph_stats ($) {
 
 		} elsif ($MSG == MSG_TOGGLE_SUMMARY) {
 		   	$display_summary = $CONF{togglesummary};
-		   	say "$display_summary = $CONF{togglesummary};";
 		}
 
 		$recv_msg = 1;
@@ -337,7 +336,8 @@ sub graph_stats ($) {
 		}
 
 		if ($display_summary) {
-			$width = $CONF{width} / ($num_stats -1) - 1;
+			my $div = $width = $num_stats -1;
+			$width = $CONF{width} / ($div ? $div : 1) - 1;
 
 			my %summary;
 			my $count = 0;

@@ -1,2 +1,4 @@
 - Extended text display (hostname, cpu number, etc..)
 - Stats for other stuff (e.g. memory, inodes..., disk usage)
+BUG:
+- Clear screen after 'set scale factor'

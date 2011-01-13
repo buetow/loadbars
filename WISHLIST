@@ -1,4 +1,5 @@
 - Extended text display (hostname, cpu number, etc..)
 - Stats for other stuff (e.g. memory, inodes..., disk usage)
-BUG:
+BUGS:
+- Program aborts during shutdown process because of the fonts
 - Clear screen after 'set scale factor'

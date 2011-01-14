@@ -104,8 +104,6 @@ sub sum (@) {
    return $sum;
 }
 
-sub loop (&) { $_[0]->() while 1 }
-
 sub parse_cpu_line ($) {
 	my ($name, %load);
 
@@ -118,9 +116,9 @@ sub parse_cpu_line ($) {
 sub thr_get_stat ($) {
 	my $host = shift;
 
-	my $sigusr1 = 0;
+	my ($sigusr1, $sigstop) = (0, 0);
 
-	loop {
+	do {
 		my $bash = <<"BASH";
 			if [ -e /proc/stat ]; then 
 				proc=/proc/stat
@@ -145,7 +143,7 @@ BASH
 			say "Shutting down get_stat($host) & PID $pid";
 			kill 1, $pid;
 			close $pipe;
-			threads->exit();
+			$sigstop = 1;
 		};
 
 		# Toggle CPUs
@@ -166,8 +164,11 @@ BASH
 				$cpuregexp = qr/$CONF{cpuregexp}/;
 				$sigusr1 = 0;
 			}
+
+			last if $sigstop;
 		}
-	}
+
+	} until $sigstop;
 }
 
 sub get_rect ($$) {

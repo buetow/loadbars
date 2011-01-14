@@ -54,9 +54,9 @@ use constant {
 	VERSION => 'loadbars v0.1.2-devel',
 	COPYRIGHT => '2010-2011 (c) Paul Buetow <loadbars@mx.buetow.org>',
 	NULL => 0,
-	MSG_SET_DIMENSION => 1,
-	MSG_TOGGLE_TXT => 2,
-	MSG_TOGGLE_SUMMARY => 3,
+	MSG_TOGGLE_TXT => 1,
+	MSG_TOGGLE_SUMMARY => 2,
+	MSG_SET_FACTOR => 3,
 	FONT => SDL::Font->new('font.png'),
 	BLACK => SDL::Color->new(-r => 0x00, -g => 0x00, -b => 0x00),
 	BLUE => SDL::Color->new(-r => 0x00, -g => 0x00, -b => 0xff),
@@ -301,6 +301,7 @@ sub thr_display_stats () {
 	wait_for_stats;
 
 	my $num_stats = keys %STATS;
+	my $factor = $CONF{factor};
 	my $width = $CONF{width} / $num_stats - 1;
 
 	my $rects = {};
@@ -308,30 +309,30 @@ sub thr_display_stats () {
 	my %last_loads;
 	my $display_txt = $CONF{toggletxt};
 	my $display_summary = $CONF{togglesummary};
-	my $recv_msg = 0;
 	my $sigstop = 0;
+	my $redraw_background = 0;
 
 	$SIG{STOP} = sub { 
 		say "Shutting down display_stats";
 		$sigstop = 1;
 	};
 
+	# Toggle CPU
 	$SIG{USR1} = sub { wait_for_stats };
 
-	# Set new window dimensions 
+	# Diverse messages
 	$SIG{USR2} = sub {
-	   	if ($MSG == MSG_SET_DIMENSION) {
-			$width = $CONF{width} / $num_stats - 1;
-			$app->resize($CONF{width}, $CONF{height});
-
-		} elsif ($MSG == MSG_TOGGLE_TXT) {
+		if ($MSG == MSG_TOGGLE_TXT) {
 		   	$display_txt = $CONF{toggletxt};
 
 		} elsif ($MSG == MSG_TOGGLE_SUMMARY) {
 		   	$display_summary = $CONF{togglesummary};
+
+		} elsif ($MSG == MSG_SET_FACTOR) {
+		   	$factor = $CONF{factor};
 		}
 
-		$recv_msg = 1;
+		$redraw_background = 1;
 		$MSG = NULL;
 	};
 
@@ -340,15 +341,14 @@ sub thr_display_stats () {
 	do {
 		my ($x, $y) = (0, 0);
 
-		my $factor = $CONF{factor};
-
 		my $new_num_stats = keys %STATS;
 		if ($new_num_stats != $num_stats) {
 			%prev_stats = ();
 			%last_loads = ();
 	
 			$num_stats = $new_num_stats;
-			draw_background $app, $rects;
+			$redraw_background = 1;
+			#draw_background $app, $rects;
 		}
 
 		if ($display_summary) {
@@ -370,11 +370,14 @@ sub thr_display_stats () {
 				}
 			}
 
-			$STATS{'0SUMMARY;cpu'} = join ';', map { "$_=". ($summary{$_} / $count) } keys %summary;
+			$STATS{'0SUMMARY;cpu'} = join ';', map { 
+			   "$_=". ($summary{$_} / $count) 
+			} keys %summary;
 
 		} else {
 			$width = $CONF{width} / $num_stats - 1;
-			delete $STATS{'0SUMMARY;cpu'} if exists $STATS{'0SUMMARY;cpu'};
+			delete $STATS{'0SUMMARY;cpu'} 
+				if exists $STATS{'0SUMMARY;cpu'};
 		}
 
 		for my $key (sort keys %STATS) {
@@ -419,9 +422,9 @@ TIMEKEEPER:
 
 		$t1 = $t2;
 
-		if ($recv_msg) {
+		if ($redraw_background) {
 			draw_background $app, $rects;
-			$recv_msg = 0;
+			$redraw_background = 0;
 		}
 
 	} until $sigstop;
@@ -438,13 +441,10 @@ sub send_message ($$) {
 	return undef;
 }
 
-
 sub set_togglecpu_regexp () {
 	$CONF{cpuregexp} = $CONF{togglecpu} ? 'cpu ' : 'cpu';
 	return undef;
 }
-
-
 
 sub toggle ($$$@) {
 	my ($display, $key, $msg, @threads) = @_;
@@ -494,18 +494,6 @@ sub set_value (*;*) {
 
 	return undef;
 }
-
-sub set_dimensions ($) {
-   	my $display = shift;
-
-	set_value width;
-	set_value height;
-
-	send_message $display, MSG_SET_DIMENSION;
-
-	return 0;
-}
-
 
 sub dispatch_table () {
  	my $hosts = '';
@@ -579,7 +567,11 @@ END
 				}
 			}
 
-			(exists $cb->{cb} ? $cb->{cb} : sub { set_value $cmd })->(@args);
+			(exists $cb->{cb} ? $cb->{cb} : sub { 
+			 	my $display = shift;
+			 	set_value $cmd;
+				send_message $display, MSG_SET_FACTOR if $cmd eq 'factor';
+			})->(@args);
 
 		} elsif ($arg eq 'help') {
 			(join "\n", map { 

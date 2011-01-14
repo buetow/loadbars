@@ -51,12 +51,12 @@ use threads::shared;
 use constant {
 	DEPTH => 8,
 	PROMPT => 'loadbars> ',
-	VERSION => 'loadbars v0.1.2-devel',
+	VERSION => 'loadbars v0.1.2',
 	COPYRIGHT => '2010-2011 (c) Paul Buetow <loadbars@mx.buetow.org>',
 	NULL => 0,
-	MSG_SET_DIMENSION => 1,
-	MSG_TOGGLE_TXT => 2,
-	MSG_TOGGLE_SUMMARY => 3,
+	MSG_TOGGLE_TXT => 1,
+	MSG_TOGGLE_SUMMARY => 2,
+	MSG_SET_FACTOR => 3,
 	FONT => SDL::Font->new('font.png'),
 	BLACK => SDL::Color->new(-r => 0x00, -g => 0x00, -b => 0x00),
 	BLUE => SDL::Color->new(-r => 0x00, -g => 0x00, -b => 0xff),
@@ -104,8 +104,6 @@ sub sum (@) {
    return $sum;
 }
 
-sub loop (&) { $_[0]->() while 1 }
-
 sub parse_cpu_line ($) {
 	my ($name, %load);
 
@@ -118,9 +116,9 @@ sub parse_cpu_line ($) {
 sub thr_get_stat ($) {
 	my $host = shift;
 
-	my $sigusr1 = 0;
+	my ($sigusr1, $sigstop) = (0, 0);
 
-	loop {
+	do {
 		my $bash = <<"BASH";
 			if [ -e /proc/stat ]; then 
 				proc=/proc/stat
@@ -145,7 +143,7 @@ BASH
 			say "Shutting down get_stat($host) & PID $pid";
 			kill 1, $pid;
 			close $pipe;
-			threads->exit();
+			$sigstop = 1;
 		};
 
 		# Toggle CPUs
@@ -166,8 +164,13 @@ BASH
 				$cpuregexp = qr/$CONF{cpuregexp}/;
 				$sigusr1 = 0;
 			}
+
+			last if $sigstop;
 		}
-	}
+
+	} until $sigstop;
+
+	return undef;
 }
 
 sub get_rect ($$) {
@@ -202,17 +205,19 @@ sub get_load_average ($@) {
 
 sub wait_for_stats () {
 	sleep 1 until %STATS;
+	return undef;
 }
 
 sub draw_background ($$) {
    	my ($app, $rects) = @_;
-
-
 	my $rect = get_rect $rects, 'background';
+
 	$rect->width($CONF{width});
 	$rect->height($CONF{height});
 	$app->fill($rect, BLACK);
 	$app->update($rect);
+
+	return undef;
 }
 
 sub null ($) {
@@ -283,12 +288,20 @@ sub draw_rects ($$$$$$$$) {
 	return undef;
 }
 
-sub graph_stats ($) {
-  	my ($app) = @_;
+sub thr_display_stats () {
+	my $app = SDL::App->new(
+		-title => $CONF{title},
+		-icon_title => $CONF{title},
+		-width => $CONF{width},
+		-height => $CONF{height}.
+		-depth => DEPTH,
+		-resizeable => 0,
+	);
 
 	wait_for_stats;
 
 	my $num_stats = keys %STATS;
+	my $factor = $CONF{factor};
 	my $width = $CONF{width} / $num_stats - 1;
 
 	my $rects = {};
@@ -296,34 +309,37 @@ sub graph_stats ($) {
 	my %last_loads;
 	my $display_txt = $CONF{toggletxt};
 	my $display_summary = $CONF{togglesummary};
-	my $recv_msg = 0;
+	my $sigstop = 0;
+	my $redraw_background = 0;
 
-	# Toggle CPUs
+	$SIG{STOP} = sub { 
+		say "Shutting down display_stats";
+		$sigstop = 1;
+	};
+
+	# Toggle CPU
 	$SIG{USR1} = sub { wait_for_stats };
 
-	# Set new window dimensions 
+	# Diverse messages
 	$SIG{USR2} = sub {
-	   	if ($MSG == MSG_SET_DIMENSION) {
-			$width = $CONF{width} / $num_stats - 1;
-			$app->resize($CONF{width}, $CONF{height});
-
-		} elsif ($MSG == MSG_TOGGLE_TXT) {
+		if ($MSG == MSG_TOGGLE_TXT) {
 		   	$display_txt = $CONF{toggletxt};
 
 		} elsif ($MSG == MSG_TOGGLE_SUMMARY) {
 		   	$display_summary = $CONF{togglesummary};
+
+		} elsif ($MSG == MSG_SET_FACTOR) {
+		   	$factor = $CONF{factor};
 		}
 
-		$recv_msg = 1;
+		$redraw_background = 1;
 		$MSG = NULL;
 	};
 
 	my ($t1, $t2) = (Time::HiRes::time(), undef);
 
-	loop {
+	do {
 		my ($x, $y) = (0, 0);
-
-		my $factor = $CONF{factor};
 
 		my $new_num_stats = keys %STATS;
 		if ($new_num_stats != $num_stats) {
@@ -331,7 +347,8 @@ sub graph_stats ($) {
 			%last_loads = ();
 	
 			$num_stats = $new_num_stats;
-			draw_background $app, $rects;
+			$redraw_background = 1;
+			#draw_background $app, $rects;
 		}
 
 		if ($display_summary) {
@@ -353,13 +370,15 @@ sub graph_stats ($) {
 				}
 			}
 
-			$STATS{'0SUMMARY;cpu'} = join ';', map { "$_=". ($summary{$_} / $count) } keys %summary;
+			$STATS{'0SUMMARY;cpu'} = join ';', map { 
+			   "$_=". ($summary{$_} / $count) 
+			} keys %summary;
 
 		} else {
 			$width = $CONF{width} / $num_stats - 1;
-			delete $STATS{'0SUMMARY;cpu'} if exists $STATS{'0SUMMARY;cpu'};
+			delete $STATS{'0SUMMARY;cpu'} 
+				if exists $STATS{'0SUMMARY;cpu'};
 		}
-
 
 		for my $key (sort keys %STATS) {
 			my ($host, $name) = split ';', $key;
@@ -403,32 +422,14 @@ TIMEKEEPER:
 
 		$t1 = $t2;
 
-		if ($recv_msg) {
+		if ($redraw_background) {
 			draw_background $app, $rects;
-			$recv_msg = 0;
+			$redraw_background = 0;
 		}
-	};
+
+	} until $sigstop;
 
 	return undef;
-}
-
-sub thr_display_stats () {
-	my $app = SDL::App->new(
-		-title => $CONF{title},
-		-icon_title => $CONF{title},
-		-width => $CONF{width},
-		-height => $CONF{height}.
-		-depth => DEPTH,
-		-resizeable => 0,
-	);
-
-	$SIG{STOP} = sub {
-		say "Shutting down display_stats";
-		threads->exit();
-	};
-
-
-	graph_stats $app
 }
 
 sub send_message ($$) {
@@ -436,33 +437,14 @@ sub send_message ($$) {
 
 	$MSG = $message;
 	$thread->kill('USR2');
-}
-
-sub create_threads (\@) {
-   	my ($hosts) = @_;
-
-	my @threads;
-	push @threads, threads->create('thr_get_stat', $_) for @$hosts;
-
-	return (threads->create('thr_display_stats'), @threads);
-}
-
-sub stop_threads (@) {
-	for (@_) {
-		$_->kill('STOP');
-		$_->join();
-	}
 
 	return undef;
 }
 
 sub set_togglecpu_regexp () {
 	$CONF{cpuregexp} = $CONF{togglecpu} ? 'cpu ' : 'cpu';
-
 	return undef;
 }
-
-
 
 sub toggle ($$$@) {
 	my ($display, $key, $msg, @threads) = @_;
@@ -512,18 +494,6 @@ sub set_value (*;*) {
 
 	return undef;
 }
-
-sub set_dimensions ($) {
-   	my $display = shift;
-
-	set_value width;
-	set_value height;
-
-	send_message $display, MSG_SET_DIMENSION;
-
-	return 0;
-}
-
 
 sub dispatch_table () {
  	my $hosts = '';
@@ -597,7 +567,11 @@ END
 				}
 			}
 
-			(exists $cb->{cb} ? $cb->{cb} : sub { set_value $cmd })->(@args);
+			(exists $cb->{cb} ? $cb->{cb} : sub { 
+			 	my $display = shift;
+			 	set_value $cmd;
+				send_message $display, MSG_SET_FACTOR if $cmd eq 'factor';
+			})->(@args);
 
 		} elsif ($arg eq 'help') {
 			(join "\n", map { 
@@ -650,6 +624,24 @@ END
 	return (\$hosts, $closure);
 }
 
+sub create_threads (\@) {
+   	my ($hosts) = @_;
+
+	my @threads;
+	push @threads, threads->create('thr_get_stat', $_) for @$hosts;
+
+	return (threads->create('thr_display_stats'), @threads);
+}
+
+sub stop_threads (@) {
+	for (@_) {
+		$_->kill('STOP');
+		$_->join();
+	}
+
+	return undef;
+}
+
 sub main () {
 	my ($hosts, $dispatch) = dispatch_table;
 	my $help;
@@ -691,7 +683,8 @@ sub main () {
 	stop_threads $display, @threads;
 
 	say "Good bye";
-	exit 0;
+
+	return 0;
 }
 
-main;
+exit main;

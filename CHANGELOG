@@ -1,11 +1,12 @@
-Wed Jan 12 23:02:11 CET 2011
-* Added 'toggle summary'
-
-Tue Jan 11 14:26:35 CET 2011
+Fri Jan 14 23:03:47 CET 2011
+* Released v0.1.2
+* Added 'toggle summary' option
 * Removed all old screenshots
 * Added a newer one
+* Fixed lots of bugs (including segfaults)
+* Cosmetic code fixes
 
-Tue Jan 11 14:01:32 CET 2011
+Tue Jan 11 14:01:32 CET 2011 
 * Released v0.1.1
 * Extended help text ('h' command)
 * Added CHANGELOG and README files

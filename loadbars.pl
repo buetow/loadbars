@@ -169,6 +169,8 @@ BASH
 		}
 
 	} until $sigstop;
+
+	return undef;
 }
 
 sub get_rect ($$) {
@@ -203,17 +205,19 @@ sub get_load_average ($@) {
 
 sub wait_for_stats () {
 	sleep 1 until %STATS;
+	return undef;
 }
 
 sub draw_background ($$) {
    	my ($app, $rects) = @_;
-
-
 	my $rect = get_rect $rects, 'background';
+
 	$rect->width($CONF{width});
 	$rect->height($CONF{height});
 	$app->fill($rect, BLACK);
 	$app->update($rect);
+
+	return undef;
 }
 
 sub null ($) {
@@ -284,8 +288,15 @@ sub draw_rects ($$$$$$$$) {
 	return undef;
 }
 
-sub graph_stats ($) {
-  	my ($app) = @_;
+sub thr_display_stats () {
+	my $app = SDL::App->new(
+		-title => $CONF{title},
+		-icon_title => $CONF{title},
+		-width => $CONF{width},
+		-height => $CONF{height}.
+		-depth => DEPTH,
+		-resizeable => 0,
+	);
 
 	wait_for_stats;
 
@@ -366,7 +377,6 @@ sub graph_stats ($) {
 			delete $STATS{'0SUMMARY;cpu'} if exists $STATS{'0SUMMARY;cpu'};
 		}
 
-
 		for my $key (sort keys %STATS) {
 			my ($host, $name) = split ';', $key;
 
@@ -419,31 +429,18 @@ TIMEKEEPER:
 	return undef;
 }
 
-sub thr_display_stats () {
-	my $app = SDL::App->new(
-		-title => $CONF{title},
-		-icon_title => $CONF{title},
-		-width => $CONF{width},
-		-height => $CONF{height}.
-		-depth => DEPTH,
-		-resizeable => 0,
-	);
-
-
-	graph_stats $app
-}
-
 sub send_message ($$) {
    	my ($thread, $message) = @_;
 
 	$MSG = $message;
 	$thread->kill('USR2');
+
+	return undef;
 }
 
 
 sub set_togglecpu_regexp () {
 	$CONF{cpuregexp} = $CONF{togglecpu} ? 'cpu ' : 'cpu';
-
 	return undef;
 }
 
@@ -694,7 +691,8 @@ sub main () {
 	stop_threads $display, @threads;
 
 	say "Good bye";
-	exit 0;
+
+	return 0;
 }
 
-main;
+exit main;

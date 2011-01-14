@@ -689,7 +689,7 @@ sub main () {
 		last if $dispatch->('command', $_, $display, @threads);
 	}
 
-	stop_threads @threads,$display;
+	stop_threads $display, @threads;
 
 	say "Good bye";
 	exit 0;

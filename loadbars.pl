@@ -32,8 +32,6 @@
 use strict;
 use warnings;
 
-use IPC::Open2;
-
 use Getopt::Long;
 use Term::ReadLine;
 
@@ -138,7 +136,7 @@ BASH
 		my $cmd = $host eq 'localhost' ? $bash 
 			: "ssh -o StrictHostKeyChecking=no $CONF{sshopts} $host '$bash'";
 
-		my $pid = open2 my $out, my $in, $cmd or do {
+		my $pid = open my $pipe, "$cmd |" or do {
 			say "Warning: $!";
 			return;
 		};
@@ -146,6 +144,7 @@ BASH
 		$SIG{STOP} = sub {
 			say "Shutting down get_stat($host) & PID $pid";
 			kill 1, $pid;
+			close $pipe;
 			threads->exit();
 		};
 
@@ -156,7 +155,7 @@ BASH
 
 		my $cpuregexp = qr/$CONF{cpuregexp}/;
 
-		while (<$out>) {
+		while (<$pipe>) {
 	   		/$cpuregexp/ && do {
 				my ($name, $load) = parse_cpu_line $_;
 				$STATS{"$host;$name"} = join ';', 

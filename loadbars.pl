@@ -297,8 +297,13 @@ sub graph_stats ($) {
 	my $display_txt = $CONF{toggletxt};
 	my $display_summary = $CONF{togglesummary};
 	my $recv_msg = 0;
+	my $sigstop = 0;
 
-	# Toggle CPUs
+	$SIG{STOP} = sub { 
+		say "Shutting down display_stats";
+		$sigstop = 1;
+	};
+
 	$SIG{USR1} = sub { wait_for_stats };
 
 	# Set new window dimensions 
@@ -320,7 +325,7 @@ sub graph_stats ($) {
 
 	my ($t1, $t2) = (Time::HiRes::time(), undef);
 
-	loop {
+	do {
 		my ($x, $y) = (0, 0);
 
 		my $factor = $CONF{factor};
@@ -407,7 +412,8 @@ TIMEKEEPER:
 			draw_background $app, $rects;
 			$recv_msg = 0;
 		}
-	};
+
+	} until $sigstop;
 
 	return undef;
 }
@@ -422,11 +428,6 @@ sub thr_display_stats () {
 		-resizeable => 0,
 	);
 
-	$SIG{STOP} = sub {
-		say "Shutting down display_stats";
-		threads->exit();
-	};
-
 
 	graph_stats $app
 }
@@ -438,23 +439,6 @@ sub send_message ($$) {
 	$thread->kill('USR2');
 }
 
-sub create_threads (\@) {
-   	my ($hosts) = @_;
-
-	my @threads;
-	push @threads, threads->create('thr_get_stat', $_) for @$hosts;
-
-	return (threads->create('thr_display_stats'), @threads);
-}
-
-sub stop_threads (@) {
-	for (@_) {
-		$_->kill('STOP');
-		$_->join();
-	}
-
-	return undef;
-}
 
 sub set_togglecpu_regexp () {
 	$CONF{cpuregexp} = $CONF{togglecpu} ? 'cpu ' : 'cpu';
@@ -648,6 +632,24 @@ END
 	};
 
 	return (\$hosts, $closure);
+}
+
+sub create_threads (\@) {
+   	my ($hosts) = @_;
+
+	my @threads;
+	push @threads, threads->create('thr_get_stat', $_) for @$hosts;
+
+	return (threads->create('thr_display_stats'), @threads);
+}
+
+sub stop_threads (@) {
+	for (@_) {
+		$_->kill('STOP');
+		$_->join();
+	}
+
+	return undef;
 }
 
 sub main () {

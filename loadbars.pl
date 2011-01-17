@@ -138,7 +138,8 @@ BASH
 
 		my $pid = open my $pipe, "$cmd |" or do {
 			say "Warning: $!";
-			return;
+			sleep 3;
+			next;
 		};
 
 		$SIG{STOP} = sub {

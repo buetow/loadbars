@@ -55,7 +55,6 @@ use constant {
 	COPYRIGHT => '2010-2011 (c) Paul Buetow <loadbars@mx.buetow.org>',
 	NULL => 0,
 	MSG_TOGGLE_TXT => 1,
-	MSG_TOGGLE_SUMMARY => 2,
 	MSG_SET_FACTOR => 3,
 	FONT => SDL::Font->new('font.png'),
 	BLACK => SDL::Color->new(-r => 0x00, -g => 0x00, -b => 0x00),
@@ -90,7 +89,6 @@ my $MSG   :shared;
 	samples => 1000,
 	sshopts => '',
 	togglecpu => 1,
-	togglesummary => 0,
 	toggletxt => 1,
 	width => 1200,
 	height => 200,
@@ -160,7 +158,6 @@ BASH
 		while (<$pipe>) {
 	   		if (/^$loadavgexp/) {
 				$AVGSTATS{$host} = "$1;$2;$3";
-				say "$AVGSTATS{$host} = $1;$2;$3";
 
 			} elsif (/$cpuregexp/) {
 				my ($name, $load) = parse_cpu_line $_;
@@ -253,7 +250,6 @@ sub thr_display_stats () {
 	my %prev_stats;
 	my %last_loads;
 	my $display_txt = $CONF{toggletxt};
-	my $display_summary = $CONF{togglesummary};
 	my $sigstop = 0;
 	my $redraw_background = 0;
 
@@ -269,9 +265,6 @@ sub thr_display_stats () {
 	$SIG{USR2} = sub {
 		if ($MSG == MSG_TOGGLE_TXT) {
 		   	$display_txt = $CONF{toggletxt};
-
-		} elsif ($MSG == MSG_TOGGLE_SUMMARY) {
-		   	$display_summary = $CONF{togglesummary};
 
 		} elsif ($MSG == MSG_SET_FACTOR) {
 		   	$factor = $CONF{factor};
@@ -296,34 +289,7 @@ sub thr_display_stats () {
 			#draw_background $app, $rects;
 		}
 
-		if ($display_summary) {
-			my $div = $width = $num_stats -1;
-			$width = $CONF{width} / ($div ? $div : 1) - 1;
-
-			my %summary;
-			my $count = 0;
-
-			for my $key (keys %CPUSTATS) {
-				my ($host, $name) = split ';', $key;
-				next unless defined $CPUSTATS{$key};
-				++$count;
-
-				for (split ';', $CPUSTATS{$key}) {
-			   		my ($k, $v) = split '='; 
-					$summary{$k} = 0 unless exists $summary{$k};
-					$summary{$k} += $v;
-				}
-			}
-
-			$CPUSTATS{'0SUMMARY;cpu'} = join ';', map { 
-			   "$_=". ($summary{$_} / $count) 
-			} keys %summary;
-
-		} else {
-			$width = $CONF{width} / $num_stats - 1;
-			delete $CPUSTATS{'0SUMMARY;cpu'} 
-				if exists $CPUSTATS{'0SUMMARY;cpu'};
-		}
+		$width = $CONF{width} / $num_stats - 1;
 
 		for my $key (sort keys %CPUSTATS) {
 			my ($host, $name) = split ';', $key;
@@ -469,13 +435,6 @@ sub toggletxt ($@) {
 	return undef;
 }
 
-sub togglesummary ($@) {
-	my ($display, @threads) = @_;
-	toggle $display, 'togglesummary', MSG_TOGGLE_SUMMARY, @threads;
-
-	return undef;
-}
-
 sub togglecpu ($@) {
 	my ($display, @threads) = @_;
 
@@ -523,7 +482,6 @@ sub dispatch_table () {
 		sshopts => { menupos => 7,  cmd => 'o', help => 'Set SSH options', mode => 7, type => 's' },
 		togglecpu => { menupos => 4,  cmd => '1', help => 'Toggle CPUs (0 or 1)', mode => 7, type => 'i', cb => \&togglecpu },
 		toggletxt => { menupos => 4,  cmd => '2', help => 'Toggle display text (0 or 1)', mode => 7, type => 'i', cb => \&toggletxt },
-		togglesummary => { menupos => 4,  cmd => '3', help => 'Toggle summary load bar (0 or 1)', mode => 7, type => 'i', cb => \&togglesummary },
 		version => { menupos => 3,  cmd => 'v', help => 'Print version', mode => 1, cb => sub { say VERSION . ' ' . COPYRIGHT } },
 		width => { menupos => 2,  help => 'Set windows width', mode => 6, type => 'i' },
 	);

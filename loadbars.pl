@@ -76,7 +76,8 @@ use constant {
 
 $| = 1;
 
-my %STATS :shared;
+my %AVGSTATS :shared;
+my %CPUSTATS :shared;
 my %CONF  :shared;
 my $MSG   :shared;
 
@@ -156,7 +157,7 @@ BASH
 		while (<$pipe>) {
 	   		/$cpuregexp/ && do {
 				my ($name, $load) = parse_cpu_line $_;
-				$STATS{"$host;$name"} = join ';', 
+				$CPUSTATS{"$host;$name"} = join ';', 
 				   	map { $_ . '=' . $load->{$_} } keys %$load;
 			};
 
@@ -204,7 +205,7 @@ sub get_load_average ($@) {
 }
 
 sub wait_for_stats () {
-	sleep 1 until %STATS;
+	sleep 1 until %CPUSTATS;
 	return undef;
 }
 
@@ -300,7 +301,7 @@ sub thr_display_stats () {
 
 	wait_for_stats;
 
-	my $num_stats = keys %STATS;
+	my $num_stats = keys %CPUSTATS;
 	my $factor = $CONF{factor};
 	my $width = $CONF{width} / $num_stats - 1;
 
@@ -341,7 +342,7 @@ sub thr_display_stats () {
 	do {
 		my ($x, $y) = (0, 0);
 
-		my $new_num_stats = keys %STATS;
+		my $new_num_stats = keys %CPUSTATS;
 		if ($new_num_stats != $num_stats) {
 			%prev_stats = ();
 			%last_loads = ();
@@ -358,36 +359,36 @@ sub thr_display_stats () {
 			my %summary;
 			my $count = 0;
 
-			for my $key (keys %STATS) {
+			for my $key (keys %CPUSTATS) {
 				my ($host, $name) = split ';', $key;
-				next unless defined $STATS{$key};
+				next unless defined $CPUSTATS{$key};
 				++$count;
 
-				for (split ';', $STATS{$key}) {
+				for (split ';', $CPUSTATS{$key}) {
 			   		my ($k, $v) = split '='; 
 					$summary{$k} = 0 unless exists $summary{$k};
 					$summary{$k} += $v;
 				}
 			}
 
-			$STATS{'0SUMMARY;cpu'} = join ';', map { 
+			$CPUSTATS{'0SUMMARY;cpu'} = join ';', map { 
 			   "$_=". ($summary{$_} / $count) 
 			} keys %summary;
 
 		} else {
 			$width = $CONF{width} / $num_stats - 1;
-			delete $STATS{'0SUMMARY;cpu'} 
-				if exists $STATS{'0SUMMARY;cpu'};
+			delete $CPUSTATS{'0SUMMARY;cpu'} 
+				if exists $CPUSTATS{'0SUMMARY;cpu'};
 		}
 
-		for my $key (sort keys %STATS) {
+		for my $key (sort keys %CPUSTATS) {
 			my ($host, $name) = split ';', $key;
 
-			next unless defined $STATS{$key};
+			next unless defined $CPUSTATS{$key};
 
 			my %stat = map { 
 			   	my ($k, $v) = split '='; $k => $v 
-			} split ';', $STATS{$key};
+			} split ';', $CPUSTATS{$key};
 
 			unless (exists $prev_stats{$key}) {
 				$prev_stats{$key} = \%stat;
@@ -478,7 +479,8 @@ sub togglecpu ($@) {
 	set_togglecpu_regexp;
 
 	$_->kill('USR1') for @threads;
-	%STATS = ();
+	%AVGSTATS = ();
+	%CPUSTATS = ();
 	$display->kill('USR1');
 
 	return undef;

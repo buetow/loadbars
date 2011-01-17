@@ -118,17 +118,20 @@ sub thr_get_stat ($) {
 	my $host = shift;
 
 	my ($sigusr1, $sigstop) = (0, 0);
+	my $loadavgexp = qr/(\d+\.\d{2}) (\d+\.\d{2}) (\d+\.\d{2})/;
 
 	do {
 		my $bash = <<"BASH";
 			if [ -e /proc/stat ]; then 
-				proc=/proc/stat
+				loadavg=/proc/loadavg
+				stat=/proc/stat
 			else 
-			   	proc=/compat/linux/proc/stat
+			   	loadavg=/compat/linux/proc/loadavg
+			   	stat=/compat/linux/proc/stat
 			fi
 			
 			for i in \$(seq $CONF{samples}); do 
-			   	cat \$proc
+			   	cat \$loadavg \$stat
 				sleep $CONF{inter}
 			done
 BASH
@@ -155,11 +158,15 @@ BASH
 		my $cpuregexp = qr/$CONF{cpuregexp}/;
 
 		while (<$pipe>) {
-	   		/$cpuregexp/ && do {
+	   		if (/^$loadavgexp/) {
+				$AVGSTATS{$host} = "$1;$2;$3";
+				say "$AVGSTATS{$host} = $1;$2;$3";
+
+			} elsif (/$cpuregexp/) {
 				my ($name, $load) = parse_cpu_line $_;
 				$CPUSTATS{"$host;$name"} = join ';', 
 				   	map { $_ . '=' . $load->{$_} } keys %$load;
-			};
+			}
 
 			if ($sigusr1) {
 				$cpuregexp = qr/$CONF{cpuregexp}/;
@@ -190,18 +197,18 @@ sub normalize_loads (%) {
 	return map { $_ => $loads{$_} / ($total / 100) } keys %loads;
 }
 
-sub get_load_average ($@) {
+sub get_cpuaverage ($@) {
 	my ($factor, @loads) = @_;	
-	my %load_average;
+	my %cpuaverage;
 
 	for my $l (@loads) {
-		$load_average{$_} += $l->{$_} for keys %$l;
+		$cpuaverage{$_} += $l->{$_} for keys %$l;
 	}
 
 	my $div = @loads / $factor;
-	$load_average{$_} /= $div for keys %load_average;
+	$cpuaverage{$_} /= $div for keys %cpuaverage;
 
-	return %load_average;
+	return %cpuaverage;
 }
 
 sub wait_for_stats () {
@@ -224,69 +231,6 @@ sub draw_background ($$) {
 sub null ($) {
    	my $arg = shift;
 	return defined $arg ? $arg : 0;
-}
-
-sub draw_rects ($$$$$$$$) {
-	my ($app, $key, $load_average, $rects, $x, $y, $width, $display_txt) = @_;
-
-	my %heights = map { 
-		$_ => defined $load_average->{$_} ? $load_average->{$_} * ($CONF{height}/100) : 1 
-	} keys %$load_average;
-
-	my $rect_user = get_rect $rects, "$key;user";
-	my $rect_system = get_rect $rects, "$key;system";
-	my $rect_iowait = get_rect $rects, "$key;iowait";
-	my $rect_nice = get_rect $rects, "$key;nice";
-
-	$y = $CONF{height} - $heights{system};
-	$rect_system->width($width);
-	$rect_system->height($heights{system});
-	$rect_system->x($x);
-	$rect_system->y($y);
-
-	$y -= $heights{user};
-	$rect_user->width($width);
-	$rect_user->height($heights{user});
-	$rect_user->x($x);
-	$rect_user->y($y);
-
-	$y -= $heights{nice};
-	$rect_nice->width($width);
-	$rect_nice->height($heights{nice});
-	$rect_nice->x($x);
-	$rect_nice->y($y);
-
-	$y -= $heights{iowait};
-	$rect_iowait->width($width);
-	$rect_iowait->height($heights{iowait});
-	$rect_iowait->x($x);
-	$rect_iowait->y($y);
-
-	my $system_n_user = sum @{$load_average}{qw(user system)};
-
-	$app->fill($rect_iowait, BLACK);
-	$app->fill($rect_nice, GREEN);
-	$app->fill($rect_system, BLUE);
-	$app->fill($rect_system, $load_average->{system} > SYSTEM_PURPLE
-	      	? PURPLE 
-		: BLUE);
-	$app->fill($rect_user, $system_n_user > USER_WHITE ? WHITE 
-	      	: ($system_n_user > USER_RED ? RED 
-		: ($system_n_user > USER_ORANGE ? ORANGE 
-		: ($system_n_user > USER_YELLOW0 ? YELLOW0 
-		: (YELLOW)))));
-
-
-	if ($display_txt) {
-		$app->print($x, 5, sprintf  "%d%s", $load_average->{nice}, 'ni');
-		$app->print($x, 25, sprintf "%d%s", $load_average->{user}, 'us');
-		$app->print($x, 45, sprintf "%d%s", $load_average->{system}, 'sy');
-		$app->print($x, 65, sprintf "%d%s", $system_n_user, 'su');
-	}
-
-	$app->update($_) for $rect_nice, $rect_iowait, $rect_system, $rect_user;
-
-	return undef;
 }
 
 sub thr_display_stats () {
@@ -406,10 +350,70 @@ sub thr_display_stats () {
 			%loads = normalize_loads %loads;
 			push @{$last_loads{$key}}, \%loads;
 			shift @{$last_loads{$key}} while @{$last_loads{$key}} >= $CONF{average};
-			my %load_average = get_load_average $factor, @{$last_loads{$key}};
+			my %cpuaverage = get_cpuaverage $factor, @{$last_loads{$key}};
 
+			my %heights = map { 
+				$_ => defined $cpuaverage{$_} ? $cpuaverage{$_} * ($CONF{height}/100) : 1 
+			} keys %cpuaverage;
+			
+			my $rect_user = get_rect $rects, "$key;user";
+			my $rect_system = get_rect $rects, "$key;system";
+			my $rect_iowait = get_rect $rects, "$key;iowait";
+			my $rect_nice = get_rect $rects, "$key;nice";
+			
+			$y = $CONF{height} - $heights{system};
+			$rect_system->width($width);
+			$rect_system->height($heights{system});
+			$rect_system->x($x);
+			$rect_system->y($y);
+			
+			$y -= $heights{user};
+			$rect_user->width($width);
+			$rect_user->height($heights{user});
+			$rect_user->x($x);
+			$rect_user->y($y);
+			
+			$y -= $heights{nice};
+			$rect_nice->width($width);
+			$rect_nice->height($heights{nice});
+			$rect_nice->x($x);
+			$rect_nice->y($y);
+			
+			$y -= $heights{iowait};
+			$rect_iowait->width($width);
+			$rect_iowait->height($heights{iowait});
+			$rect_iowait->x($x);
+			$rect_iowait->y($y);
+			
+			my $system_n_user = sum @cpuaverage{qw(user system)};
+			
+			$app->fill($rect_iowait, BLACK);
+			$app->fill($rect_nice, GREEN);
+			$app->fill($rect_system, BLUE);
+			$app->fill($rect_system, $cpuaverage{system} > SYSTEM_PURPLE
+			      	? PURPLE 
+				: BLUE);
+			$app->fill($rect_user, $system_n_user > USER_WHITE ? WHITE 
+			      	: ($system_n_user > USER_RED ? RED 
+				: ($system_n_user > USER_ORANGE ? ORANGE 
+				: ($system_n_user > USER_YELLOW0 ? YELLOW0 
+				: (YELLOW)))));
+			
+			
+			if ($display_txt) {
+				$app->print($x, 5, sprintf  "%d%s", $cpuaverage{nice}, 'ni');
+				$app->print($x, 25, sprintf "%d%s", $cpuaverage{user}, 'us');
+				$app->print($x, 45, sprintf "%d%s", $cpuaverage{system}, 'sy');
+				$app->print($x, 65, sprintf "%d%s", $system_n_user, 'su');
 
-			draw_rects $app, $key, \%load_average, $rects, $x, $y, $width, $display_txt;
+				my @loadavg = split ';', $AVGSTATS{$host};
+				$app->print($x, 85, 'avg:');
+				$app->print($x, 105, sprintf "%.2f", $loadavg[0]);
+				$app->print($x, 125, sprintf "%.2f", $loadavg[1]);
+				$app->print($x, 145, sprintf "%.2f", $loadavg[2]);
+			}
+			
+			$app->update($_) for $rect_nice, $rect_iowait, $rect_system, $rect_user;
 			$x += $width + 1;
 		}
 

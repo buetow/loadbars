@@ -318,7 +318,6 @@ sub thr_display_stats () {
 			shift @{$last_loads{$key}} while @{$last_loads{$key}} >= $CONF{average};
 
 			my %cpuaverage = get_cpuaverage $factor, @{$last_loads{$key}};
-			my @loadavg = split ';', $AVGSTATS{$host};
 
 			my %heights = map { 
 				$_ => defined $cpuaverage{$_} ? $cpuaverage{$_} * ($CONF{height}/100) : 1 
@@ -375,6 +374,8 @@ sub thr_display_stats () {
 				$app->print($x, 65, sprintf "%d%s", $system_n_user, 'su');
 
 				unless (exists $avg_display{$host}) {
+					my @loadavg = split ';', $AVGSTATS{$host};
+
 					$app->print($x, 85, 'avg:');
 					$app->print($x, 105, sprintf "%.2f", $loadavg[0]);
 					$app->print($x, 125, sprintf "%.2f", $loadavg[1]);

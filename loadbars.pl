@@ -155,7 +155,7 @@ BASH
 
 		my $cpuregexp = qr/$CONF{cpuregexp}/;
 
-		while (<$pipe>) {
+		while (<$pipe>) {		
 	   		if (/^$loadavgexp/) {
 				$AVGSTATS{$host} = "$1;$2;$3";
 
@@ -244,7 +244,6 @@ sub thr_display_stats () {
 
 	my $num_stats = keys %CPUSTATS;
 	my $factor = $CONF{factor};
-	my $width = $CONF{width} / $num_stats - 1;
 
 	my $rects = {};
 	my %prev_stats;
@@ -278,6 +277,7 @@ sub thr_display_stats () {
 
 	do {
 		my ($x, $y) = (0, 0);
+		my %avg_display;
 
 		my $new_num_stats = keys %CPUSTATS;
 		if ($new_num_stats != $num_stats) {
@@ -289,7 +289,7 @@ sub thr_display_stats () {
 			#draw_background $app, $rects;
 		}
 
-		$width = $CONF{width} / $num_stats - 1;
+		my $width = $CONF{width} / $num_stats - 1;
 
 		for my $key (sort keys %CPUSTATS) {
 			my ($host, $name) = split ';', $key;
@@ -316,7 +316,9 @@ sub thr_display_stats () {
 			%loads = normalize_loads %loads;
 			push @{$last_loads{$key}}, \%loads;
 			shift @{$last_loads{$key}} while @{$last_loads{$key}} >= $CONF{average};
+
 			my %cpuaverage = get_cpuaverage $factor, @{$last_loads{$key}};
+			my @loadavg = split ';', $AVGSTATS{$host};
 
 			my %heights = map { 
 				$_ => defined $cpuaverage{$_} ? $cpuaverage{$_} * ($CONF{height}/100) : 1 
@@ -372,11 +374,14 @@ sub thr_display_stats () {
 				$app->print($x, 45, sprintf "%d%s", $cpuaverage{system}, 'sy');
 				$app->print($x, 65, sprintf "%d%s", $system_n_user, 'su');
 
-				my @loadavg = split ';', $AVGSTATS{$host};
-				$app->print($x, 85, 'avg:');
-				$app->print($x, 105, sprintf "%.2f", $loadavg[0]);
-				$app->print($x, 125, sprintf "%.2f", $loadavg[1]);
-				$app->print($x, 145, sprintf "%.2f", $loadavg[2]);
+				unless (exists $avg_display{$host}) {
+					$app->print($x, 85, 'avg:');
+					$app->print($x, 105, sprintf "%.2f", $loadavg[0]);
+					$app->print($x, 125, sprintf "%.2f", $loadavg[1]);
+					$app->print($x, 145, sprintf "%.2f", $loadavg[2]);
+
+					$avg_display{$host} = 1;
+				}
 			}
 			
 			$app->update($_) for $rect_nice, $rect_iowait, $rect_system, $rect_user;
@@ -503,7 +508,6 @@ Explanation colors:
 	Orange: User usage if system & user cpu is >70%
 	White: Usage usage if system & user cpu is >99%
 	Green: Nice cpu usage
-
 Explanation text display:
 	ni = Nice cpu usage in %
 	us = User cpu usage in %
@@ -545,7 +549,7 @@ END
 			   	$d_by_short{$_}{mode} & 1 and exists $d_by_short{$_}{help}
 
 			} sort { $d_by_short{$a}{menupos} <=> $d_by_short{$b}{menupos} } sort keys %d_by_short)
-			. "\n\n$textdesc";
+			. "\n$textdesc";
 
 		} elsif ($arg eq 'usage') {
 			join "\n", map { 

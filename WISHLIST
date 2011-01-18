@@ -1,2 +1,5 @@
 - Extended text display (hostname, cpu number, etc..)
 - Stats for other stuff (e.g. memory, inodes..., disk usage)
+
+Bugs:
+- Font is buggy, segfaults on quit

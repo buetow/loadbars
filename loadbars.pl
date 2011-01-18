@@ -378,9 +378,9 @@ sub thr_display_stats () {
 					my @loadavg = split ';', $AVGSTATS{$host};
 
 					$app->print($x, 85, 'avg:');
-					$app->print($x, 105, sprintf "%.2f", $loadavg[0]);
+					$app->print($x, 105, sprintf "%.2f", $loadavg[2]);
 					$app->print($x, 125, sprintf "%.2f", $loadavg[1]);
-					$app->print($x, 145, sprintf "%.2f", $loadavg[2]);
+					$app->print($x, 145, sprintf "%.2f", $loadavg[0]);
 
 					$avg_display{$host} = 1;
 				}

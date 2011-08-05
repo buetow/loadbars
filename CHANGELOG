@@ -1,5 +1,9 @@
-Fr 5. Aug 21:41:13 CEST 2011
+Fr 5. Aug 23:29:19 CEST 2011
+* Released v0.1.3
 * Fixed a segfault bug on SDL::Font using threads
+* Added an advanced help option (h vs. H)
+* Added new toggle option: Displaying bar number vs. hostname
+* Some little code refactoring
 
 Fr 22. Apr 13:08:08 CEST 2011
 * Released v0.1.2.1

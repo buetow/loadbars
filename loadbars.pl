@@ -56,8 +56,6 @@ use constant {
 	NULL => 0,
 	MSG_TOGGLE_TXT => 1,
 	MSG_TOGGLE_TXT_HOST => 2,
-	MSG_TOGGLE_TXT_CPU => 3,
-	MSG_TOGGLE_TXT_LOADAVG => 4,
 	MSG_SET_FACTOR => 5,
 	BLACK => SDL::Color->new(-r => 0x00, -g => 0x00, -b => 0x00),
 	BLUE => SDL::Color->new(-r => 0x00, -g => 0x00, -b => 0xff),
@@ -97,8 +95,6 @@ my @HOSTS :shared;
 	togglecpu => 1,
 	toggletxt => 1,
 	toggletxthost => 0,
-	toggletxtcpu => 1,
-	toggletxtloadavg => 1,
 	width => 1200,
 	height => 200,
 );
@@ -264,8 +260,6 @@ sub thr_display_stats () {
 	my %displaytxt = (
 		on => $CONF{toggletxt},
 		host => $CONF{toggletxthost},
-		cpu => $CONF{toggletxtcpu},
-		loadavg => $CONF{toggletxtloadavg},
 	);
 
 	my $sigstop = 0;
@@ -286,12 +280,6 @@ sub thr_display_stats () {
 
 		} elsif ($MSG == MSG_TOGGLE_TXT_HOST) {
 			$displaytxt{host} = $CONF{toggletxthost};
-
-		} elsif ($MSG == MSG_TOGGLE_TXT_CPU) {
-			$displaytxt{cpu} = $CONF{toggletxtcpu};
-
-		} elsif ($MSG == MSG_TOGGLE_TXT_LOADAVG) {
-			$displaytxt{loadavg} = $CONF{toggletxtloadavg};
 
 		} elsif ($MSG == MSG_SET_FACTOR) {
 		   	$factor = $CONF{factor};
@@ -411,14 +399,12 @@ sub thr_display_stats () {
 					$app->print($x, $y, sprintf  '%i:', $counter);
 				}
 
-				if ($displaytxt{cpu}) {
-					$app->print($x, $y+=$space, sprintf '%d%s', $cpuaverage{nice}, 'ni');
-					$app->print($x, $y+=$space, sprintf '%d%s', $cpuaverage{user}, 'us');
-					$app->print($x, $y+=$space, sprintf '%d%s', $cpuaverage{system}, 'sy');
-					$app->print($x, $y+=$space, sprintf '%d%s', $system_n_user, 'su');
-				}
+				$app->print($x, $y+=$space, sprintf '%d%s', $cpuaverage{nice}, 'ni');
+				$app->print($x, $y+=$space, sprintf '%d%s', $cpuaverage{user}, 'us');
+				$app->print($x, $y+=$space, sprintf '%d%s', $cpuaverage{system}, 'sy');
+				$app->print($x, $y+=$space, sprintf '%d%s', $system_n_user, 'su');
 
-				if ($displaytxt{loadavg} && not $is_host_summary) {
+				unless ($is_host_summary) {
 					my @loadavg = split ';', $AVGSTATS{$host};
 		
 					$app->print($x, $y+=$space, 'avg:');
@@ -554,8 +540,6 @@ END
 		togglecpu => { menupos => 4,  cmd => '1', help => 'Toggle CPUs (0 or 1)', mode => 7, type => 'i', cb => \&togglecpu },
 		toggletxt => { menupos => 4,  cmd => '2', help => 'Toggle all text display (0 or 1)', mode => 7, type => 'i', cb => toggletxt 'toggletxt', MSG_TOGGLE_TXT },
 		toggletxthost => { menupos => 4,  cmd => '3', help => 'Toggle hostname/num text display (0 or 1)', mode => 7, type => 'i', cb =>  toggletxt 'toggletxthost', MSG_TOGGLE_TXT_HOST },
-		toggletxtcpu => { menupos => 4,  cmd => '4', help => 'Toggle CPU text display (0 or 1)', mode => 7, type => 'i', cb => toggletxt 'toggletxtcpu', MSG_TOGGLE_TXT_CPU },
-		toggletxtloadavg => { menupos => 4,  cmd => '5', help => 'Toggle load avg. text display (0 or 1)', mode => 7, type => 'i', cb => toggletxt 'toggletxtloadavg', MSG_TOGGLE_TXT_LOADAVG },
 		version => { menupos => 3,  cmd => 'v', help => 'Print version', mode => 1, cb => sub { say VERSION . ' ' . COPYRIGHT } },
 		width => { menupos => 2,  help => 'Set windows width', mode => 6, type => 'i' },
 	);

@@ -70,6 +70,9 @@ use constant {
 	USER_RED => 90,
 	USER_ORANGE => 70,
 	USER_YELLOW0 => 50,
+
+	# For developing or other debugging purporses 
+	DEBUG => 1,
 };
 
 $| = 1;
@@ -94,6 +97,7 @@ my $MSG   :shared;
 );
 
 sub say (@) { print "$_\n" for @_; return undef }
+sub newline () { say ''; return undef }
 sub debugsay (@) { say "DEBUG: $_" for @_; return undef }
 
 sub sum (@) { 
@@ -142,10 +146,24 @@ BASH
 		};
 
 		$SIG{STOP} = sub {
-			say "Shutting down get_stat($host) & PID $pid";
+			print "Shutting down get_stat($host) & PID $pid";
 			kill 1, $pid;
 			close $pipe;
+
 			$sigstop = 1;
+
+			my $killcounter = 0;
+			while (kill 0, $pid) {
+				++$killcounter;
+				print '.';	
+
+				if ($killcounter >= 3) {
+					print " forcing using SIGKILL"; 
+					kill 0, $pid;
+				}
+			} 
+
+			newline;
 		};
 
 		# Toggle CPUs
@@ -240,9 +258,8 @@ sub thr_display_stats () {
 		-resizeable => 0,
 	);
 
-	wait_for_stats;
-
 	SDL::Font->new('font.png')->use();
+	wait_for_stats;
 
 	my $num_stats = keys %CPUSTATS;
 	my $factor = $CONF{factor};
@@ -300,6 +317,7 @@ sub thr_display_stats () {
 
 			my %stat = map { 
 			   	my ($k, $v) = split '='; $k => $v 
+
 			} split ';', $CPUSTATS{$key};
 
 			unless (exists $prev_stats{$key}) {
@@ -323,6 +341,7 @@ sub thr_display_stats () {
 
 			my %heights = map { 
 				$_ => defined $cpuaverage{$_} ? $cpuaverage{$_} * ($CONF{height}/100) : 1 
+
 			} keys %cpuaverage;
 			
 			my $rect_user = get_rect $rects, "$key;user";

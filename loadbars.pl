@@ -51,7 +51,7 @@ use threads::shared;
 use constant {
 	DEPTH => 8,
 	PROMPT => 'loadbars> ',
-	VERSION => 'loadbars v0.1.3',
+	VERSION => 'loadbars v0.1.3.1',
 	COPYRIGHT => '2010-2011 (c) Paul Buetow <loadbars@mx.buetow.org>',
 	NULL => 0,
 	MSG_TOGGLE_TXT => 1,
@@ -73,7 +73,7 @@ use constant {
 	USER_YELLOW0 => 50,
 
 	# For developing or other debugging purporses 
-	DEBUG => 1,
+	DEBUG => 0,
 };
 
 $| = 1;

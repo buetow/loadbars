@@ -146,25 +146,11 @@ BASH
 		};
 
 		$SIG{STOP} = sub {
-			print "Shutting down get_stat($host) & PID $pid";
+			say "Shutting down get_stat($host) & PID $pid";
 			kill 1, $pid;
 			close $pipe;
 
 			$sigstop = 1;
-
-			my $killcounter = 0;
-			while (kill 0, $pid) {
-				++$killcounter;
-				print '.';	
-
-				if ($killcounter >= 3) {
-					print " forcing using SIGKILL"; 
-					kill 0, $pid;
-					last;
-				}
-			} 
-
-			newline;
 		};
 
 		# Toggle CPUs

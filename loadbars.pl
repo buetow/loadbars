@@ -146,7 +146,7 @@ BASH
 		};
 
 		$SIG{STOP} = sub {
-			say "Shutting down get_stat($host) & PID $pid";
+			say "Shutting down get_stat($host) (SSH PID $pid)";
 			kill 1, $pid;
 			close $pipe;
 
@@ -385,9 +385,9 @@ sub thr_display_stats () {
 					my @loadavg = split ';', $AVGSTATS{$host};
 
 					$app->print($x, 85, 'avg:');
-					$app->print($x, 105, sprintf "%.2f", $loadavg[2]);
+					$app->print($x, 105, sprintf "%.2f", $loadavg[0]);
 					$app->print($x, 125, sprintf "%.2f", $loadavg[1]);
-					$app->print($x, 145, sprintf "%.2f", $loadavg[0]);
+					$app->print($x, 145, sprintf "%.2f", $loadavg[2]);
 
 					$avg_display{$host} = 1;
 				}
@@ -477,6 +477,24 @@ sub set_value (*;*) {
 sub dispatch_table () {
  	my $hosts = '';
 
+	my $textdesc = <<END;
+Explanation colors:
+	Blue: System cpu usage 
+	Purple: System usage if system cpu is >30%
+	Yellow: User cpu usage 
+	Darker yellow: User usage if system & user cpu is >50%
+	Orange: User usage if system & user cpu is >70%
+	White: Usage usage if system & user cpu is >99%
+	Green: Nice cpu usage
+Explanation text display:
+	ni = Nice cpu usage in %
+	us = User cpu usage in %
+	sy = System cpu sage in %
+	su = System & user cpu usage in %
+	avg = System load average (desc. order: 1, 5 and 15 min. avg.)
+END
+
+
 	# mode 1: Option is shown in the online help menu
 	# mode 2: Option is shown in the 'usage' screen from the command line
 	# mode 4: Option is used to generate the GetOptions parameters for Getopt::Long
@@ -486,8 +504,9 @@ sub dispatch_table () {
 		average => { menupos => 4,  cmd => 'a', help => 'Set number of samples for calculating average loads', mode => 7, type => 'i' },
 		configuration => { menupos => 4,  cmd => 'c', help => 'Show current configuration', mode => 5 },
 		factor => { menupos => 4,  cmd => 'f', help => 'Set scale factor (1.0 means 100%)', mode => 7, type => 's' },
-		height => { menupos => 2,  help => 'Set windows height', mode => 6, type => 'i' },
+		height => { menupos => 3,  help => 'Set windows height', mode => 6, type => 'i' },
 		help => { menupos => 1,  cmd => 'h', help => 'Print this help screen', mode => 3 },
+		help2 => { menupos => 2,  cmd => 'H', help => 'Print more help text', mode => 1, cb => sub { say $textdesc } },
 		hosts => { menupos => 4,  help => 'Comma separated list of hosts', var => \$hosts, mode => 6, type => 's' },
 		title => { menupos => 4,  help => 'Set the window title', var => \$CONF{title}, mode => 6, type => 's' },
 		inter => { menupos => 4,  cmd => 'i', help => 'Set update interval in seconds (default 0.1)', mode => 7, type => 's' },
@@ -507,22 +526,6 @@ sub dispatch_table () {
 	   	exists $d{$_}{cmd} 
 
 	} keys %d;
-
-	my $textdesc = <<END;
-Explanation colors:
-	Blue: System cpu usage 
-	Purple: System usage if system cpu is >30%
-	Yellow: User cpu usage 
-	Darker yellow: User usage if system & user cpu is >50%
-	Orange: User usage if system & user cpu is >70%
-	White: Usage usage if system & user cpu is >99%
-	Green: Nice cpu usage
-Explanation text display:
-	ni = Nice cpu usage in %
-	us = User cpu usage in %
-	sy = System cpu sage in %
-	su = System & user cpu usage in %
-END
 
 	my $closure = sub ($;$) {
 		my ($arg, @rest) = @_;
@@ -557,8 +560,7 @@ END
 			} grep { 
 			   	$d_by_short{$_}{mode} & 1 and exists $d_by_short{$_}{help}
 
-			} sort { $d_by_short{$a}{menupos} <=> $d_by_short{$b}{menupos} } sort keys %d_by_short)
-			. "\n$textdesc";
+			} sort { $d_by_short{$a}{menupos} <=> $d_by_short{$b}{menupos} } sort keys %d_by_short);
 
 		} elsif ($arg eq 'usage') {
 			join "\n", map { 

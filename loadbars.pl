@@ -305,7 +305,7 @@ sub thr_display_stats () {
 
 	do {
 		my ($x, $y) = (0, 0);
-		my %avg_display;
+		my %is_host_summary;
 
 		my $new_num_stats = keys %CPUSTATS;
 		if ($new_num_stats != $num_stats) {
@@ -401,8 +401,9 @@ sub thr_display_stats () {
 			
 			if ($displaytxt{on}) {
 				my ($y, $space) = (5, 15);
+				my $is_host_summary = exists $is_host_summary{$host};
 
-				if ($displaytxt{host}) {
+				if ($displaytxt{host} && not $is_host_summary) {
 					$host =~ /([^\.]*)/;
 					$app->print($x, $y, sprintf '%s:', $1);
 
@@ -417,17 +418,15 @@ sub thr_display_stats () {
 					$app->print($x, $y+=$space, sprintf '%d%s', $system_n_user, 'su');
 				}
 
-				if ($displaytxt{loadavg}) {
-					unless (exists $avg_display{$host}) {
-						my @loadavg = split ';', $AVGSTATS{$host};
+				if ($displaytxt{loadavg} && not $is_host_summary) {
+					my @loadavg = split ';', $AVGSTATS{$host};
 		
-						$app->print($x, $y+=$space, 'avg:');
-						$app->print($x, $y+=$space, sprintf "%.2f", $loadavg[0]);
-						$app->print($x, $y+=$space, sprintf "%.2f", $loadavg[1]);
-						$app->print($x, $y+=$space, sprintf "%.2f", $loadavg[2]);
+					$app->print($x, $y+=$space, 'avg:');
+					$app->print($x, $y+=$space, sprintf "%.2f", $loadavg[0]);
+					$app->print($x, $y+=$space, sprintf "%.2f", $loadavg[1]);
+					$app->print($x, $y+=$space, sprintf "%.2f", $loadavg[2]);
 		
-						$avg_display{$host} = 1;
-					}
+					$is_host_summary{$host} = 1;
 				}
 			}
 			

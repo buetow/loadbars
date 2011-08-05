@@ -403,7 +403,7 @@ sub thr_display_stats () {
 				my ($y, $space) = (5, 15);
 
 				if ($displaytxt{host}) {
-					$host =~ /(.*)\.?/;
+					$host =~ /([^\.]*)/;
 					$app->print($x, $y, sprintf '%s:', $1);
 
 				} else {

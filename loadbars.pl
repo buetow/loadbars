@@ -257,10 +257,8 @@ sub thr_display_stats () {
 	my $rects = {};
 	my %prev_stats;
 	my %last_loads;
-	my %displaytxt = (
-		on => $CONF{toggletxt},
-		host => $CONF{toggletxthost},
-	);
+	my $displaytxt = $CONF{toggletxt};
+	my $displaytxthost = $CONF{toggletxthost};
 
 	my $sigstop = 0;
 	my $redraw_background = 0;
@@ -276,10 +274,10 @@ sub thr_display_stats () {
 	# Diverse messages
 	$SIG{USR2} = sub {
 		if ($MSG == MSG_TOGGLE_TXT) {
-		   	$displaytxt{on} = $CONF{toggletxt};
+		   	$displaytxt = $CONF{toggletxt};
 
 		} elsif ($MSG == MSG_TOGGLE_TXT_HOST) {
-			$displaytxt{host} = $CONF{toggletxthost};
+			$displaytxthost = $CONF{toggletxthost};
 
 		} elsif ($MSG == MSG_SET_FACTOR) {
 		   	$factor = $CONF{factor};
@@ -387,11 +385,11 @@ sub thr_display_stats () {
 				: (YELLOW)))));
 			
 			
-			if ($displaytxt{on}) {
+			if ($displaytxt) {
 				my ($y, $space) = (5, 15);
 				my $is_host_summary = exists $is_host_summary{$host};
 
-				if ($displaytxt{host} && not $is_host_summary) {
+				if ($displaytxthost && not $is_host_summary) {
 					$host =~ /([^\.]*)/;
 					$app->print($x, $y, sprintf '%s:', $1);
 

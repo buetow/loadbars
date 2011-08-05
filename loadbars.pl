@@ -55,7 +55,10 @@ use constant {
 	COPYRIGHT => '2010-2011 (c) Paul Buetow <loadbars@mx.buetow.org>',
 	NULL => 0,
 	MSG_TOGGLE_TXT => 1,
-	MSG_SET_FACTOR => 3,
+	MSG_TOGGLE_TXT_HOST => 2,
+	MSG_TOGGLE_TXT_CPU => 3,
+	MSG_TOGGLE_TXT_LOADAVG => 4,
+	MSG_SET_FACTOR => 5,
 	BLACK => SDL::Color->new(-r => 0x00, -g => 0x00, -b => 0x00),
 	BLUE => SDL::Color->new(-r => 0x00, -g => 0x00, -b => 0xff),
 	GREEN => SDL::Color->new(-r => 0x00, -g => 0x90, -b => 0x00),
@@ -81,6 +84,7 @@ my %AVGSTATS :shared;
 my %CPUSTATS :shared;
 my %CONF  :shared;
 my $MSG   :shared;
+my @HOSTS :shared;
 
 %CONF = (
 	title => VERSION,
@@ -92,6 +96,9 @@ my $MSG   :shared;
 	sshopts => '',
 	togglecpu => 1,
 	toggletxt => 1,
+	toggletxthost => 0,
+	toggletxtcpu => 1,
+	toggletxtloadavg => 1,
 	width => 1200,
 	height => 200,
 );
@@ -146,7 +153,7 @@ BASH
 		};
 
 		$SIG{STOP} = sub {
-			say "Shutting down get_stat($host) (SSH PID $pid)";
+			say "Terminating get_stat($host) [SSH PID $pid]";
 			kill 1, $pid;
 			close $pipe;
 
@@ -254,7 +261,13 @@ sub thr_display_stats () {
 	my $rects = {};
 	my %prev_stats;
 	my %last_loads;
-	my $display_txt = $CONF{toggletxt};
+	my %displaytxt = (
+		on => $CONF{toggletxt},
+		host => $CONF{toggletxthost},
+		cpu => $CONF{toggletxtcpu},
+		loadavg => $CONF{toggletxtloadavg},
+	);
+
 	my $sigstop = 0;
 	my $redraw_background = 0;
 
@@ -269,7 +282,16 @@ sub thr_display_stats () {
 	# Diverse messages
 	$SIG{USR2} = sub {
 		if ($MSG == MSG_TOGGLE_TXT) {
-		   	$display_txt = $CONF{toggletxt};
+		   	$displaytxt{on} = $CONF{toggletxt};
+
+		} elsif ($MSG == MSG_TOGGLE_TXT_HOST) {
+			$displaytxt{host} = $CONF{toggletxthost};
+
+		} elsif ($MSG == MSG_TOGGLE_TXT_CPU) {
+			$displaytxt{cpu} = $CONF{toggletxtcpu};
+
+		} elsif ($MSG == MSG_TOGGLE_TXT_LOADAVG) {
+			$displaytxt{loadavg} = $CONF{toggletxtloadavg};
 
 		} elsif ($MSG == MSG_SET_FACTOR) {
 		   	$factor = $CONF{factor};
@@ -297,7 +319,9 @@ sub thr_display_stats () {
 
 		my $width = $CONF{width} / $num_stats - 1;
 
+		my $counter = -1;
 		for my $key (sort keys %CPUSTATS) {
+			++$counter;
 			my ($host, $name) = split ';', $key;
 
 			next unless defined $CPUSTATS{$key};
@@ -375,21 +399,33 @@ sub thr_display_stats () {
 				: (YELLOW)))));
 			
 			
-			if ($display_txt) {
-				$app->print($x, 5, sprintf  "%d%s", $cpuaverage{nice}, 'ni');
-				$app->print($x, 25, sprintf "%d%s", $cpuaverage{user}, 'us');
-				$app->print($x, 45, sprintf "%d%s", $cpuaverage{system}, 'sy');
-				$app->print($x, 65, sprintf "%d%s", $system_n_user, 'su');
+			if ($displaytxt{on}) {
+				my ($y, $space) = (5, 15);
 
-				unless (exists $avg_display{$host}) {
-					my @loadavg = split ';', $AVGSTATS{$host};
+				if ($displaytxt{host}) {
+					$app->print($x, $y, sprintf '%s:', $host);
+				} else {
+					$app->print($x, $y, sprintf  '%i:', $counter);
+				}
 
-					$app->print($x, 85, 'avg:');
-					$app->print($x, 105, sprintf "%.2f", $loadavg[0]);
-					$app->print($x, 125, sprintf "%.2f", $loadavg[1]);
-					$app->print($x, 145, sprintf "%.2f", $loadavg[2]);
+				if ($displaytxt{cpu}) {
+					$app->print($x, $y+=$space, sprintf '%d%s', $cpuaverage{nice}, 'ni');
+					$app->print($x, $y+=$space, sprintf '%d%s', $cpuaverage{user}, 'us');
+					$app->print($x, $y+=$space, sprintf '%d%s', $cpuaverage{system}, 'sy');
+					$app->print($x, $y+=$space, sprintf '%d%s', $system_n_user, 'su');
+				}
 
-					$avg_display{$host} = 1;
+				if ($displaytxt{loadavg}) {
+					unless (exists $avg_display{$host}) {
+						my @loadavg = split ';', $AVGSTATS{$host};
+		
+						$app->print($x, $y+=$space, 'avg:');
+						$app->print($x, $y+=$space, sprintf "%.2f", $loadavg[0]);
+						$app->print($x, $y+=$space, sprintf "%.2f", $loadavg[1]);
+						$app->print($x, $y+=$space, sprintf "%.2f", $loadavg[2]);
+		
+						$avg_display{$host} = 1;
+					}
 				}
 			}
 			
@@ -442,11 +478,13 @@ sub toggle ($$$@) {
 	return undef;
 }
 
-sub toggletxt ($@) {
-	my ($display, @threads) = @_;
-	toggle $display, 'toggletxt', MSG_TOGGLE_TXT, @threads;
+sub toggletxt ($$) {
+	my ($text, $msg) = @_;	
 
-	return undef;
+	return sub ($@) {
+		my ($display, @threads) = @_;
+		toggle $display, $text, $msg, @threads;
+	};
 }
 
 sub togglecpu ($@) {
@@ -494,7 +532,6 @@ Explanation text display:
 	avg = System load average (desc. order: 1, 5 and 15 min. avg.)
 END
 
-
 	# mode 1: Option is shown in the online help menu
 	# mode 2: Option is shown in the 'usage' screen from the command line
 	# mode 4: Option is used to generate the GetOptions parameters for Getopt::Long
@@ -514,7 +551,10 @@ END
 		samples => { menupos => 4,  cmd => 's', help => 'Set number of samples until ssh reconnects', mode => 7, type => 'i' },
 		sshopts => { menupos => 7,  cmd => 'o', help => 'Set SSH options', mode => 7, type => 's' },
 		togglecpu => { menupos => 4,  cmd => '1', help => 'Toggle CPUs (0 or 1)', mode => 7, type => 'i', cb => \&togglecpu },
-		toggletxt => { menupos => 4,  cmd => '2', help => 'Toggle display text (0 or 1)', mode => 7, type => 'i', cb => \&toggletxt },
+		toggletxt => { menupos => 4,  cmd => '2', help => 'Toggle all text display (0 or 1)', mode => 7, type => 'i', cb => toggletxt 'toggletxt', MSG_TOGGLE_TXT },
+		toggletxthost => { menupos => 4,  cmd => '3', help => 'Toggle hostname/num text display (0 or 1)', mode => 7, type => 'i', cb =>  toggletxt 'toggletxthost', MSG_TOGGLE_TXT_HOST },
+		toggletxtcpu => { menupos => 4,  cmd => '4', help => 'Toggle CPU text display (0 or 1)', mode => 7, type => 'i', cb => toggletxt 'toggletxtcpu', MSG_TOGGLE_TXT_CPU },
+		toggletxtloadavg => { menupos => 4,  cmd => '5', help => 'Toggle load avg. text display (0 or 1)', mode => 7, type => 'i', cb => toggletxt 'toggletxtloadavg', MSG_TOGGLE_TXT_LOADAVG },
 		version => { menupos => 3,  cmd => 'v', help => 'Print version', mode => 1, cb => sub { say VERSION . ' ' . COPYRIGHT } },
 		width => { menupos => 2,  help => 'Set windows width', mode => 6, type => 'i' },
 	);
@@ -633,20 +673,20 @@ sub main () {
 
 	set_togglecpu_regexp;
 
-  	my @hosts = split ',', $$hosts;
+  	@HOSTS = split ',', $$hosts;
 
-	if (@hosts) {
+	if (@HOSTS) {
 		system 'ssh-add';
 
 	} else {
-		@hosts = 'localhost';
+		@HOSTS = 'localhost';
 	}
 
-  	my ($display, @threads) = create_threads @hosts;
+  	my ($display, @threads) = create_threads @HOSTS;
 	my $term = new Term::ReadLine VERSION;
 
 	say VERSION . ' ' . COPYRIGHT;
-	say 'Type \'h\' for help menu. Or start program with --help for startup options.';
+	say 'Type \'h\' for h help menu. Or start program with --help for startup options.';
 
 	while ( defined( $_ = $term->readline(PROMPT) ) ) {
         	$term->addhistory($_);

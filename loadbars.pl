@@ -160,6 +160,7 @@ BASH
 				if ($killcounter >= 3) {
 					print " forcing using SIGKILL"; 
 					kill 0, $pid;
+					last;
 				}
 			} 
 

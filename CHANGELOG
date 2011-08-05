@@ -1,3 +1,6 @@
+Fr 5. Aug 21:41:13 CEST 2011
+* Fixed a segfault bug on SDL::Font using threads
+
 Fr 22. Apr 13:08:08 CEST 2011
 * Released v0.1.2.1
 

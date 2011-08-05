@@ -56,7 +56,6 @@ use constant {
 	NULL => 0,
 	MSG_TOGGLE_TXT => 1,
 	MSG_SET_FACTOR => 3,
-	FONT => SDL::Font->new('font.png'),
 	BLACK => SDL::Color->new(-r => 0x00, -g => 0x00, -b => 0x00),
 	BLUE => SDL::Color->new(-r => 0x00, -g => 0x00, -b => 0xff),
 	GREEN => SDL::Color->new(-r => 0x00, -g => 0x90, -b => 0x00),
@@ -242,6 +241,8 @@ sub thr_display_stats () {
 	);
 
 	wait_for_stats;
+
+	SDL::Font->new('font.png')->use();
 
 	my $num_stats = keys %CPUSTATS;
 	my $factor = $CONF{factor};

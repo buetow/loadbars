@@ -121,10 +121,10 @@ sub parse_cpu_line ($) {
 sub thr_get_stat ($) {
 	my $host = shift;
 
-	my ($sigusr1, $sigstop) = (0, 0);
+	my $sigusr1 = 0;
 	my $loadavgexp = qr/(\d+\.\d{2}) (\d+\.\d{2}) (\d+\.\d{2})/;
 
-	do {
+	for (;;) {
 		my $bash = <<"BASH";
 			if [ -e /proc/stat ]; then 
 				loadavg=/proc/loadavg
@@ -152,8 +152,7 @@ BASH
 			say "Terminating get_stat($host) [SSH PID $pid]";
 			kill 1, $pid;
 			close $pipe;
-
-			$sigstop = 1;
+			threads->exit();
 		};
 
 		# Toggle CPUs
@@ -177,11 +176,9 @@ BASH
 				$cpuregexp = qr/$CONF{cpuregexp}/;
 				$sigusr1 = 0;
 			}
-
-			last if $sigstop;
 		}
 
-	} until $sigstop;
+	} 
 
 	return undef;
 }

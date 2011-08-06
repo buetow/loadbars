@@ -68,7 +68,7 @@ use constant {
 	USER_ORANGE => 70,
 	USER_YELLOW0 => 50,
 	NULL => 0,
-	DEBUG => 0,
+	DEBUG => 1,
 };
 
 $| = 1;
@@ -310,8 +310,32 @@ sub main_loop ($@) {
 				$int -= 0.1;
 				$CONF{inter} = $int > 0 ? $int : 0.1;
 				$displayinfo = "Set graph update interval to $CONF{inter}";
-			}
 
+=cut
+			} elsif ($key_name eq 'down') {
+				my $height = $CONF{height} + 10;
+				$app->resize($CONF{width},$height);
+				$CONF{height} = $height;
+				$displayinfo = "Set graph height to $CONF{height}";
+			} elsif ($key_name eq 'up') {
+				my $height = $CONF{height};
+				$height -= 10;
+				$CONF{height} = $height > 1 ? $height : 1;
+				$app->resize($CONF{width},$CONF{height});
+				$displayinfo = "Set graph height to $CONF{height}";
+
+			} elsif ($key_name eq 'right') {
+				$CONF{width} += 10;
+				$app->resize($CONF{width},$CONF{height});
+				$displayinfo = "Set graph width to $CONF{width}";
+			} elsif ($key_name eq 'left') {
+				my $width = $CONF{width};
+				$width -= 10;
+				$CONF{width} = $width > 1 ? $width : 1;
+				$app->resize($CONF{width},$CONF{height});
+				$displayinfo = "Set graph width to $CONF{width}";
+=cut
+			}
 		}
 	};
 
@@ -588,7 +612,8 @@ END
 			} grep { 
 			   	$d_by_short{$_}{mode} & 1 and exists $d_by_short{$_}{help};
 
-			} sort { $d_by_short{$a}{menupos} <=> $d_by_short{$b}{menupos} } sort keys %d_by_short);
+			} sort { $d_by_short{$a}{menupos} <=> $d_by_short{$b}{menupos} } sort keys %d_by_short)
+				. "\n$textdesc";
 
 		} elsif ($arg eq 'usage') {
 			(join "\n", map { 

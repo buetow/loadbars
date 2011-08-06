@@ -1,3 +1,10 @@
+Sa 6. Aug 22:04:15 CEST 2011
+* Released v0.2.0.0 (new major version)
+* No interactive CLI shell anymore but instead hotkeys for the 
+  SDL interface (press h and see).
+* Bugfixes (E.g. Loadbars does not hang anymore after typing commands)
+* Major code refactoring
+
 Fr 5. Aug 23:52:49 CEST 2011
 * Released v0.1.3.1
 * Some more minor bugfixes

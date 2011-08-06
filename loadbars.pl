@@ -47,8 +47,6 @@ use Time::HiRes qw(usleep gettimeofday);
 use threads;
 use threads::shared;
 
-use IO::Socket;
-
 use constant {
 	DEPTH => 8,
 	VERSION => 'loadbars v0.2.1-devel',
@@ -100,27 +98,6 @@ sub debugsay (@) { say "DEBUG: $_" for @_; return undef }
 sub sum (@) { my $sum = 0; $sum += $_ for @_; return $sum }
 sub null ($) { my $arg = shift; return defined $arg ? $arg : 0 }
 sub set_togglecpu_regexp () { $CONF{cpuregexp} = $CONF{togglecpu} ? 'cpu ' : 'cpu' }
-
-sub unix_make_server_socket ($) {
-	my $socket_name = shift;
-	unlink $socket_name;
-
-	return IO::Socket::UNIX->new(
-		LocalAddr => $socket_name,
-		Type => SOCK_DGRAM,
-		Listen => 5
-	) or die "$@\n";
-}
-
-sub unix_make_client_socket ($) {
-	my $socket_name = shift;
-
-	return IO::Socket::UNIX->new(
-		PeerAddr => $socket_name,
-		Type => SOCK_DGRAM,
-		Timeout => 10
-	) or die "$@\n";
-}
 
 sub parse_cpu_line ($) {
 	my ($name, %load);

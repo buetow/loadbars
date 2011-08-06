@@ -48,10 +48,12 @@ use Time::HiRes qw(usleep gettimeofday);
 use threads;
 use threads::shared;
 
+use IO::Socket;
+
 use constant {
 	DEPTH => 8,
 	PROMPT => 'loadbars> ',
-	VERSION => 'loadbars v0.1.3.1',
+	VERSION => 'loadbars v0.1.3.2-devel',
 	COPYRIGHT => '2010-2011 (c) Paul Buetow <loadbars@mx.buetow.org>',
 	NULL => 0,
 	MSG_TOGGLE_TXT => 1,

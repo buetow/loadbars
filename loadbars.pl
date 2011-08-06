@@ -51,10 +51,8 @@ use IO::Socket;
 
 use constant {
 	DEPTH => 8,
-	PROMPT => 'loadbars> ',
 	VERSION => 'loadbars v0.2.0.0-devel',
 	COPYRIGHT => '2010-2011 (c) Paul Buetow <loadbars@mx.buetow.org>',
-	NULL => 0,
 	BLACK => SDL::Color->new(-r => 0x00, -g => 0x00, -b => 0x00),
 	BLUE => SDL::Color->new(-r => 0x00, -g => 0x00, -b => 0xff),
 	GREEN => SDL::Color->new(-r => 0x00, -g => 0x90, -b => 0x00),
@@ -69,7 +67,8 @@ use constant {
 	USER_RED => 90,
 	USER_ORANGE => 70,
 	USER_YELLOW0 => 50,
-	DEBUG => 1,
+	NULL => 0,
+	DEBUG => 0,
 };
 
 $| = 1;
@@ -78,6 +77,7 @@ my %AVGSTATS : shared;
 my %CPUSTATS : shared;
 my %CONF : shared;
 
+# Setting defaults
 %CONF = (
 	title => VERSION,
 	average => 30,
@@ -93,19 +93,13 @@ my %CONF : shared;
 	height => 200,
 );
 
+# Quick n dirty helpers
 sub say (@) { print "$_\n" for @_; return undef }
 sub newline () { say ''; return undef }
 sub debugsay (@) { say "DEBUG: $_" for @_; return undef }
-
-sub sum (@) { 
-   my $sum = 0;
-   $sum += $_ for @_;
-   return $sum;
-}
-
-sub set_togglecpu_regexp () {
-	$CONF{cpuregexp} = $CONF{togglecpu} ? 'cpu ' : 'cpu';
-}
+sub sum (@) { my $sum = 0; $sum += $_ for @_; return $sum }
+sub null ($) { my $arg = shift; return defined $arg ? $arg : 0 }
+sub set_togglecpu_regexp () { $CONF{cpuregexp} = $CONF{togglecpu} ? 'cpu ' : 'cpu' }
 
 sub parse_cpu_line ($) {
 	my ($name, %load);
@@ -116,7 +110,7 @@ sub parse_cpu_line ($) {
 	return ($name, \%load);
 }
 
-sub thr_get_stat ($) {
+sub thread_get_stats ($) {
 	my $host = shift;
 
 	my $sigusr1 = 0;
@@ -146,18 +140,8 @@ BASH
 			next;
 		};
 
-		$SIG{STOP} = sub {
-			say "Terminating get_stat($host) [SSH PID $pid]";
-			kill 1, $pid;
-			close $pipe;
-			threads->exit();
-		};
-
 		# Toggle CPUs
-		$SIG{USR1} = sub {
-		   	$sigusr1 = 1;
-		};
-
+		$SIG{USR1} = sub { $sigusr1 = 1 };
 		my $cpuregexp = qr/$CONF{cpuregexp}/;
 
 		while (<$pipe>) {		
@@ -223,18 +207,21 @@ sub draw_background ($$) {
 	return undef;
 }
 
-sub null ($) {
-   	my $arg = shift;
-	return defined $arg ? $arg : 0;
+sub create_threads (@) {
+	return map { $_->detach(); $_ } map { threads->create('thread_get_stats', $_) } @_;
 }
 
-sub display_stats (@) {
-	my @threads = @_;
+sub main_loop ($@) {
+	my ($dispatch, @threads) = @_;
+
+	# Planned for the future
+	my $statusbar_height = 0;
+
 	my $app = SDL::App->new(
 		-title => $CONF{title},
 		-icon_title => $CONF{title},
 		-width => $CONF{width},
-		-height => $CONF{height}.
+		-height => $CONF{height}+$statusbar_height,
 		-depth => DEPTH,
 		-resizeable => 0,
 	);
@@ -248,6 +235,7 @@ sub display_stats (@) {
 	my %last_loads;
 
 	my $redraw_background = 0;
+	my $font_height = 14;
 
 	my $displayinfo_time = 5;
 	my $displayinfo_start = 0;
@@ -280,19 +268,24 @@ sub display_stats (@) {
 				%CPUSTATS = ();
 				$displayinfo = 'Toggled CPUs';
 			
+			} elsif ($key_name eq 'h') {
+				say '=> Hotkeys to use in the SDL interface';
+				say $dispatch->('hotkeys');
+				$displayinfo = 'Hotkeys help printed on terminal stdout';
+
 			} elsif ($key_name eq 't') {
 				$CONF{displaytxt} = !$CONF{displaytxt};	
 				$displayinfo = 'Toggled text display';
 			
-			} elsif ($key_name eq 'h') {
+			} elsif ($key_name eq 'u') {
 				$CONF{displaytxthost} = !$CONF{displaytxthost};	
-				$displayinfo = 'Toggled hostname display';
+				$displayinfo = 'Toggled number/hostname display';
 
 			} elsif ($key_name eq 'q') {
 				$quit = 1;
 				last;
 
-			# Plus and minus pairs
+			# Increase and decrease pairs
 			} elsif ($key_name eq 'a') {
 				++$CONF{average};
 				$displayinfo = "Set sample average to $CONF{average}";
@@ -333,9 +326,9 @@ sub display_stats (@) {
 	
 			$num_stats = $new_num_stats;
 			$redraw_background = 1;
-			#draw_background $app, $rects;
 		}
 
+		# Avoid division by null
 		my $div = $num_stats - 1;
 		my $width = $CONF{width} / ($div ? $div : 1);
 
@@ -419,20 +412,18 @@ sub display_stats (@) {
 				: (YELLOW)))));
 			
 
-			my ($y, $space) = (5, 15);
-			if (length $displayinfo && $barnum == 0) {
-					$app->print($x, $y, "=> $displayinfo");
-			}
-			
+			my ($y, $space) = (5, $font_height);
 			if ($CONF{displaytxt}) {
 				my $is_host_summary = exists $is_host_summary{$host};
 
 				if ($CONF{displaytxthost} && not $is_host_summary) {
+					# If hostname is printed don't use FQDN
+					# because of its length.
 					$host =~ /([^\.]*)/;
-					$app->print($x, $y+=$space, sprintf '%s:', $1);
+					$app->print($x, $y, sprintf '%s:', $1);
 
 				} else {
-					$app->print($x, $y+=$space, sprintf  '%i:', $barnum);
+					$app->print($x, $y, sprintf  '%i:', $barnum);
 				}
 
 				$app->print($x, $y+=$space, sprintf '%d%s', $cpuaverage{nice}, 'ni');
@@ -453,7 +444,11 @@ sub display_stats (@) {
 					$is_host_summary{$host} = 1;
 				}
 			}
-			
+
+			# Display an informational text message if any
+			$app->print(0, $y+=$space, $displayinfo) if length $displayinfo;
+
+		
 			$app->update($_) for $rect_nice, $rect_iowait, $rect_system, $rect_user;
 			$x += $width + 1;
 		}
@@ -475,6 +470,7 @@ TIMEKEEPER:
 
 		if ($CONF{inter} > $t2 - $t1) {
 			usleep 10000;
+			# Goto is OK if you don't produce spaghetti code with it
 			goto TIMEKEEPER;
 		}
 
@@ -487,22 +483,11 @@ TIMEKEEPER:
 
 	} until $quit;
 
+	say "Good bye";
 	$event_thread->join();
-	exit;
-
-	return undef;
+	exit 0;
 }
 
-sub set_value (*;*) {
-	my ($key, $type) = @_;
-
-	print "Please enter new value for $key (old value: $CONF{$key}): ";
-	chomp ($CONF{$key} = <STDIN>);
-
-	$CONF{$key} = int $CONF{$key} if defined $type and $type eq 'int';
-
-	return undef;
-}
 
 sub dispatch_table () {
  	my $hosts = '';
@@ -530,22 +515,42 @@ END
 	# Combinations: Like chmod(1)
 
 	my %d = ( 
-		average => { menupos => 4,  cmd => 'a', help => 'Set number of samples for calculating average loads', mode => 7, type => 'i' },
-		configuration => { menupos => 4,  cmd => 'c', help => 'Show current configuration', mode => 5 },
-		factor => { menupos => 4,  cmd => 'f', help => 'Set scale factor (1.0 means 100%)', mode => 7, type => 's' },
-		height => { menupos => 3,  help => 'Set windows height', mode => 6, type => 'i' },
-		help => { menupos => 1,  cmd => 'h', help => 'Print this help screen', mode => 3 },
-		help2 => { menupos => 2,  cmd => 'H', help => 'Print more help text', mode => 1 },
-		hosts => { menupos => 4,  help => 'Comma separated list of hosts', var => \$hosts, mode => 6, type => 's' },
-		title => { menupos => 4,  help => 'Set the window title', var => \$CONF{title}, mode => 6, type => 's' },
-		inter => { menupos => 4,  cmd => 'i', help => 'Set update interval in seconds (default 0.1)', mode => 7, type => 's' },
-		quit => { menupos => 5,  cmd => 'q', help => 'Quit', mode => 1 },
-		samples => { menupos => 4,  cmd => 's', help => 'Set number of samples until ssh reconnects', mode => 7, type => 'i' },
-		sshopts => { menupos => 7,  cmd => 'o', help => 'Set SSH options', mode => 7, type => 's' },
-		togglecpu => { menupos => 4,  cmd => '1', help => 'Toggle CPUs (0 or 1)', mode => 7, type => 'i' },
-		toggletxt => { menupos => 4,  cmd => '2', help => 'Toggle all text display (0 or 1)', mode => 7, type => 'i' },
-		toggletxthost => { menupos => 4,  cmd => '3', help => 'Toggle hostname/num text display (0 or 1)', mode => 7, type => 'i' },
-		width => { menupos => 2,  help => 'Set windows width', mode => 6, type => 'i' },
+		togglecpu => { menupos => 1,  help => 'Toggle CPUs (0 or 1)', mode => 7, type => 'i' },
+		togglecpu_hot => { menupos => 2,  cmd => '1', help => 'Toggle CPUs', mode => 1 },
+
+		average => { menupos => 3,  help => 'Set number of samples for calculating avg.', mode => 6, type => 'i' },
+		average_hot_up => { menupos => 4,  cmd => 'a', help => 'Increases number of samples for calculating avg. by 1', mode => 1 },
+		average_hot_dn => { menupos => 5,  cmd => 'y', help => 'Decreases number of samples for calculating avg. by 1', mode => 1 },
+
+		configuration => { menupos => 6,  cmd => 'c', help => 'Show current configuration', mode => 4 },
+
+		factor => { menupos => 7,  help => 'Set graph scale factor (1.0 means 100%)', mode => 6, type => 's' },
+		factor_hot_up => { menupos => 8,  cmd => 's', help => 'Increases graph scale factor by 0.1', mode => 1 },
+		factor_hot_dn => { menupos => 9,  cmd => 'x', help => 'Decreases graph scale factor by 0.1', mode => 1 },
+
+		height => { menupos => 10,  help => 'Set windows height', mode => 6, type => 'i' },
+
+		help_hot => { menupos => 11,  cmd => 'h', help => 'Prints this help screen', mode => 1 },
+
+		hosts => { menupos => 12, help => 'Comma separated list of hosts', var => \$hosts, mode => 6, type => 's' },
+
+		inter => { menupos => 13, help => 'Set update interval in seconds (default 0.1)', mode => 7, type => 's' },
+		inter_hot_up => { menupos => 14,  cmd => 'd', help => 'Increases update interval in seconds by 0.1', mode => 1 },
+		inter_hot_dn => { menupos => 15,  cmd => 'c', help => 'Decreases update interval in seconds by 0.1', mode => 1 },
+
+		quit_hot => { menupos => 16,  cmd => 'q', help => 'Quits', mode => 1 },
+
+		samples => { menupos => 17,  help => 'Set number of samples until ssh reconnects', mode => 6, type => 'i' },
+		sshopts => { menupos => 18,  help => 'Set SSH options', mode => 6, type => 's' },
+		title => { menupos => 19,  help => 'Set the window title', var => \$CONF{title}, mode => 6, type => 's' },
+
+		toggletxthost => { menupos => 20,  help => 'Toggle hostname/num text display (0 or 1)', mode => 7, type => 'i' },
+		toggletxthost_hot => { menupos => 21, cmd => 'u', help => 'Toggle hostname/num text display', mode => 1 },
+
+		toggletxt => { menupos => 22,  help => 'Toggle text display (0 or 1)', mode => 7, type => 'i' },
+		toggletxt_hot => { menupos => 23, cmd => 't', help => 'Toggle text display', mode => 1 },
+
+		width => { menupos => 24,  help => 'Set windows width', mode => 6, type => 'i' },
 	);
 
 	my %d_by_short = map { 
@@ -572,26 +577,21 @@ END
 
 			if (length $cmd == 1) {
 				for my $key (grep { exists $d{$_}{cmd} } keys %d) {
-					do { $cmd = $key; last } if $d{$key}{cmd} eq $cmd
+					do { $cmd = $key; last } if $d{$key}{cmd} eq $cmd;
 				}
 			}
 
-			(exists $cb->{cb} ? $cb->{cb} : sub { 
-			 	my $display = shift;
-			 	set_value $cmd;
-			})->(@args);
-
-		} elsif ($arg eq 'help') {
+		} elsif ($arg eq 'hotkeys') {
 			(join "\n", map { 
 				"$_\t- $d_by_short{$_}{help}" 
 
 			} grep { 
-			   	$d_by_short{$_}{mode} & 1 and exists $d_by_short{$_}{help}
+			   	$d_by_short{$_}{mode} & 1 and exists $d_by_short{$_}{help};
 
 			} sort { $d_by_short{$a}{menupos} <=> $d_by_short{$b}{menupos} } sort keys %d_by_short);
 
 		} elsif ($arg eq 'usage') {
-			join "\n", map { 
+			(join "\n", map { 
 					if ($_ eq 'help') {
 			   		"--$_\t\t- $d{$_}{help}" 
 					} else {
@@ -601,20 +601,20 @@ END
 			} grep { 
 			   	$d{$_}{mode} & 2 and exists $d{$_}{help} 
 
-			} sort { $d{$a}{menupos} <=> $d{$b}{menupos} } sort keys %d;
+			} sort { $d{$a}{menupos} <=> $d{$b}{menupos} } sort keys %d)
+				. "\n$textdesc";
 
 		} elsif ($arg eq 'options') {
 			map { 
-			   	"$_=".$d{$_}{type} => (defined $d{$_}{var} ? $d{$_}{var} : \$CONF{$_})
+			   	"$_=".$d{$_}{type} => (defined $d{$_}{var} ? $d{$_}{var} : \$CONF{$_});
 
 			} grep { 
-			   	$d{$_}{mode} & 4 and exists $d{$_}{type} 
+			   	$d{$_}{mode} & 4 and exists $d{$_}{type}; 
 
 			} sort keys %d;
 		} 
 	};
 
-	$d{help}{cb} = sub { say $closure->('help') };
 	$d{configuration}{cb} = sub { 
 		say sort map { 
 		   	"$_->[0] = $_->[1]" 
@@ -631,27 +631,13 @@ END
 	return (\$hosts, $closure);
 }
 
-sub create_threads (\@) {
-   	my ($hosts) = @_;
-
-	return map { $_->detach(); $_ } map { threads->create('thr_get_stat', $_) } @$hosts;
-}
-
-sub stop_threads (@) {
-	for (@_) {
-		$_->kill('STOP');
-		$_->join();
-	}
-
-	return undef;
-}
-
 sub main () {
 	my ($hosts, $dispatch) = dispatch_table;
-	my $help;
-	GetOptions ('help|?' => \$help, $dispatch->('options'));
+	my $usage;
 
-	if (defined $help) {
+	GetOptions ('help|?' => \$usage, $dispatch->('options'));
+
+	if (defined $usage) {
 		say $dispatch->('usage');
 		exit 0;
 	}
@@ -668,12 +654,7 @@ sub main () {
 	}
 
   	my @threads = create_threads @hosts;
-
-	display_stats @threads;
-	stop_threads @threads;
-
-	#say "Good bye";
-	#exit 0;
+	main_loop $dispatch, @threads;
 }
 
 main;

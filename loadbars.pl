@@ -68,7 +68,7 @@ use constant {
 	USER_ORANGE => 70,
 	USER_YELLOW0 => 50,
 	NULL => 0,
-	DEBUG => 1,
+	DEBUG => 0,
 };
 
 $| = 1;

@@ -79,7 +79,7 @@ my %CONF : shared;
 
 # Setting defaults
 %CONF = (
-	title => VERSION,
+	title => VERSION . " (press h for help)",
 	average => 30,
 	togglecpu => 1,
 	cpuregexp => 'cpu',

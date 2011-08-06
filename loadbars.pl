@@ -33,7 +33,6 @@ use strict;
 use warnings;
 
 use Getopt::Long;
-use Term::ReadLine;
 
 use SDL::App;
 use SDL::Rect;
@@ -53,12 +52,9 @@ use IO::Socket;
 use constant {
 	DEPTH => 8,
 	PROMPT => 'loadbars> ',
-	VERSION => 'loadbars v0.1.3.2-devel',
+	VERSION => 'loadbars v0.2.0.0-devel',
 	COPYRIGHT => '2010-2011 (c) Paul Buetow <loadbars@mx.buetow.org>',
 	NULL => 0,
-	MSG_TOGGLE_TXT => 1,
-	MSG_TOGGLE_TXT_HOST => 2,
-	MSG_SET_FACTOR => 5,
 	BLACK => SDL::Color->new(-r => 0x00, -g => 0x00, -b => 0x00),
 	BLUE => SDL::Color->new(-r => 0x00, -g => 0x00, -b => 0xff),
 	GREEN => SDL::Color->new(-r => 0x00, -g => 0x90, -b => 0x00),
@@ -73,30 +69,26 @@ use constant {
 	USER_RED => 90,
 	USER_ORANGE => 70,
 	USER_YELLOW0 => 50,
-
-	# For developing or other debugging purporses 
-	DEBUG => 0,
+	DEBUG => 1,
 };
 
 $| = 1;
 
-my %AVGSTATS :shared;
-my %CPUSTATS :shared;
-my %CONF  :shared;
-my $MSG   :shared;
-my @HOSTS :shared;
+my %AVGSTATS : shared;
+my %CPUSTATS : shared;
+my %CONF : shared;
 
 %CONF = (
 	title => VERSION,
 	average => 30,
+	togglecpu => 1,
 	cpuregexp => 'cpu',
 	factor => 1,
+	displaytxt => 1,
+	displaytxthost => 0,
 	inter => 0.1,
 	samples => 1000,
 	sshopts => '',
-	togglecpu => 1,
-	toggletxt => 1,
-	toggletxthost => 0,
 	width => 1200,
 	height => 200,
 );
@@ -109,6 +101,10 @@ sub sum (@) {
    my $sum = 0;
    $sum += $_ for @_;
    return $sum;
+}
+
+sub set_togglecpu_regexp () {
+	$CONF{cpuregexp} = $CONF{togglecpu} ? 'cpu ' : 'cpu';
 }
 
 sub parse_cpu_line ($) {
@@ -215,11 +211,6 @@ sub get_cpuaverage ($@) {
 	return %cpuaverage;
 }
 
-sub wait_for_stats () {
-	sleep 1 until %CPUSTATS;
-	return undef;
-}
-
 sub draw_background ($$) {
    	my ($app, $rects) = @_;
 	my $rect = get_rect $rects, 'background';
@@ -237,7 +228,8 @@ sub null ($) {
 	return defined $arg ? $arg : 0;
 }
 
-sub thr_display_stats () {
+sub display_stats (@) {
+	my @threads = @_;
 	my $app = SDL::App->new(
 		-title => $CONF{title},
 		-icon_title => $CONF{title},
@@ -248,45 +240,87 @@ sub thr_display_stats () {
 	);
 
 	SDL::Font->new('font.png')->use();
-	wait_for_stats;
 
 	my $num_stats = keys %CPUSTATS;
-	my $factor = $CONF{factor};
 
 	my $rects = {};
 	my %prev_stats;
 	my %last_loads;
-	my $displaytxt = $CONF{toggletxt};
-	my $displaytxthost = $CONF{toggletxthost};
 
-	my $sigstop = 0;
 	my $redraw_background = 0;
 
-	$SIG{STOP} = sub { 
-		say "Shutting down display_stats";
-		$sigstop = 1;
-	};
+	my $displayinfo_time = 5;
+	my $displayinfo_start = 0;
+	my $displayinfo : shared = '';
+	my $infotxt : shared = '';
+	my $quit : shared = 0;
 
-	# Toggle CPU
-	$SIG{USR1} = sub { wait_for_stats };
-
-	# Diverse messages
-	$SIG{USR2} = sub {
-		if ($MSG == MSG_TOGGLE_TXT) {
-		   	$displaytxt = $CONF{toggletxt};
-
-		} elsif ($MSG == MSG_TOGGLE_TXT_HOST) {
-			$displaytxthost = $CONF{toggletxthost};
-
-		} elsif ($MSG == MSG_SET_FACTOR) {
-		   	$factor = $CONF{factor};
-		}
-
-		$redraw_background = 1;
-		$MSG = NULL;
-	};
+	$SIG{STOP} = sub { $quit = 1 };
 
 	my ($t1, $t2) = (Time::HiRes::time(), undef);
+	my $event = SDL::Event->new();
+
+	my $event_thread = async {
+		for (;;) {
+			$event->pump();
+			$event->poll();
+			$event->wait();
+
+			my $type = $event->type();
+			my $key_name = $event->key_name(); 
+
+			debugsay "Event type=$type key_name=$key_name" if DEBUG;
+			next if $type != 2;
+
+			if ($key_name eq '1') {
+				$CONF{togglecpu} = !$CONF{togglecpu};
+				set_togglecpu_regexp;
+				$_->kill('USR1') for @threads;
+				%AVGSTATS = ();
+				%CPUSTATS = ();
+				$displayinfo = 'Toggled CPUs';
+			
+			} elsif ($key_name eq 't') {
+				$CONF{displaytxt} = !$CONF{displaytxt};	
+				$displayinfo = 'Toggled text display';
+			
+			} elsif ($key_name eq 'h') {
+				$CONF{displaytxthost} = !$CONF{displaytxthost};	
+				$displayinfo = 'Toggled hostname display';
+
+			} elsif ($key_name eq 'q') {
+				$quit = 1;
+				last;
+
+			# Plus and minus pairs
+			} elsif ($key_name eq 'a') {
+				++$CONF{average};
+				$displayinfo = "Set sample average to $CONF{average}";
+			} elsif ($key_name eq 'y' or $key_name eq 'z') {
+				my $avg = $CONF{average};
+				--$avg;
+				$CONF{average} = $avg > 1 ? $avg : 2;
+				$displayinfo = "Set sample average to $CONF{average}";
+			
+			} elsif ($key_name eq 's') {
+				$CONF{factor} += 0.1;
+				$displayinfo = "Set scale factor to $CONF{factor}";
+			} elsif ($key_name eq 'x' or $key_name eq 'z') {
+				$CONF{factor} -= 0.1;
+				$displayinfo = "Set scale factor to $CONF{factor}";
+
+			} elsif ($key_name eq 'd') {
+				$CONF{inter} += 0.1;
+				$displayinfo = "Set graph update interval to $CONF{inter}";
+			} elsif ($key_name eq 'c' or $key_name eq 'z') {
+				my $int = $CONF{inter};
+				$int -= 0.1;
+				$CONF{inter} = $int > 0 ? $int : 0.1;
+				$displayinfo = "Set graph update interval to $CONF{inter}";
+			}
+
+		}
+	};
 
 	do {
 		my ($x, $y) = (0, 0);
@@ -302,11 +336,12 @@ sub thr_display_stats () {
 			#draw_background $app, $rects;
 		}
 
-		my $width = $CONF{width} / $num_stats - 1;
+		my $div = $num_stats - 1;
+		my $width = $CONF{width} / ($div ? $div : 1);
 
-		my $counter = -1;
+		my $barnum = -1;
 		for my $key (sort keys %CPUSTATS) {
-			++$counter;
+			++$barnum;
 			my ($host, $name) = split ';', $key;
 
 			next unless defined $CPUSTATS{$key};
@@ -333,7 +368,7 @@ sub thr_display_stats () {
 			push @{$last_loads{$key}}, \%loads;
 			shift @{$last_loads{$key}} while @{$last_loads{$key}} >= $CONF{average};
 
-			my %cpuaverage = get_cpuaverage $factor, @{$last_loads{$key}};
+			my %cpuaverage = get_cpuaverage $CONF{factor}, @{$last_loads{$key}};
 
 			my %heights = map { 
 				$_ => defined $cpuaverage{$_} ? $cpuaverage{$_} * ($CONF{height}/100) : 1 
@@ -383,17 +418,21 @@ sub thr_display_stats () {
 				: ($system_n_user > USER_YELLOW0 ? YELLOW0 
 				: (YELLOW)))));
 			
+
+			my ($y, $space) = (5, 15);
+			if (length $displayinfo && $barnum == 0) {
+					$app->print($x, $y, "=> $displayinfo");
+			}
 			
-			if ($displaytxt) {
-				my ($y, $space) = (5, 15);
+			if ($CONF{displaytxt}) {
 				my $is_host_summary = exists $is_host_summary{$host};
 
-				if ($displaytxthost && not $is_host_summary) {
+				if ($CONF{displaytxthost} && not $is_host_summary) {
 					$host =~ /([^\.]*)/;
-					$app->print($x, $y, sprintf '%s:', $1);
+					$app->print($x, $y+=$space, sprintf '%s:', $1);
 
 				} else {
-					$app->print($x, $y, sprintf  '%i:', $counter);
+					$app->print($x, $y+=$space, sprintf  '%i:', $barnum);
 				}
 
 				$app->print($x, $y+=$space, sprintf '%d%s', $cpuaverage{nice}, 'ni');
@@ -403,11 +442,13 @@ sub thr_display_stats () {
 
 				unless ($is_host_summary) {
 					my @loadavg = split ';', $AVGSTATS{$host};
-		
-					$app->print($x, $y+=$space, 'avg:');
-					$app->print($x, $y+=$space, sprintf "%.2f", $loadavg[0]);
-					$app->print($x, $y+=$space, sprintf "%.2f", $loadavg[1]);
-					$app->print($x, $y+=$space, sprintf "%.2f", $loadavg[2]);
+	
+					if (defined $loadavg[0]) {	
+						$app->print($x, $y+=$space, 'avg:');
+						$app->print($x, $y+=$space, sprintf "%.2f", $loadavg[0]);
+						$app->print($x, $y+=$space, sprintf "%.2f", $loadavg[1]);
+						$app->print($x, $y+=$space, sprintf "%.2f", $loadavg[2]);
+					}
 		
 					$is_host_summary{$host} = 1;
 				}
@@ -419,6 +460,18 @@ sub thr_display_stats () {
 
 TIMEKEEPER:
 		$t2 = Time::HiRes::time();
+
+		if (length $displayinfo) {
+			if ($displayinfo_start == 0) {
+				$displayinfo_start = $t2;
+
+			} else {
+				if ($displayinfo_time < $t2 - $displayinfo_start) {
+					$displayinfo = '';
+					$displayinfo_start = 0;
+				}		
+			}	
+		}
 
 		if ($CONF{inter} > $t2 - $t1) {
 			usleep 10000;
@@ -432,55 +485,10 @@ TIMEKEEPER:
 			$redraw_background = 0;
 		}
 
-	} until $sigstop;
+	} until $quit;
 
-	return undef;
-}
-
-sub send_message ($$) {
-   	my ($thread, $message) = @_;
-
-	$MSG = $message;
-	$thread->kill('USR2');
-
-	return undef;
-}
-
-sub set_togglecpu_regexp () {
-	$CONF{cpuregexp} = $CONF{togglecpu} ? 'cpu ' : 'cpu';
-	return undef;
-}
-
-sub toggle ($$$@) {
-	my ($display, $key, $msg, @threads) = @_;
-
-	$CONF{$key} = $CONF{$key} == 0 ? 1 : 0;
-
-	$MSG = $msg;
-	$display->kill('USR2');
-
-	return undef;
-}
-
-sub toggletxt ($$) {
-	my ($text, $msg) = @_;	
-
-	return sub ($@) {
-		my ($display, @threads) = @_;
-		toggle $display, $text, $msg, @threads;
-	};
-}
-
-sub togglecpu ($@) {
-	my ($display, @threads) = @_;
-
-	$CONF{togglecpu} = $CONF{togglecpu} == 0 ? 1 : 0;
-	set_togglecpu_regexp;
-
-	$_->kill('USR1') for @threads;
-	%AVGSTATS = ();
-	%CPUSTATS = ();
-	$display->kill('USR1');
+	$event_thread->join();
+	exit;
 
 	return undef;
 }
@@ -516,7 +524,7 @@ Explanation text display:
 	avg = System load average (desc. order: 1, 5 and 15 min. avg.)
 END
 
-	# mode 1: Option is shown in the online help menu
+	# mode 1: Option is shown in the online help menu (stdout not sdl)
 	# mode 2: Option is shown in the 'usage' screen from the command line
 	# mode 4: Option is used to generate the GetOptions parameters for Getopt::Long
 	# Combinations: Like chmod(1)
@@ -527,17 +535,16 @@ END
 		factor => { menupos => 4,  cmd => 'f', help => 'Set scale factor (1.0 means 100%)', mode => 7, type => 's' },
 		height => { menupos => 3,  help => 'Set windows height', mode => 6, type => 'i' },
 		help => { menupos => 1,  cmd => 'h', help => 'Print this help screen', mode => 3 },
-		help2 => { menupos => 2,  cmd => 'H', help => 'Print more help text', mode => 1, cb => sub { say $textdesc } },
+		help2 => { menupos => 2,  cmd => 'H', help => 'Print more help text', mode => 1 },
 		hosts => { menupos => 4,  help => 'Comma separated list of hosts', var => \$hosts, mode => 6, type => 's' },
 		title => { menupos => 4,  help => 'Set the window title', var => \$CONF{title}, mode => 6, type => 's' },
 		inter => { menupos => 4,  cmd => 'i', help => 'Set update interval in seconds (default 0.1)', mode => 7, type => 's' },
-		quit => { menupos => 5,  cmd => 'q', help => 'Quit', mode => 1, cb => sub { -1 } },
+		quit => { menupos => 5,  cmd => 'q', help => 'Quit', mode => 1 },
 		samples => { menupos => 4,  cmd => 's', help => 'Set number of samples until ssh reconnects', mode => 7, type => 'i' },
 		sshopts => { menupos => 7,  cmd => 'o', help => 'Set SSH options', mode => 7, type => 's' },
-		togglecpu => { menupos => 4,  cmd => '1', help => 'Toggle CPUs (0 or 1)', mode => 7, type => 'i', cb => \&togglecpu },
-		toggletxt => { menupos => 4,  cmd => '2', help => 'Toggle all text display (0 or 1)', mode => 7, type => 'i', cb => toggletxt 'toggletxt', MSG_TOGGLE_TXT },
-		toggletxthost => { menupos => 4,  cmd => '3', help => 'Toggle hostname/num text display (0 or 1)', mode => 7, type => 'i', cb =>  toggletxt 'toggletxthost', MSG_TOGGLE_TXT_HOST },
-		version => { menupos => 3,  cmd => 'v', help => 'Print version', mode => 1, cb => sub { say VERSION . ' ' . COPYRIGHT } },
+		togglecpu => { menupos => 4,  cmd => '1', help => 'Toggle CPUs (0 or 1)', mode => 7, type => 'i' },
+		toggletxt => { menupos => 4,  cmd => '2', help => 'Toggle all text display (0 or 1)', mode => 7, type => 'i' },
+		toggletxthost => { menupos => 4,  cmd => '3', help => 'Toggle hostname/num text display (0 or 1)', mode => 7, type => 'i' },
 		width => { menupos => 2,  help => 'Set windows width', mode => 6, type => 'i' },
 	);
 
@@ -572,7 +579,6 @@ END
 			(exists $cb->{cb} ? $cb->{cb} : sub { 
 			 	my $display = shift;
 			 	set_value $cmd;
-				send_message $display, MSG_SET_FACTOR if $cmd eq 'factor';
 			})->(@args);
 
 		} elsif ($arg eq 'help') {
@@ -628,10 +634,7 @@ END
 sub create_threads (\@) {
    	my ($hosts) = @_;
 
-	my @threads;
-	push @threads, threads->create('thr_get_stat', $_) for @$hosts;
-
-	return (threads->create('thr_display_stats'), @threads);
+	return map { $_->detach(); $_ } map { threads->create('thr_get_stat', $_) } @$hosts;
 }
 
 sub stop_threads (@) {
@@ -655,37 +658,22 @@ sub main () {
 
 	set_togglecpu_regexp;
 
-  	@HOSTS = split ',', $$hosts;
+  	my @hosts = split ',', $$hosts;
 
-	if (@HOSTS) {
+	if (@hosts) {
 		system 'ssh-add';
 
 	} else {
-		@HOSTS = 'localhost';
+		@hosts = 'localhost';
 	}
 
-  	my ($display, @threads) = create_threads @HOSTS;
-	my $term = new Term::ReadLine VERSION;
+  	my @threads = create_threads @hosts;
 
-	say VERSION . ' ' . COPYRIGHT;
-	say 'Type \'h\' for h help menu. Or start program with --help for startup options.';
+	display_stats @threads;
+	stop_threads @threads;
 
-	while ( defined( $_ = $term->readline(PROMPT) ) ) {
-        	$term->addhistory($_);
-        	chomp;
-
-        	my ($cmd, @args) = split /\s+/;
-        	next unless defined $cmd;
-        	$_ = shift @args if $cmd eq '';
-
-		last if $dispatch->('command', $_, $display, @threads);
-	}
-
-	stop_threads $display, @threads;
-
-	say "Good bye";
-
-	return 0;
+	#say "Good bye";
+	#exit 0;
 }
 
-exit main;
+main;

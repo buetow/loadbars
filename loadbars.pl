@@ -47,8 +47,6 @@ use Time::HiRes qw(usleep gettimeofday);
 use threads;
 use threads::shared;
 
-use IO::Socket;
-
 use constant {
 	DEPTH => 8,
 	VERSION => 'loadbars v0.2.0',

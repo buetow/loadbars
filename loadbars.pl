@@ -51,7 +51,7 @@ use IO::Socket;
 
 use constant {
 	DEPTH => 8,
-	VERSION => 'loadbars v0.2.0.0-devel',
+	VERSION => 'loadbars v0.2.0',
 	COPYRIGHT => '2010-2011 (c) Paul Buetow <loadbars@mx.buetow.org>',
 	BLACK => SDL::Color->new(-r => 0x00, -g => 0x00, -b => 0x00),
 	BLUE => SDL::Color->new(-r => 0x00, -g => 0x00, -b => 0xff),

@@ -2,3 +2,4 @@
 * Dynamic/online resizing of the window
 * Rudimentary support for /etc/clusters, the Cluster-SSH configuration file
 * Adding and removing hosts online
+* Toggle cpu core vs. hostname vs. nothing option

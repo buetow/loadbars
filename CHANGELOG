@@ -1,5 +1,9 @@
-So 7. Aug 14:15:06 CEST 2011
+So 7. Aug 15:53:08 CEST 2011
+* Added grey separator lines between each hosts
+* More intelligent CPU core numbering in the different
+  CPU toggle modes.
 * Some more documentation
+* Some minor bugfixes
 
 So 7. Aug 14:06:45 CEST 2011
 * Released v0.2.0.1 (Bugfixes only)

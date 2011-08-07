@@ -49,7 +49,7 @@ use threads::shared;
 
 use constant {
 	DEPTH => 8,
-	VERSION => 'loadbars v0.2.0.2-devel',
+	VERSION => 'loadbars v0.2.1-devel',
 	COPYRIGHT => '2010-2011 (c) Paul Buetow <loadbars@mx.buetow.org>',
 	BLACK => SDL::Color->new(-r => 0x00, -g => 0x00, -b => 0x00),
 	BLUE => SDL::Color->new(-r => 0x00, -g => 0x00, -b => 0xff),
@@ -58,6 +58,7 @@ use constant {
 	PURPLE => SDL::Color->new(-r => 0xa0, -g => 0x20, -b => 0xf0),
 	RED => SDL::Color->new(-r => 0xff, -g => 0x00, -b => 0x00),
 	WHITE => SDL::Color->new(-r => 0xff, -g => 0xff, -b => 0xff),
+	GREY => SDL::Color->new(-r => 0x3b, -g => 0x3b, -b => 0x3b),
 	YELLOW0 => SDL::Color->new(-r => 0xff, -g => 0xa0, -b => 0x00),
 	YELLOW => SDL::Color->new(-r => 0xff, -g => 0xc0, -b => 0x00),
 	SYSTEM_PURPLE => 30,
@@ -73,10 +74,12 @@ $| = 1;
 
 my %AVGSTATS : shared;
 my %CPUSTATS : shared;
-my %CONF : shared;
+
+# Global configuration hash
+my %C : shared;
 
 # Setting defaults
-%CONF = (
+%C = (
 	title => VERSION . ' (press h for help)',
 	average => 30,
 	togglecpu => 1,
@@ -97,7 +100,7 @@ sub newline () { say ''; return undef }
 sub debugsay (@) { say "DEBUG: $_" for @_; return undef }
 sub sum (@) { my $sum = 0; $sum += $_ for @_; return $sum }
 sub null ($) { my $arg = shift; return defined $arg ? $arg : 0 }
-sub set_togglecpu_regexp () { $CONF{cpuregexp} = $CONF{togglecpu} ? 'cpu ' : 'cpu' }
+sub set_togglecpu_regexp () { $C{cpuregexp} = $C{togglecpu} ? 'cpu ' : 'cpu' }
 
 sub parse_cpu_line ($) {
 	my ($name, %load);
@@ -124,13 +127,13 @@ sub thread_get_stats ($) {
 			   	stat=/compat/linux/proc/stat
 			fi
 			
-			for i in \$(seq $CONF{samples}); do 
+			for i in \$(seq $C{samples}); do 
 			   	cat \$loadavg \$stat
-				sleep $CONF{inter}
+				sleep $C{inter}
 			done
 BASH
 		my $cmd = $host eq 'localhost' ? $bash 
-			: "ssh -o StrictHostKeyChecking=no $CONF{sshopts} $host '$bash'";
+			: "ssh -o StrictHostKeyChecking=no $C{sshopts} $host '$bash'";
 
 		my $pid = open my $pipe, "$cmd |" or do {
 			say "Warning: $!";
@@ -140,7 +143,7 @@ BASH
 
 		# Toggle CPUs
 		$SIG{USR1} = sub { $sigusr1 = 1 };
-		my $cpuregexp = qr/$CONF{cpuregexp}/;
+		my $cpuregexp = qr/$C{cpuregexp}/;
 
 		while (<$pipe>) {		
 	   		if (/^$loadavgexp/) {
@@ -153,7 +156,7 @@ BASH
 			}
 
 			if ($sigusr1) {
-				$cpuregexp = qr/$CONF{cpuregexp}/;
+				$cpuregexp = qr/$C{cpuregexp}/;
 				$sigusr1 = 0;
 			}
 		}
@@ -197,8 +200,8 @@ sub draw_background ($$) {
    	my ($app, $rects) = @_;
 	my $rect = get_rect $rects, 'background';
 
-	$rect->width($CONF{width});
-	$rect->height($CONF{height});
+	$rect->width($C{width});
+	$rect->height($C{height});
 	$app->fill($rect, BLACK);
 	$app->update($rect);
 
@@ -216,10 +219,10 @@ sub main_loop ($@) {
 	my $statusbar_height = 0;
 
 	my $app = SDL::App->new(
-		-title => $CONF{title},
-		-icon_title => $CONF{title},
-		-width => $CONF{width},
-		-height => $CONF{height}+$statusbar_height,
+		-title => $C{title},
+		-icon_title => $C{title},
+		-width => $C{width},
+		-height => $C{height}+$statusbar_height,
 		-depth => DEPTH,
 		-resizeable => 0,
 	);
@@ -259,7 +262,7 @@ sub main_loop ($@) {
 			next if $type != 2;
 
 			if ($key_name eq '1') {
-				$CONF{togglecpu} = !$CONF{togglecpu};
+				$C{togglecpu} = !$C{togglecpu};
 				set_togglecpu_regexp;
 				$_->kill('USR1') for @threads;
 				%AVGSTATS = ();
@@ -272,11 +275,11 @@ sub main_loop ($@) {
 				$displayinfo = 'Hotkeys help printed on terminal stdout';
 
 			} elsif ($key_name eq 't') {
-				$CONF{displaytxt} = !$CONF{displaytxt};	
+				$C{displaytxt} = !$C{displaytxt};	
 				$displayinfo = 'Toggled text display';
 			
 			} elsif ($key_name eq 'u') {
-				$CONF{displaytxthost} = !$CONF{displaytxthost};	
+				$C{displaytxthost} = !$C{displaytxthost};	
 				$displayinfo = 'Toggled number/hostname display';
 
 			} elsif ($key_name eq 'q') {
@@ -285,53 +288,53 @@ sub main_loop ($@) {
 
 			# Increase and decrease pairs
 			} elsif ($key_name eq 'a') {
-				++$CONF{average};
-				$displayinfo = "Set sample average to $CONF{average}";
+				++$C{average};
+				$displayinfo = "Set sample average to $C{average}";
 			} elsif ($key_name eq 'y' or $key_name eq 'z') {
-				my $avg = $CONF{average};
+				my $avg = $C{average};
 				--$avg;
-				$CONF{average} = $avg > 1 ? $avg : 2;
-				$displayinfo = "Set sample average to $CONF{average}";
+				$C{average} = $avg > 1 ? $avg : 2;
+				$displayinfo = "Set sample average to $C{average}";
 			
 			} elsif ($key_name eq 's') {
-				$CONF{factor} += 0.1;
-				$displayinfo = "Set scale factor to $CONF{factor}";
+				$C{factor} += 0.1;
+				$displayinfo = "Set scale factor to $C{factor}";
 			} elsif ($key_name eq 'x' or $key_name eq 'z') {
-				$CONF{factor} -= 0.1;
-				$displayinfo = "Set scale factor to $CONF{factor}";
+				$C{factor} -= 0.1;
+				$displayinfo = "Set scale factor to $C{factor}";
 
 			} elsif ($key_name eq 'd') {
-				$CONF{inter} += 0.1;
-				$displayinfo = "Set graph update interval to $CONF{inter}";
+				$C{inter} += 0.1;
+				$displayinfo = "Set graph update interval to $C{inter}";
 			} elsif ($key_name eq 'c' or $key_name eq 'z') {
-				my $int = $CONF{inter};
+				my $int = $C{inter};
 				$int -= 0.1;
-				$CONF{inter} = $int > 0 ? $int : 0.1;
-				$displayinfo = "Set graph update interval to $CONF{inter}";
+				$C{inter} = $int > 0 ? $int : 0.1;
+				$displayinfo = "Set graph update interval to $C{inter}";
 
 =cut
 			} elsif ($key_name eq 'down') {
-				my $height = $CONF{height} + 10;
-				$app->resize($CONF{width},$height);
-				$CONF{height} = $height;
-				$displayinfo = "Set graph height to $CONF{height}";
+				my $height = $C{height} + 10;
+				$app->resize($C{width},$height);
+				$C{height} = $height;
+				$displayinfo = "Set graph height to $C{height}";
 			} elsif ($key_name eq 'up') {
-				my $height = $CONF{height};
+				my $height = $C{height};
 				$height -= 10;
-				$CONF{height} = $height > 1 ? $height : 1;
-				$app->resize($CONF{width},$CONF{height});
-				$displayinfo = "Set graph height to $CONF{height}";
+				$C{height} = $height > 1 ? $height : 1;
+				$app->resize($C{width},$C{height});
+				$displayinfo = "Set graph height to $C{height}";
 
 			} elsif ($key_name eq 'right') {
-				$CONF{width} += 10;
-				$app->resize($CONF{width},$CONF{height});
-				$displayinfo = "Set graph width to $CONF{width}";
+				$C{width} += 10;
+				$app->resize($C{width},$C{height});
+				$displayinfo = "Set graph width to $C{width}";
 			} elsif ($key_name eq 'left') {
-				my $width = $CONF{width};
+				my $width = $C{width};
 				$width -= 10;
-				$CONF{width} = $width > 1 ? $width : 1;
-				$app->resize($CONF{width},$CONF{height});
-				$displayinfo = "Set graph width to $CONF{width}";
+				$C{width} = $width > 1 ? $width : 1;
+				$app->resize($C{width},$C{height});
+				$displayinfo = "Set graph width to $C{width}";
 =cut
 			}
 		}
@@ -353,11 +356,12 @@ sub main_loop ($@) {
 
 		# Avoid division by null
 		# Also substract 1 (each bar is followed by an 1px separator bar)
-		my $width = $CONF{width} / ($num_stats ? $num_stats : 1) - 1;
+		my $width = $C{width} / ($num_stats ? $num_stats : 1) - 1;
 
-		my $current_barnum = -1;
+		my ($current_barnum, $current_corenum) = (-1, -1);
 		for my $key (sort keys %CPUSTATS) {
 			++$current_barnum;
+			++$current_corenum;
 			my ($host, $name) = split ';', $key;
 
 			next unless defined $CPUSTATS{$key};
@@ -382,21 +386,34 @@ sub main_loop ($@) {
 
 			%loads = normalize_loads %loads;
 			push @{$last_loads{$key}}, \%loads;
-			shift @{$last_loads{$key}} while @{$last_loads{$key}} >= $CONF{average};
+			shift @{$last_loads{$key}} while @{$last_loads{$key}} >= $C{average};
 
-			my %cpuaverage = get_cpuaverage $CONF{factor}, @{$last_loads{$key}};
+			my %cpuaverage = get_cpuaverage $C{factor}, @{$last_loads{$key}};
 
 			my %heights = map { 
-				$_ => defined $cpuaverage{$_} ? $cpuaverage{$_} * ($CONF{height}/100) : 1 
+				$_ => defined $cpuaverage{$_} ? $cpuaverage{$_} * ($C{height}/100) : 1 
 
 			} keys %cpuaverage;
+
+			my $is_host_summary = exists $is_host_summary{$host};
 			
+			my $rect_separator = undef;
 			my $rect_user = get_rect $rects, "$key;user";
 			my $rect_system = get_rect $rects, "$key;system";
 			my $rect_iowait = get_rect $rects, "$key;iowait";
 			my $rect_nice = get_rect $rects, "$key;nice";
+		
+			unless ($is_host_summary) {	
+				$current_corenum = 0;
+				$rect_separator = get_rect $rects, "$key;separator";
+				$rect_separator->width(1);
+				$rect_separator->height($C{height});
+				$rect_separator->x($x-1);
+				$rect_separator->y(0);
+				$app->fill($rect_separator, GREY);
+			}
 			
-			$y = $CONF{height} - $heights{system};
+			$y = $C{height} - $heights{system};
 			$rect_system->width($width);
 			$rect_system->height($heights{system});
 			$rect_system->x($x);
@@ -419,7 +436,7 @@ sub main_loop ($@) {
 			$rect_iowait->height($heights{iowait});
 			$rect_iowait->x($x);
 			$rect_iowait->y($y);
-			
+		
 			my $system_n_user = sum @cpuaverage{qw(user system)};
 			
 			$app->fill($rect_iowait, BLACK);
@@ -436,17 +453,19 @@ sub main_loop ($@) {
 			
 
 			my ($y, $space) = (5, $font_height);
-			if ($CONF{displaytxt}) {
-				my $is_host_summary = exists $is_host_summary{$host};
+			my @loadavg = split ';', $AVGSTATS{$host};
+			$is_host_summary{$host} = 1 if defined $loadavg[0];
 
-				if ($CONF{displaytxthost} && not $is_host_summary) {
+			if ($C{displaytxt}) {
+				if ($C{displaytxthost} && not $is_host_summary) {
 					# If hostname is printed don't use FQDN
 					# because of its length.
 					$host =~ /([^\.]*)/;
 					$app->print($x, $y, sprintf '%s:', $1);
 
 				} else {
-					$app->print($x, $y, sprintf  '%i:', $current_barnum);
+					$app->print($x, $y, sprintf  '%i:', 
+						$C{togglecpu} ? $current_barnum : $current_corenum);
 				}
 
 				$app->print($x, $y+=$space, sprintf '%d%s', $cpuaverage{nice}, 'ni');
@@ -455,8 +474,6 @@ sub main_loop ($@) {
 				$app->print($x, $y+=$space, sprintf '%d%s', $system_n_user, 'su');
 
 				unless ($is_host_summary) {
-					my @loadavg = split ';', $AVGSTATS{$host};
-	
 					if (defined $loadavg[0]) {	
 						$app->print($x, $y+=$space, 'avg:');
 						$app->print($x, $y+=$space, sprintf "%.2f", $loadavg[0]);
@@ -464,15 +481,14 @@ sub main_loop ($@) {
 						$app->print($x, $y+=$space, sprintf "%.2f", $loadavg[2]);
 					}
 		
-					$is_host_summary{$host} = 1;
 				}
 			}
 
 			# Display an informational text message if any
 			$app->print(0, $y+=$space, $displayinfo) if length $displayinfo;
-
 		
 			$app->update($_) for $rect_nice, $rect_iowait, $rect_system, $rect_user;
+			$app->update($rect_separator) if defined $rect_separator;
 			$x += $width + 1;
 		}
 
@@ -491,7 +507,7 @@ TIMEKEEPER:
 			}	
 		}
 
-		if ($CONF{inter} > $t2 - $t1) {
+		if ($C{inter} > $t2 - $t1) {
 			usleep 10000;
 			# Goto is OK if you don't produce spaghetti code with it
 			goto TIMEKEEPER;
@@ -565,7 +581,7 @@ END
 
 		samples => { menupos => 17,  help => 'Set number of samples until ssh reconnects', mode => 6, type => 'i' },
 		sshopts => { menupos => 18,  help => 'Set SSH options', mode => 6, type => 's' },
-		title => { menupos => 19,  help => 'Set the window title', var => \$CONF{title}, mode => 6, type => 's' },
+		title => { menupos => 19,  help => 'Set the window title', var => \$C{title}, mode => 6, type => 's' },
 
 		toggletxthost => { menupos => 20,  help => 'Toggle hostname/num text display (0 or 1)', mode => 7, type => 'i' },
 		toggletxthost_hot => { menupos => 21, cmd => 'u', help => 'Toggle hostname/num text display', mode => 1 },
@@ -630,7 +646,7 @@ END
 
 		} elsif ($arg eq 'options') {
 			map { 
-			   	"$_=".$d{$_}{type} => (defined $d{$_}{var} ? $d{$_}{var} : \$CONF{$_});
+			   	"$_=".$d{$_}{type} => (defined $d{$_}{var} ? $d{$_}{var} : \$C{$_});
 
 			} grep { 
 			   	$d{$_}{mode} & 4 and exists $d{$_}{type}; 
@@ -647,7 +663,7 @@ END
 		   	defined $_->[1] 
 
 		} map { 
-		   	[$_ => exists $d{$_}{var} ? ${$d{$_}{var}} : $CONF{$_}] 
+		   	[$_ => exists $d{$_}{var} ? ${$d{$_}{var}} : $C{$_}] 
 
 		} keys %d
 	};

@@ -30,6 +30,8 @@ Explanation text display:
 	us = User cpu usage in %
 	sy = System cpu sage in %
 	su = System & user cpu usage in %
-        avg = System load average (desc. order: 1, 5 and 15 min. avg.)
+	avg = System load average (desc. order: 1, 5 and 15 min. avg.)
+
+
 
 

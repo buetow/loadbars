@@ -1,7 +1,8 @@
 So 7. Aug 15:53:08 CEST 2011
-* Added grey separator lines between each hosts
-* More intelligent CPU core numbering in the different
-  CPU toggle modes.
+* Added grey separator lines between each hosts if displaying
+  each single core
+* More intelligent CPU core numbering if displaying each single
+  core (starting counting by 0 for each host).
 * Some more documentation
 * Some minor bugfixes
 

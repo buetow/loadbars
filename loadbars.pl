@@ -403,7 +403,7 @@ sub main_loop ($@) {
 			my $rect_iowait = get_rect $rects, "$key;iowait";
 			my $rect_nice = get_rect $rects, "$key;nice";
 		
-			unless ($is_host_summary) {	
+			unless ($is_host_summary || $C{togglecpu}) {	
 				$current_corenum = 0;
 				$rect_separator = get_rect $rects, "$key;separator";
 				$rect_separator->width(1);

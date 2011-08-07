@@ -49,7 +49,7 @@ use threads::shared;
 
 use constant {
 	DEPTH => 8,
-	VERSION => 'loadbars v0.2.1-devel',
+	VERSION => 'loadbars v0.2.0.1',
 	COPYRIGHT => '2010-2011 (c) Paul Buetow <loadbars@mx.buetow.org>',
 	BLACK => SDL::Color->new(-r => 0x00, -g => 0x00, -b => 0x00),
 	BLUE => SDL::Color->new(-r => 0x00, -g => 0x00, -b => 0xff),
@@ -342,6 +342,7 @@ sub main_loop ($@) {
 		my %is_host_summary;
 
 		my $new_num_stats = keys %CPUSTATS;
+
 		if ($new_num_stats != $num_stats) {
 			%prev_stats = ();
 			%last_loads = ();
@@ -351,8 +352,7 @@ sub main_loop ($@) {
 		}
 
 		# Avoid division by null
-		my $div = $num_stats - 1;
-		my $width = $CONF{width} / ($div ? $div : 1);
+		my $width = $CONF{width} / ($num_stats ? $num_stats : 1);
 
 		my $barnum = -1;
 		for my $key (sort keys %CPUSTATS) {

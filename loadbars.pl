@@ -465,7 +465,7 @@ sub main_loop ($@) {
 
 				} else {
 					$app->print($x, $y, sprintf  '%i:', 
-						$C{togglecpu} ? $current_barnum : $current_corenum);
+						$C{togglecpu} ? $current_barnum + 1: $current_corenum);
 				}
 
 				$app->print($x, $y+=$space, sprintf '%d%s', $cpuaverage{nice}, 'ni');

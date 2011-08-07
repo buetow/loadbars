@@ -351,7 +351,7 @@ sub main_loop ($@) {
 		}
 
 		# Avoid division by null
-		my $div = $num_stats - 1;
+		my $div = $num_stats;
 		my $width = $CONF{width} / ($div ? $div : 1);
 
 		my $barnum = -1;

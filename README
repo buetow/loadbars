@@ -8,6 +8,14 @@ For a list of features which might be added in the future see WHISHLIST
 
 For a changelog see CHANGELOG
 
+For a list of all known bugs see BUGS
+
+Versioning schema: a.b.c.d, where 
+	d = Bugfixes only release
+	c = Minor release (new features or minor code refactoring)
+	b = Major release (new features or major code refactoring)
+	a = Don't know yet. Maybe will stay forever 0.
+
 Explanation colors:
 	Blue: System cpu usage 
 	Purple: System usage if it's >30%

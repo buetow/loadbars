@@ -352,11 +352,12 @@ sub main_loop ($@) {
 		}
 
 		# Avoid division by null
-		my $width = $CONF{width} / ($num_stats ? $num_stats : 1);
+		# Also substract 1 (each bar is followed by an 1px separator bar)
+		my $width = $CONF{width} / ($num_stats ? $num_stats : 1) - 1;
 
-		my $barnum = -1;
+		my $current_barnum = -1;
 		for my $key (sort keys %CPUSTATS) {
-			++$barnum;
+			++$current_barnum;
 			my ($host, $name) = split ';', $key;
 
 			next unless defined $CPUSTATS{$key};
@@ -445,7 +446,7 @@ sub main_loop ($@) {
 					$app->print($x, $y, sprintf '%s:', $1);
 
 				} else {
-					$app->print($x, $y, sprintf  '%i:', $barnum);
+					$app->print($x, $y, sprintf  '%i:', $current_barnum);
 				}
 
 				$app->print($x, $y+=$space, sprintf '%d%s', $cpuaverage{nice}, 'ni');

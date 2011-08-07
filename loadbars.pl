@@ -342,6 +342,7 @@ sub main_loop ($@) {
 		my %is_host_summary;
 
 		my $new_num_stats = keys %CPUSTATS;
+
 		if ($new_num_stats != $num_stats) {
 			%prev_stats = ();
 			%last_loads = ();
@@ -351,8 +352,7 @@ sub main_loop ($@) {
 		}
 
 		# Avoid division by null
-		my $div = $num_stats;
-		my $width = $CONF{width} / ($div ? $div : 1);
+		my $width = $CONF{width} / ($num_stats ? $num_stats : 1);
 
 		my $barnum = -1;
 		for my $key (sort keys %CPUSTATS) {

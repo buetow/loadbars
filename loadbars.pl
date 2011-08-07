@@ -122,22 +122,27 @@ sub thread_get_stats ($) {
 			if [ -e /proc/stat ]; then 
 				loadavg=/proc/loadavg
 				stat=/proc/stat
+
+				for i in \$(seq $C{samples}); do 
+				   	cat \$loadavg \$stat
+					sleep $C{inter}
+				done
 			else 
 			   	loadavg=/compat/linux/proc/loadavg
 			   	stat=/compat/linux/proc/stat
+
+				for i in \$(jot $C{samples}); do 
+				   	cat \$loadavg \$stat
+					sleep $C{inter}
+				done
 			fi
-			
-			for i in \$(seq $C{samples}); do 
-			   	cat \$loadavg \$stat
-				sleep $C{inter}
-			done
 BASH
 		my $cmd = $host eq 'localhost' ? $bash 
 			: "ssh -o StrictHostKeyChecking=no $C{sshopts} $host '$bash'";
 
 		my $pid = open my $pipe, "$cmd |" or do {
 			say "Warning: $!";
-			sleep 3;
+			sleep 1;
 			next;
 		};
 
@@ -152,7 +157,10 @@ BASH
 			} elsif (/$cpuregexp/) {
 				my ($name, $load) = parse_cpu_line $_;
 				$CPUSTATS{"$host;$name"} = join ';', 
-				   	map { $_ . '=' . $load->{$_} } keys %$load;
+				   	map { $_ . '=' . $load->{$_} } 
+					grep { defined $load->{$_} } keys %$load;
+
+				not defined $load->{$_} and debugsay $_ for keys %$load;
 			}
 
 			if ($sigusr1) {

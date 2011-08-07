@@ -3,6 +3,8 @@ So 7. Aug 15:53:08 CEST 2011
   each single core
 * More intelligent CPU core numbering if displaying each single
   core (starting counting by 0 for each host).
+* FreeBSD server support for CPU graphs has been tested and is working using 
+  linprocfs mounted on /compat/linux/proc.
 * Some more documentation
 * Some minor bugfixes
 

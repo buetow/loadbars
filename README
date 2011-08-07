@@ -10,8 +10,8 @@ For a changelog see CHANGELOG
 
 For a list of all known bugs see BUGS
 
-Versioning schema: a.b.c.d, where 
-	d = Bugfixes only release
+Versioning schema: a.b.c[.d], where 
+	d = Optional, bugfixes only release
 	c = Minor release (new features or minor code refactoring)
 	b = Major release (new features or major code refactoring)
 	a = Don't know yet. Maybe will stay forever 0.

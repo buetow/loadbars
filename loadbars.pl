@@ -49,7 +49,7 @@ use threads::shared;
 
 use constant {
 	DEPTH => 8,
-	VERSION => 'loadbars v0.2.0.1',
+	VERSION => 'loadbars v0.2.0.2',
 	COPYRIGHT => '2010-2011 (c) Paul Buetow <loadbars@mx.buetow.org>',
 	BLACK => SDL::Color->new(-r => 0x00, -g => 0x00, -b => 0x00),
 	BLUE => SDL::Color->new(-r => 0x00, -g => 0x00, -b => 0xff),
@@ -308,31 +308,6 @@ sub main_loop ($@) {
 				$int -= 0.1;
 				$CONF{inter} = $int > 0 ? $int : 0.1;
 				$displayinfo = "Set graph update interval to $CONF{inter}";
-
-=cut
-			} elsif ($key_name eq 'down') {
-				my $height = $CONF{height} + 10;
-				$app->resize($CONF{width},$height);
-				$CONF{height} = $height;
-				$displayinfo = "Set graph height to $CONF{height}";
-			} elsif ($key_name eq 'up') {
-				my $height = $CONF{height};
-				$height -= 10;
-				$CONF{height} = $height > 1 ? $height : 1;
-				$app->resize($CONF{width},$CONF{height});
-				$displayinfo = "Set graph height to $CONF{height}";
-
-			} elsif ($key_name eq 'right') {
-				$CONF{width} += 10;
-				$app->resize($CONF{width},$CONF{height});
-				$displayinfo = "Set graph width to $CONF{width}";
-			} elsif ($key_name eq 'left') {
-				my $width = $CONF{width};
-				$width -= 10;
-				$CONF{width} = $width > 1 ? $width : 1;
-				$app->resize($CONF{width},$CONF{height});
-				$displayinfo = "Set graph width to $CONF{width}";
-=cut
 			}
 		}
 	};
@@ -352,7 +327,7 @@ sub main_loop ($@) {
 		}
 
 		# Avoid division by null
-		my $width = $CONF{width} / ($num_stats ? $num_stats : 1);
+		my $width = $CONF{width} / ($num_stats ? $num_stats : 1) - 1;
 
 		my $barnum = -1;
 		for my $key (sort keys %CPUSTATS) {

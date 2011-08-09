@@ -164,8 +164,6 @@ BASH
 				$CPUSTATS{"$host;$name"} = join ';', 
 				   	map { $_ . '=' . $load->{$_} } 
 					grep { defined $load->{$_} } keys %$load;
-
-				not defined $load->{$_} for keys %$load;
 			}
 
 			if ($sigusr1) {

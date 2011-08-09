@@ -5,6 +5,7 @@ So 7. Aug 15:53:08 CEST 2011
   core (starting counting by 0 for each host).
 * FreeBSD server support for CPU graphs has been tested and is working using 
   linprocfs mounted on /compat/linux/proc.
+* Changed licence to GPL 2
 * Some more documentation
 * Some minor bugfixes
 

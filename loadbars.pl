@@ -29,6 +29,8 @@
 # IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
+package Loadbars;
+
 use strict;
 use warnings;
 
@@ -114,7 +116,7 @@ sub parse_cpu_line ($) {
 sub thread_get_stats ($) {
 	my $host = shift;
 
-	my $sigusr1 = 0;
+	my ($sigusr1, $quit) = (0, 0);
 	my $loadavgexp = qr/(\d+\.\d{2}) (\d+\.\d{2}) (\d+\.\d{2})/;
 
 	for (;;) {
@@ -150,6 +152,9 @@ BASH
 		$SIG{USR1} = sub { $sigusr1 = 1 };
 		my $cpuregexp = qr/$C{cpuregexp}/;
 
+		# $SIG{STOP} = sub { debugsay kill 9, $pid; $quit = 1 };
+
+
 		while (<$pipe>) {		
 	   		if (/^$loadavgexp/) {
 				$AVGSTATS{$host} = "$1;$2;$3";
@@ -160,7 +165,7 @@ BASH
 				   	map { $_ . '=' . $load->{$_} } 
 					grep { defined $load->{$_} } keys %$load;
 
-				not defined $load->{$_} and debugsay $_ for keys %$load;
+				not defined $load->{$_} for keys %$load;
 			}
 
 			if ($sigusr1) {
@@ -251,8 +256,6 @@ sub main_loop ($@) {
 	my $displayinfo : shared = '';
 	my $infotxt : shared = '';
 	my $quit : shared = 0;
-
-	$SIG{STOP} = sub { $quit = 1 };
 
 	my ($t1, $t2) = (Time::HiRes::time(), undef);
 	my $event = SDL::Event->new();
@@ -531,6 +534,7 @@ TIMEKEEPER:
 	} until $quit;
 
 	say "Good bye";
+	# $_->kill('STOP') for @threads;
 	$event_thread->join();
 	exit 0;
 }
@@ -706,3 +710,5 @@ sub main () {
 }
 
 main;
+
+1;

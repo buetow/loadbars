@@ -631,17 +631,16 @@ END
 			}
 
 		} elsif ($arg eq 'hotkeys') {
-			(join "\n", map { 
+			$textdesc . "Hotkeys:\n" .  (join "\n", map { 
 				"$_\t- $d_by_short{$_}{help}" 
 
 			} grep { 
 			   	$d_by_short{$_}{mode} & 1 and exists $d_by_short{$_}{help};
 
-			} sort { $d_by_short{$a}{menupos} <=> $d_by_short{$b}{menupos} } sort keys %d_by_short)
-				. "\n$textdesc";
+			} sort { $d_by_short{$a}{menupos} <=> $d_by_short{$b}{menupos} } sort keys %d_by_short);
 
 		} elsif ($arg eq 'usage') {
-			(join "\n", map { 
+			$textdesc .  (join "\n", map { 
 					if ($_ eq 'help') {
 			   		"--$_\t\t- $d{$_}{help}" 
 					} else {
@@ -651,8 +650,7 @@ END
 			} grep { 
 			   	$d{$_}{mode} & 2 and exists $d{$_}{help} 
 
-			} sort { $d{$a}{menupos} <=> $d{$b}{menupos} } sort keys %d)
-				. "\n$textdesc";
+			} sort { $d{$a}{menupos} <=> $d{$b}{menupos} } sort keys %d);
 
 		} elsif ($arg eq 'options') {
 			map { 

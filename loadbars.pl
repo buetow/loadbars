@@ -119,7 +119,7 @@ BASH
 
 		my $pid = open my $pipe, "$cmd |" or do {
 			say "Warning: $!";
-			sleep 1;
+			sleep 3;
 			next;
 		};
 
@@ -471,8 +471,9 @@ sub main_loop ($@) {
 			# Display an informational text message if any
 			$app->print(0, $y+=$space, $displayinfo) if length $displayinfo;
 		
-			$app->update($_) for $rect_nice, $rect_iowait, $rect_system, $rect_user;
+			$app->update($rect_nice, $rect_iowait, $rect_system, $rect_user);
 			$app->update($rect_separator) if defined $rect_separator;
+
 			$x += $width + 1;
 		}
 

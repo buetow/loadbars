@@ -27,14 +27,14 @@ use threads::shared;
 use constant {
 	DEPTH => 8,
 	VERSION => 'loadbars v0.2.1-devel',
-	COPYRIGHT => '2010-2011 (c) Paul Buetow <loadbars@mx.buetow.org>',
+	Copyright => '2010-2011 (c) Paul Buetow <loadbars@mx.buetow.org>',
 	BLACK => SDL::Color->new(-r => 0x00, -g => 0x00, -b => 0x00),
 	BLUE => SDL::Color->new(-r => 0x00, -g => 0x00, -b => 0xff),
 	GREEN => SDL::Color->new(-r => 0x00, -g => 0x90, -b => 0x00),
 	ORANGE => SDL::Color->new(-r => 0xff, -g => 0x70, -b => 0x00),
 	PURPLE => SDL::Color->new(-r => 0xa0, -g => 0x20, -b => 0xf0),
 	RED => SDL::Color->new(-r => 0xff, -g => 0x00, -b => 0x00),
-	WHITE => SDL::Color->new(-r => 0xff, -g => 0xff, -b => 0xff),
+	White => SDL::Color->new(-r => 0xff, -g => 0xff, -b => 0xff),
 	GREY => SDL::Color->new(-r => 0x3b, -g => 0x3b, -b => 0x3b),
 	YELLOW0 => SDL::Color->new(-r => 0xff, -g => 0xa0, -b => 0x00),
 	YELLOW => SDL::Color->new(-r => 0xff, -g => 0xc0, -b => 0x00),
@@ -57,7 +57,7 @@ my %C : shared;
 
 # Setting defaults
 %C = (
-	title => VERSION . ' (press h for help)',
+	title => Loadbars::VERSION . ' (press h for help)',
 	average => 30,
 	togglecpu => 1,
 	cpuregexp => 'cpu',
@@ -74,7 +74,7 @@ my %C : shared;
 # Quick n dirty helpers
 sub say (@) { print "$_\n" for @_; return undef }
 sub newline () { say ''; return undef }
-sub debugsay (@) { say "DEBUG: $_" for @_; return undef }
+sub debugsay (@) { say "Loadbars::DEBUG: $_" for @_; return undef }
 sub sum (@) { my $sum = 0; $sum += $_ for @_; return $sum }
 sub null ($) { my $arg = shift; return defined $arg ? $arg : 0 }
 sub set_togglecpu_regexp () { $C{cpuregexp} = $C{togglecpu} ? 'cpu ' : 'cpu' }
@@ -128,7 +128,6 @@ BASH
 		my $cpuregexp = qr/$C{cpuregexp}/;
 
 		# $SIG{STOP} = sub { debugsay kill 9, $pid; $quit = 1 };
-
 
 		while (<$pipe>) {		
 	   		if (/^$loadavgexp/) {
@@ -188,7 +187,7 @@ sub draw_background ($$) {
 
 	$rect->width($C{width});
 	$rect->height($C{height});
-	$app->fill($rect, BLACK);
+	$app->fill($rect, Loadbars::BLACK);
 	$app->update($rect);
 
 	return undef;
@@ -209,7 +208,7 @@ sub main_loop ($@) {
 		-icon_title => $C{title},
 		-width => $C{width},
 		-height => $C{height}+$statusbar_height,
-		-depth => DEPTH,
+		-depth => Loadbars::DEPTH,
 		-resizeable => 0,
 	);
 
@@ -242,7 +241,7 @@ sub main_loop ($@) {
 			my $type = $event->type();
 			my $key_name = $event->key_name(); 
 
-			debugsay "Event type=$type key_name=$key_name" if DEBUG;
+			debugsay "Event type=$type key_name=$key_name" if Loadbars::DEBUG;
 			next if $type != 2;
 
 			if ($key_name eq '1') {
@@ -343,6 +342,7 @@ sub main_loop ($@) {
 		my $width = $C{width} / ($num_stats ? $num_stats : 1) - 1;
 
 		my ($current_barnum, $current_corenum) = (-1, -1);
+
 		for my $key (sort keys %CPUSTATS) {
 			++$current_barnum;
 			++$current_corenum;
@@ -394,7 +394,7 @@ sub main_loop ($@) {
 				$rect_separator->height($C{height});
 				$rect_separator->x($x-1);
 				$rect_separator->y(0);
-				$app->fill($rect_separator, GREY);
+				$app->fill($rect_separator, Loadbars::GREY);
 			}
 			
 			$y = $C{height} - $heights{system};
@@ -423,17 +423,17 @@ sub main_loop ($@) {
 		
 			my $system_n_user = sum @cpuaverage{qw(user system)};
 			
-			$app->fill($rect_iowait, BLACK);
-			$app->fill($rect_nice, GREEN);
-			$app->fill($rect_system, BLUE);
-			$app->fill($rect_system, $cpuaverage{system} > SYSTEM_PURPLE
-			      	? PURPLE 
-				: BLUE);
-			$app->fill($rect_user, $system_n_user > USER_WHITE ? WHITE 
-			      	: ($system_n_user > USER_RED ? RED 
-				: ($system_n_user > USER_ORANGE ? ORANGE 
-				: ($system_n_user > USER_YELLOW0 ? YELLOW0 
-				: (YELLOW)))));
+			$app->fill($rect_iowait, Loadbars::BLACK);
+			$app->fill($rect_nice, Loadbars::GREEN);
+			$app->fill($rect_system, Loadbars::BLUE);
+			$app->fill($rect_system, $cpuaverage{system} > Loadbars::SYSTEM_PURPLE
+			      	? Loadbars::PURPLE 
+				: Loadbars::BLUE);
+			$app->fill($rect_user, $system_n_user > Loadbars::USER_WHITE ? Loadbars::White 
+			      	: ($system_n_user > Loadbars::USER_RED ? Loadbars::RED 
+				: ($system_n_user > Loadbars::USER_ORANGE ? Loadbars::ORANGE 
+				: ($system_n_user > Loadbars::USER_YELLOW0 ? Loadbars::YELLOW0 
+				: (Loadbars::YELLOW)))));
 			
 
 			my ($y, $space) = (5, $font_height);

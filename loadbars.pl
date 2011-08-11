@@ -34,7 +34,7 @@ use constant {
 	ORANGE => SDL::Color->new(-r => 0xff, -g => 0x70, -b => 0x00),
 	PURPLE => SDL::Color->new(-r => 0xa0, -g => 0x20, -b => 0xf0),
 	RED => SDL::Color->new(-r => 0xff, -g => 0x00, -b => 0x00),
-	White => SDL::Color->new(-r => 0xff, -g => 0xff, -b => 0xff),
+	WHITE => SDL::Color->new(-r => 0xff, -g => 0xff, -b => 0xff),
 	GREY => SDL::Color->new(-r => 0x3b, -g => 0x3b, -b => 0x3b),
 	YELLOW0 => SDL::Color->new(-r => 0xff, -g => 0xa0, -b => 0x00),
 	YELLOW => SDL::Color->new(-r => 0xff, -g => 0xc0, -b => 0x00),
@@ -429,7 +429,7 @@ sub main_loop ($@) {
 			$app->fill($rect_system, $cpuaverage{system} > Loadbars::SYSTEM_PURPLE
 			      	? Loadbars::PURPLE 
 				: Loadbars::BLUE);
-			$app->fill($rect_user, $system_n_user > Loadbars::USER_WHITE ? Loadbars::White 
+			$app->fill($rect_user, $system_n_user > Loadbars::USER_WHITE ? Loadbars::WHITE 
 			      	: ($system_n_user > Loadbars::USER_RED ? Loadbars::RED 
 				: ($system_n_user > Loadbars::USER_ORANGE ? Loadbars::ORANGE 
 				: ($system_n_user > Loadbars::USER_YELLOW0 ? Loadbars::YELLOW0 

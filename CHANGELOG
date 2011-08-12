@@ -1,8 +1,6 @@
 So 7. Aug 15:53:08 CEST 2011
-* Added grey separator lines between each hosts if displaying
-  each single core
-* More intelligent CPU core numbering if displaying each single
-  core (starting counting by 0 for each host).
+* Added grey separator lines between each hosts during CPU toggle mode 
+* More intelligent CPU core numbering during CPU toggle mode
 * FreeBSD server support for CPU graphs has been tested and is working using 
   linprocfs mounted on /compat/linux/proc.
 * Changed licence to GPL 2

@@ -1,4 +1,5 @@
 So 7. Aug 15:53:08 CEST 2011
+* Releases v0.2.1
 * Added grey separator lines between each hosts during CPU toggle mode 
 * More intelligent CPU core numbering during CPU toggle mode
 * FreeBSD server support for CPU graphs has been tested and is working using 

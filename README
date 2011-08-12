@@ -11,6 +11,8 @@ For a changelog see CHANGELOG
 
 For a list of all known bugs see BUGS
 
+Supported platforms are: Linux and FreeBSD (the latter with linprocfs mounted)
+
 Versioning schema: a.b.c[.d], where 
 	d = Optional, bugfixes only release
 	c = Minor release (new features or minor code refactoring)

@@ -521,7 +521,7 @@ Explanation colors:
 	Orange: User usage if system & user cpu is >70%
 	White: Usage usage if system & user cpu is >99%
 	Green: Nice cpu usage
-        Grey 1px horizintal: Maximum sy+us cpu of last 'avg' samples
+        Grey 1px horizontal: Maximum sy+us cpu of last 'avg' samples
 Explanation text display:
 	ni = Nice cpu usage in %
 	us = User cpu usage in %

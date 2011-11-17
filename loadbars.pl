@@ -169,16 +169,25 @@ sub normalize_loads (%) {
 
 sub get_cpuaverage ($@) {
 	my ($factor, @loads) = @_;	
-	my %cpuaverage;
+	my (%cpumax, %cpuaverage);
 
 	for my $l (@loads) {
-		$cpuaverage{$_} += $l->{$_} for keys %$l;
+		for (keys %$l) {
+		        $cpuaverage{$_} += $l->{$_};
+
+                        $cpumax{$_} = $l->{$_}
+                                if not exists $cpumax{$_} or $cpumax{$_} < $l->{$_};
+                }
 	}
 
 	my $div = @loads / $factor;
-	$cpuaverage{$_} /= $div for keys %cpuaverage;
 
-	return %cpuaverage;
+        for (keys %cpuaverage) {                
+	        $cpuaverage{$_} /= $div;
+	        $cpumax{$_} /= $factor;
+        }
+
+	return (\%cpumax, \%cpuaverage);
 }
 
 sub draw_background ($$) {
@@ -347,12 +356,12 @@ sub main_loop ($@) {
 			push @{$last_loads{$key}}, \%loads;
 			shift @{$last_loads{$key}} while @{$last_loads{$key}} >= $C{average};
 
-			my %cpuaverage = get_cpuaverage $C{factor}, @{$last_loads{$key}};
+			my ($cpumaxmax, $cpuaverage) = get_cpuaverage $C{factor}, @{$last_loads{$key}};
 
 			my %heights = map { 
-				$_ => defined $cpuaverage{$_} ? $cpuaverage{$_} * ($C{height}/100) : 1 
+				$_ => defined $cpuaverage->{$_} ? $cpuaverage->{$_} * ($C{height}/100) : 1 
 
-			} keys %cpuaverage;
+			} keys %$cpuaverage;
 
 			my $is_host_summary = exists $is_host_summary{$host};
 			
@@ -396,12 +405,12 @@ sub main_loop ($@) {
 			$rect_iowait->x($x);
 			$rect_iowait->y($y);
 		
-			my $system_n_user = sum @cpuaverage{qw(user system)};
+			my $system_n_user = sum @{$cpuaverage}{qw(user system)};
 			
 			$app->fill($rect_iowait, Loadbars::BLACK);
 			$app->fill($rect_nice, Loadbars::GREEN);
 			$app->fill($rect_system, Loadbars::BLUE);
-			$app->fill($rect_system, $cpuaverage{system} > Loadbars::SYSTEM_PURPLE
+			$app->fill($rect_system, $cpuaverage->{system} > Loadbars::SYSTEM_PURPLE
 			      	? Loadbars::PURPLE 
 				: Loadbars::BLUE);
 			$app->fill($rect_user, $system_n_user > Loadbars::USER_WHITE ? Loadbars::WHITE 
@@ -427,9 +436,9 @@ sub main_loop ($@) {
 						$C{togglecpu} ? $current_barnum + 1: $current_corenum);
 				}
 
-				$app->print($x, $y+=$space, sprintf '%d%s', $cpuaverage{nice}, 'ni');
-				$app->print($x, $y+=$space, sprintf '%d%s', $cpuaverage{user}, 'us');
-				$app->print($x, $y+=$space, sprintf '%d%s', $cpuaverage{system}, 'sy');
+				$app->print($x, $y+=$space, sprintf '%d%s', $cpuaverage->{nice}, 'ni');
+				$app->print($x, $y+=$space, sprintf '%d%s', $cpuaverage->{user}, 'us');
+				$app->print($x, $y+=$space, sprintf '%d%s', $cpuaverage->{system}, 'sy');
 				$app->print($x, $y+=$space, sprintf '%d%s', $system_n_user, 'su');
 
 				unless ($is_host_summary) {

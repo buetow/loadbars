@@ -35,7 +35,7 @@ use constant {
 	PURPLE => SDL::Color->new(-r => 0xa0, -g => 0x20, -b => 0xf0),
 	RED => SDL::Color->new(-r => 0xff, -g => 0x00, -b => 0x00),
 	WHITE => SDL::Color->new(-r => 0xff, -g => 0xff, -b => 0xff),
-	GREY => SDL::Color->new(-r => 0x3b, -g => 0x3b, -b => 0x3b),
+	GREY => SDL::Color->new(-r => 0xaa, -g => 0xaa, -b => 0xaa),
 	YELLOW0 => SDL::Color->new(-r => 0xff, -g => 0xa0, -b => 0x00),
 	YELLOW => SDL::Color->new(-r => 0xff, -g => 0xc0, -b => 0x00),
 	SYSTEM_PURPLE => 30,
@@ -58,7 +58,7 @@ my %C : shared;
 # Setting defaults
 %C = (
 	title => Loadbars::VERSION . ' (press h for help)',
-	average => 30,
+        average => 15,
 	togglecpu => 1,
 	cpuregexp => 'cpu',
 	factor => 1,
@@ -169,14 +169,14 @@ sub normalize_loads (%) {
 
 sub get_cpuaverage ($@) {
 	my ($factor, @loads) = @_;	
-	my (%cpumax, %cpuaverage);
+          my (%cpucurrent, %cpuaverage);
 
 	for my $l (@loads) {
 		for (keys %$l) {
 		        $cpuaverage{$_} += $l->{$_};
 
-                        $cpumax{$_} = $l->{$_}
-                                if not exists $cpumax{$_} or $cpumax{$_} < $l->{$_};
+                        $cpucurrent{$_} = $l->{$_}
+                                if not exists $cpucurrent{$_} or $cpucurrent{$_} < $l->{$_};
                 }
 	}
 
@@ -184,10 +184,10 @@ sub get_cpuaverage ($@) {
 
         for (keys %cpuaverage) {                
 	        $cpuaverage{$_} /= $div;
-	        $cpumax{$_} /= $factor;
+	        $cpucurrent{$_} /= $factor;
         }
 
-	return (\%cpumax, \%cpuaverage);
+	return (\%cpucurrent, \%cpuaverage);
 }
 
 sub draw_background ($$) {
@@ -356,12 +356,17 @@ sub main_loop ($@) {
 			push @{$last_loads{$key}}, \%loads;
 			shift @{$last_loads{$key}} while @{$last_loads{$key}} >= $C{average};
 
-			my ($cpumaxmax, $cpuaverage) = get_cpuaverage $C{factor}, @{$last_loads{$key}};
+			my ($cpucurrent, $cpuaverage) = get_cpuaverage $C{factor}, @{$last_loads{$key}};
 
 			my %heights = map { 
 				$_ => defined $cpuaverage->{$_} ? $cpuaverage->{$_} * ($C{height}/100) : 1 
 
 			} keys %$cpuaverage;
+
+                        my %currentheights = map {
+				$_ => defined $cpucurrent->{$_} ? $cpucurrent->{$_} * ($C{height}/100) : 1 
+
+                        } keys %$cpucurrent;                                
 
 			my $is_host_summary = exists $is_host_summary{$host};
 			
@@ -370,6 +375,7 @@ sub main_loop ($@) {
 			my $rect_system = get_rect $rects, "$key;system";
 			my $rect_iowait = get_rect $rects, "$key;iowait";
 			my $rect_nice = get_rect $rects, "$key;nice";
+			my $rect_max = get_rect $rects, "$key;max";
 		
 			unless ($is_host_summary || $C{togglecpu}) {	
 				$current_corenum = 0;
@@ -405,11 +411,17 @@ sub main_loop ($@) {
 			$rect_iowait->x($x);
 			$rect_iowait->y($y);
 		
+			$rect_max->width($width);
+			$rect_max->height(1);
+			$rect_max->x($x);
+			$rect_max->y($C{height} - $currentheights{system} - $currentheights{user});
+
 			my $system_n_user = sum @{$cpuaverage}{qw(user system)};
 			
 			$app->fill($rect_iowait, Loadbars::BLACK);
 			$app->fill($rect_nice, Loadbars::GREEN);
-			$app->fill($rect_system, Loadbars::BLUE);
+                        #$app->fill($rect_system, Loadbars::BLUE);
+                        $app->fill($rect_max, Loadbars::GREY);
 			$app->fill($rect_system, $cpuaverage->{system} > Loadbars::SYSTEM_PURPLE
 			      	? Loadbars::PURPLE 
 				: Loadbars::BLUE);
@@ -419,7 +431,6 @@ sub main_loop ($@) {
 				: ($system_n_user > Loadbars::USER_YELLOW0 ? Loadbars::YELLOW0 
 				: (Loadbars::YELLOW)))));
 			
-
 			my ($y, $space) = (5, $font_height);
 			my @loadavg = split ';', $AVGSTATS{$host};
 			$is_host_summary{$host} = 1 if defined $loadavg[0];
@@ -510,6 +521,7 @@ Explanation colors:
 	Orange: User usage if system & user cpu is >70%
 	White: Usage usage if system & user cpu is >99%
 	Green: Nice cpu usage
+        Grey 1px horizintal: Maximum sy+us cpu of last 'avg' samples
 Explanation text display:
 	ni = Nice cpu usage in %
 	us = User cpu usage in %

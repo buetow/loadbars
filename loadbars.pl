@@ -26,7 +26,7 @@ use threads::shared;
 
 use constant {
 	DEPTH => 8,
-	VERSION => 'loadbars v0.2.1.1-devel',
+	VERSION => 'loadbars v0.2.2-devel',
 	Copyright => '2010-2011 (c) Paul Buetow <loadbars@mx.buetow.org>',
 	BLACK => SDL::Color->new(-r => 0x00, -g => 0x00, -b => 0x00),
 	BLUE => SDL::Color->new(-r => 0x00, -g => 0x00, -b => 0xff),
@@ -294,31 +294,6 @@ sub main_loop ($@) {
 				$int -= 0.1;
 				$C{inter} = $int > 0 ? $int : 0.1;
 				$displayinfo = "Set graph update interval to $C{inter}";
-
-=cut
-			} elsif ($key_name eq 'down') {
-				my $height = $C{height} + 10;
-				$app->resize($C{width},$height);
-				$C{height} = $height;
-				$displayinfo = "Set graph height to $C{height}";
-			} elsif ($key_name eq 'up') {
-				my $height = $C{height};
-				$height -= 10;
-				$C{height} = $height > 1 ? $height : 1;
-				$app->resize($C{width},$C{height});
-				$displayinfo = "Set graph height to $C{height}";
-
-			} elsif ($key_name eq 'right') {
-				$C{width} += 10;
-				$app->resize($C{width},$C{height});
-				$displayinfo = "Set graph width to $C{width}";
-			} elsif ($key_name eq 'left') {
-				my $width = $C{width};
-				$width -= 10;
-				$C{width} = $width > 1 ? $width : 1;
-				$app->resize($C{width},$C{height});
-				$displayinfo = "Set graph width to $C{width}";
-=cut
 			}
 		}
 	};

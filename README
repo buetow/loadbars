@@ -2,25 +2,11 @@ For general program informations see http://loadbars.buetow.org
 
 For legal informations see COPYING and COPYING.FONT
 
-For any program help check out --help on command line or 'h' during program
-execution.
+For any program help check out --help or 'h' and 'H' commands
 
 For a list of features which might be added in the future see WHISHLIST
 
 For a changelog see CHANGELOG
-
-For a list of all known bugs see BUGS
-
-Supported platforms are: Linux and FreeBSD (the latter with linprocfs mounted)
-
-Versioning schema: a.b.c[.d], where 
-	d = Optional, bugfixes only release
-	c = Minor release (new features or minor code refactoring)
-	b = Major release (new features or major code refactoring)
-	a = Don't know yet. Maybe will stay forever 0.
-
-	It's not a release if there is a -devel suffix. It's a development 
-	version (in the trunk) then.
 
 Explanation colors:
 	Blue: System cpu usage 
@@ -36,8 +22,6 @@ Explanation text display:
 	us = User cpu usage in %
 	sy = System cpu sage in %
 	su = System & user cpu usage in %
-	avg = System load average (desc. order: 1, 5 and 15 min. avg.)
-
-
+        avg = System load average (desc. order: 1, 5 and 15 min. avg.)
 
 

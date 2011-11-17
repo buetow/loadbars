@@ -1,8 +1,4 @@
-* Small white bar which shows peak cpu load
 * Stats for other stuff (e.g. memory, inodes..., disk usage)
 * Dynamic/online resizing of the window
 * Rudimentary support for /etc/clusters, the Cluster-SSH configuration file
 * Adding and removing hosts online
-* Toggle cpu core vs. hostname vs. nothing option
-* .deb for Debian and Ubuntu
-* Allow sshusername@hostname in --hosts

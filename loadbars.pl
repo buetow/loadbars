@@ -67,8 +67,8 @@ my %C : shared;
 	inter => 0.1,
 	samples => 1000,
 	sshopts => '',
-	width => 1200,
-	height => 200,
+	width => 1250,
+	height => 150,
 );
 
 # Quick n dirty helpers
@@ -203,7 +203,14 @@ sub draw_background ($$) {
 }
 
 sub create_threads (@) {
-	return map { $_->detach(); $_ } map { threads->create('thread_get_stats', $_) } @_;
+	return map { 
+		$_->detach(); 
+		$_;
+
+	} map { 
+		threads->create('thread_get_stats', $_);
+
+	} @_;
 }
 
 sub main_loop ($@) {

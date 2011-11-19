@@ -26,7 +26,7 @@ use threads::shared;
 
 use constant {
 	DEPTH => 8,
-	VERSION => 'loadbars v0.2.2-devel',
+	VERSION => 'loadbars v0.2.2',
 	Copyright => '2010-2011 (c) Paul Buetow <loadbars@mx.buetow.org>',
 	BLACK => SDL::Color->new(-r => 0x00, -g => 0x00, -b => 0x00),
 	BLUE => SDL::Color->new(-r => 0x00, -g => 0x00, -b => 0xff),
@@ -555,7 +555,7 @@ END
 		togglecpu => { menupos => 1,  help => 'Toggle CPUs (0 or 1)', mode => 7, type => 'i' },
 		togglecpu_hot => { menupos => 2,  cmd => '1', help => 'Toggle CPUs', mode => 1 },
 
-		average => { menupos => 3,  help => 'Set number of samples for calculating avg.', mode => 6, type => 'i' },
+		average => { menupos => 3,  help => 'Num of samples for avg. (more fluent animations)', mode => 6, type => 'i' },
 		average_hot_up => { menupos => 4,  cmd => 'a', help => 'Increases number of samples for calculating avg. by 1', mode => 1 },
 		average_hot_dn => { menupos => 5,  cmd => 'y', help => 'Decreases number of samples for calculating avg. by 1', mode => 1 },
 

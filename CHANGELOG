@@ -1,5 +1,25 @@
+Sat Nov 19 11:54:51 CET 2011
+* Released v0.2.2
+* Added a 1px horizontal line to each bar which represent the max. peak
+  of user and system cpu load of the last N samples (max. of the last 15 
+  samples by default, it can be configured using --average)
+* Default value for --average has been decreased from 30 to 15 sample 
+  values  
+
+Fr 12. Aug 21:41:46 CEST 2011
+* Released v0.2.1
+
 Di 9. Aug 20:42:43 CEST 2011
 * Released v0.2.0.2 (Bugfixes only; Bar width was wrong by 1px)
+
+So 7. Aug 15:53:08 CEST 2011
+* Added grey separator lines between each hosts during CPU toggle mode 
+* More intelligent CPU core numbering during CPU toggle mode
+* FreeBSD server support for CPU graphs has been tested and is working using 
+  linprocfs mounted on /compat/linux/proc.
+* Changed licence to GPL 2
+* Some more documentation
+* Some minor bugfixes
 
 So 7. Aug 14:06:45 CEST 2011
 * Released v0.2.0.1 (Bugfixes only)

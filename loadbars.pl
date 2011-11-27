@@ -556,7 +556,7 @@ Explanation text display:
 	us = User cpu usage in %
 	sy = System cpu sage in %
 	su = System & user cpu usage in %
-	pk = Max System & user cpu usage peak in %
+	pk = Max System & user cpu usage peak of last avg. samples in %
 	avg = System load average (desc. order: 1, 5 and 15 min. avg.)
 END
 

@@ -26,7 +26,7 @@ use threads::shared;
 
 use constant {
 	DEPTH => 8,
-	VERSION => 'loadbars v0.2.2',
+	VERSION => 'loadbars v0.2.2-devel',
 	Copyright => '2010-2011 (c) Paul Buetow <loadbars@mx.buetow.org>',
 	BLACK => SDL::Color->new(-r => 0x00, -g => 0x00, -b => 0x00),
 	BLUE => SDL::Color->new(-r => 0x00, -g => 0x00, -b => 0xff),
@@ -51,6 +51,7 @@ $| = 1;
 
 my %AVGSTATS : shared;
 my %CPUSTATS : shared;
+my %MEMSTATS : shared;
 
 # Global configuration hash
 my %C : shared;
@@ -99,9 +100,10 @@ sub thread_get_stats ($) {
 			if [ -e /proc/stat ]; then 
 				loadavg=/proc/loadavg
 				stat=/proc/stat
+				meminfo=/proc/meminfo
 
 				for i in \$(seq $C{samples}); do 
-				   	cat \$loadavg \$stat
+				   	cat \$loadavg \$stat \$meminfo
 					sleep $C{inter}
 				done
 			else 
@@ -126,8 +128,6 @@ BASH
 		# Toggle CPUs
 		$SIG{USR1} = sub { $sigusr1 = 1 };
 		my $cpuregexp = qr/$C{cpuregexp}/;
-
-		# $SIG{STOP} = sub { debugsay kill 9, $pid; $quit = 1 };
 
 		while (<$pipe>) {		
 	   		if (/^$loadavgexp/) {

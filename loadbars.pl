@@ -65,7 +65,7 @@ my %C : shared;
 	factor => 1,
 	displaytxt => 1,
 	displaytxthost => 0,
-	displaypeak => 0,
+	togglepeak => 0,
 	inter => 0.1,
 	samples => 1000,
 	sshopts => '',
@@ -275,7 +275,7 @@ sub main_loop ($@) {
 				$displayinfo = 'Hotkeys help printed on terminal stdout';
 
 			} elsif ($key_name eq 'p') {
-                                $C{displaypeak} = !$C{displaypeak};	
+                                $C{togglepeak} = !$C{togglepeak};	
 				$displayinfo = 'Toggled peak display';
 			
 			} elsif ($key_name eq 't') {
@@ -422,7 +422,7 @@ sub main_loop ($@) {
 			$app->fill($rect_iowait, Loadbars::BLACK);
 			$app->fill($rect_nice, Loadbars::GREEN);
 
-                        if ($C{displaypeak}) {
+                        if ($C{togglepeak}) {
                                 my %maxheights = map {
 				        $_ => defined $cpumax->{$_} ? $cpumax->{$_} * ($C{height}/100) : 1 
 
@@ -596,6 +596,9 @@ END
 
 		toggletxt => { menupos => 22,  help => 'Toggle text display (0 or 1)', mode => 7, type => 'i' },
 		toggletxt_hot => { menupos => 23, cmd => 't', help => 'Toggle text display', mode => 1 },
+
+		togglepeak => { menupos => 22,  help => 'Toggle peak display (0 or 1)', mode => 7, type => 'i' },
+		togglepeak_hot => { menupos => 23, cmd => 'p', help => 'Toggle peak display', mode => 1 },
 
 		width => { menupos => 24,  help => 'Set windows width', mode => 6, type => 'i' },
 	);

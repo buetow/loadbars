@@ -65,6 +65,7 @@ my %C : shared;
 	factor => 1,
 	displaytxt => 1,
 	displaytxthost => 0,
+	displaypeak => 0,
 	inter => 0.1,
 	samples => 1000,
 	sshopts => '',
@@ -273,6 +274,10 @@ sub main_loop ($@) {
 				say $dispatch->('hotkeys');
 				$displayinfo = 'Hotkeys help printed on terminal stdout';
 
+			} elsif ($key_name eq 'p') {
+                                $C{displaypeak} = !$C{displaypeak};	
+				$displayinfo = 'Toggled peak display';
+			
 			} elsif ($key_name eq 't') {
 				$C{displaytxt} = !$C{displaytxt};	
 				$displayinfo = 'Toggled text display';
@@ -367,13 +372,7 @@ sub main_loop ($@) {
 
 			my %heights = map { 
 				$_ => defined $cpuaverage->{$_} ? $cpuaverage->{$_} * ($C{height}/100) : 1 
-
 			} keys %$cpuaverage;
-
-                        my %maxheights = map {
-				$_ => defined $cpumax->{$_} ? $cpumax->{$_} * ($C{height}/100) : 1 
-
-                        } keys %$cpumax;                                
 
 			my $is_host_summary = exists $is_host_summary{$host};
 			
@@ -382,8 +381,8 @@ sub main_loop ($@) {
 			my $rect_system = get_rect $rects, "$key;system";
 			my $rect_iowait = get_rect $rects, "$key;iowait";
 			my $rect_nice = get_rect $rects, "$key;nice";
-			my $rect_max = get_rect $rects, "$key;max";
-		
+			my $rect_peak; 
+
 			unless ($is_host_summary || $C{togglecpu}) {	
 				$current_corenum = 0;
 				$rect_separator = get_rect $rects, "$key;separator";
@@ -417,22 +416,33 @@ sub main_loop ($@) {
 			$rect_iowait->height($heights{iowait});
 			$rect_iowait->x($x);
 			$rect_iowait->y($y);
-		
-			$rect_max->width($width);
-			$rect_max->height(1);
-			$rect_max->x($x);
-			$rect_max->y($C{height} - $maxheights{system} - $maxheights{user});
 
 			my $system_n_user = sum @{$cpuaverage}{qw(user system)};
-			my $max_system_n_user = sum @{$cpumax}{qw(user system)};
 			
 			$app->fill($rect_iowait, Loadbars::BLACK);
 			$app->fill($rect_nice, Loadbars::GREEN);
-			$app->fill($rect_max, $max_system_n_user > Loadbars::USER_WHITE ? Loadbars::WHITE 
-			      	: ($max_system_n_user > Loadbars::USER_RED ? Loadbars::RED 
-				: ($max_system_n_user > Loadbars::USER_ORANGE ? Loadbars::ORANGE 
-				: ($max_system_n_user > Loadbars::USER_YELLOW0 ? Loadbars::YELLOW0 
-				: (Loadbars::YELLOW)))));
+
+                        if ($C{displaypeak}) {
+                                my %maxheights = map {
+				        $_ => defined $cpumax->{$_} ? $cpumax->{$_} * ($C{height}/100) : 1 
+
+                                } keys %$cpumax;                                
+
+			        $rect_peak = get_rect $rects, "$key;max";
+			        $rect_peak->width($width);
+                                $rect_peak->height(1);
+                                $rect_peak->x($x);
+                                $rect_peak->y($C{height} - $maxheights{system} - $maxheights{user});
+
+			        my $max_system_n_user = sum @{$cpumax}{qw(user system)};
+
+                		$app->fill($rect_peak, $max_system_n_user > Loadbars::USER_WHITE ? Loadbars::WHITE 
+                		      	: ($max_system_n_user > Loadbars::USER_RED ? Loadbars::RED 
+                			: ($max_system_n_user > Loadbars::USER_ORANGE ? Loadbars::ORANGE 
+                			: ($max_system_n_user > Loadbars::USER_YELLOW0 ? Loadbars::YELLOW0 
+                			: (Loadbars::YELLOW)))));
+                        }
+
 			$app->fill($rect_user, $system_n_user > Loadbars::USER_WHITE ? Loadbars::WHITE 
 			      	: ($system_n_user > Loadbars::USER_RED ? Loadbars::RED 
 				: ($system_n_user > Loadbars::USER_ORANGE ? Loadbars::ORANGE 

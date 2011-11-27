@@ -70,7 +70,7 @@ my %C : shared;
 	samples => 1000,
 	sshopts => '',
 	width => 1250,
-	height => 150,
+	height => 200,
 );
 
 # Quick n dirty helpers
@@ -418,6 +418,7 @@ sub main_loop ($@) {
 			$rect_iowait->y($y);
 
 			my $system_n_user = sum @{$cpuaverage}{qw(user system)};
+                        my $max_system_n_user = 0;
 			
 			$app->fill($rect_iowait, Loadbars::BLACK);
 			$app->fill($rect_nice, Loadbars::GREEN);
@@ -434,7 +435,7 @@ sub main_loop ($@) {
                                 $rect_peak->x($x);
                                 $rect_peak->y($C{height} - $maxheights{system} - $maxheights{user});
 
-			        my $max_system_n_user = sum @{$cpumax}{qw(user system)};
+			        $max_system_n_user = sum @{$cpumax}{qw(user system)};
 
                 		$app->fill($rect_peak, $max_system_n_user > Loadbars::USER_WHITE ? Loadbars::WHITE 
                 		      	: ($max_system_n_user > Loadbars::USER_RED ? Loadbars::RED 
@@ -477,6 +478,8 @@ sub main_loop ($@) {
 				$app->print($x, $y+=$space, sprintf '%d%s', $cpuaverage->{user}, 'us');
 				$app->print($x, $y+=$space, sprintf '%d%s', $cpuaverage->{system}, 'sy');
 				$app->print($x, $y+=$space, sprintf '%d%s', $system_n_user, 'su');
+				$app->print($x, $y+=$space, sprintf '%d%s', $max_system_n_user, 'pk')
+                                        if $C{togglepeak};
 
 				unless ($is_host_summary) {
 					if (defined $loadavg[0]) {	
@@ -553,6 +556,7 @@ Explanation text display:
 	us = User cpu usage in %
 	sy = System cpu sage in %
 	su = System & user cpu usage in %
+	pk = Max System & user cpu usage peak in %
 	avg = System load average (desc. order: 1, 5 and 15 min. avg.)
 END
 

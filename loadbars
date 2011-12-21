@@ -80,6 +80,7 @@ sub debugsay (@) { say "Loadbars::DEBUG: $_" for @_; return undef }
 sub sum (@) { my $sum = 0; $sum += $_ for @_; return $sum }
 sub null ($) { my $arg = shift; return defined $arg ? $arg : 0 }
 sub set_togglecpu_regexp () { $C{cpuregexp} = $C{togglecpu} ? 'cpu ' : 'cpu' }
+sub error ($) { die shift, "\n" }
 
 sub parse_cpu_line ($) {
 	my ($name, %load);
@@ -573,6 +574,7 @@ END
 		average_hot_up => { menupos => 4,  cmd => 'a', help => 'Increases number of samples for calculating avg. by 1', mode => 1 },
 		average_hot_dn => { menupos => 5,  cmd => 'y', help => 'Decreases number of samples for calculating avg. by 1', mode => 1 },
 
+		cluster => { menupos => 6, help => 'Cluster name from /etc/clusters', var => \$C{cluster}, mode => 6, type => 's' },
 		configuration => { menupos => 6,  cmd => 'c', help => 'Show current configuration', mode => 4 },
 
 		factor => { menupos => 7,  help => 'Set graph scale factor (1.0 means 100%)', mode => 6, type => 's' },
@@ -684,6 +686,27 @@ END
 	return (\$hosts, $closure);
 }
 
+sub get_cluster_hosts ($) {
+	my $cluster = shift;
+	my $confile = '/etc/clusters';
+
+	open my $fh, $confile or error "$!: $confile";
+	my $hosts;
+
+	while (<$fh>) {
+		if (/^$cluster\s*(.*)/) {
+			$hosts = $1;
+			last;
+		}		
+	}
+
+	close $fh;
+
+	error "No such cluster in $confile: $cluster" unless defined $hosts;
+
+	return split /\s+/, $hosts;
+}
+
 sub main () {
 	my ($hosts, $dispatch) = dispatch_table;
 	my $usage;
@@ -699,12 +722,14 @@ sub main () {
 
   	my @hosts = split ',', $$hosts;
 
-	if (@hosts) {
+	if (@hosts || defined $C{cluster}) {
+		push @hosts, get_cluster_hosts $C{cluster} if defined $C{cluster}; 
 		system 'ssh-add';
 
 	} else {
 		@hosts = 'localhost';
 	}
+
 
   	my @threads = create_threads @hosts;
 	main_loop $dispatch, @threads;

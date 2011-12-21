@@ -1,6 +1,5 @@
 * Stats for other stuff (e.g. memory, inodes..., disk usage)
 * Dynamic/online resizing of the window
-* Rudimentary support for /etc/clusters, the Cluster-SSH configuration file
 * Adding and removing hosts online
 * .deb for Debian and Ubuntu
 * Allow sshusername@hostname in --hosts

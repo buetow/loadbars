@@ -1,3 +1,12 @@
+Mon Dec 26 14:46:25 CET 2011
+* Releases v0.3.0
+* Peak CPU load is not displayed by default anymore. User 'p' command or
+  the --togglepeak 1 startup option.
+* Peak CPU load is now also displayd in text format (marked as pk)
+* New option --cluster which brings rudimentary ClusterSSH config file
+  support. E.g. './loadbars --cluster server' reads cluster server from
+  the /etc/clusters file. 
+
 Sat Nov 19 11:54:51 CET 2011
 * Released v0.2.2
 * Added a 1px horizontal line to each bar which represent the max. peak

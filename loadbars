@@ -26,7 +26,7 @@ use threads::shared;
 
 use constant {
 	DEPTH => 8,
-	VERSION => 'loadbars v0.2.2-master',
+	VERSION => 'loadbars v0.3.0',
 	Copyright => '2010-2011 (c) Paul Buetow <loadbars@mx.buetow.org>',
 	BLACK => SDL::Color->new(-r => 0x00, -g => 0x00, -b => 0x00),
 	BLUE => SDL::Color->new(-r => 0x00, -g => 0x00, -b => 0xff),
@@ -51,6 +51,7 @@ $| = 1;
 
 my %AVGSTATS : shared;
 my %CPUSTATS : shared;
+my %MEMSTATS : shared;
 
 # Global configuration hash
 my %C : shared;
@@ -64,11 +65,12 @@ my %C : shared;
 	factor => 1,
 	displaytxt => 1,
 	displaytxthost => 0,
+	togglepeak => 0,
 	inter => 0.1,
 	samples => 1000,
 	sshopts => '',
 	width => 1250,
-	height => 150,
+	height => 200,
 );
 
 # Quick n dirty helpers
@@ -78,6 +80,7 @@ sub debugsay (@) { say "Loadbars::DEBUG: $_" for @_; return undef }
 sub sum (@) { my $sum = 0; $sum += $_ for @_; return $sum }
 sub null ($) { my $arg = shift; return defined $arg ? $arg : 0 }
 sub set_togglecpu_regexp () { $C{cpuregexp} = $C{togglecpu} ? 'cpu ' : 'cpu' }
+sub error ($) { die shift, "\n" }
 
 sub parse_cpu_line ($) {
 	my ($name, %load);
@@ -99,9 +102,10 @@ sub thread_get_stats ($) {
 			if [ -e /proc/stat ]; then 
 				loadavg=/proc/loadavg
 				stat=/proc/stat
+				meminfo=/proc/meminfo
 
 				for i in \$(seq $C{samples}); do 
-				   	cat \$loadavg \$stat
+				   	cat \$loadavg \$stat \$meminfo
 					sleep $C{inter}
 				done
 			else 
@@ -126,8 +130,6 @@ BASH
 		# Toggle CPUs
 		$SIG{USR1} = sub { $sigusr1 = 1 };
 		my $cpuregexp = qr/$C{cpuregexp}/;
-
-		# $SIG{STOP} = sub { debugsay kill 9, $pid; $quit = 1 };
 
 		while (<$pipe>) {		
 	   		if (/^$loadavgexp/) {
@@ -273,6 +275,10 @@ sub main_loop ($@) {
 				say $dispatch->('hotkeys');
 				$displayinfo = 'Hotkeys help printed on terminal stdout';
 
+			} elsif ($key_name eq 'p') {
+                                $C{togglepeak} = !$C{togglepeak};	
+				$displayinfo = 'Toggled peak display';
+			
 			} elsif ($key_name eq 't') {
 				$C{displaytxt} = !$C{displaytxt};	
 				$displayinfo = 'Toggled text display';
@@ -367,13 +373,7 @@ sub main_loop ($@) {
 
 			my %heights = map { 
 				$_ => defined $cpuaverage->{$_} ? $cpuaverage->{$_} * ($C{height}/100) : 1 
-
 			} keys %$cpuaverage;
-
-                        my %maxheights = map {
-				$_ => defined $cpumax->{$_} ? $cpumax->{$_} * ($C{height}/100) : 1 
-
-                        } keys %$cpumax;                                
 
 			my $is_host_summary = exists $is_host_summary{$host};
 			
@@ -382,8 +382,8 @@ sub main_loop ($@) {
 			my $rect_system = get_rect $rects, "$key;system";
 			my $rect_iowait = get_rect $rects, "$key;iowait";
 			my $rect_nice = get_rect $rects, "$key;nice";
-			my $rect_max = get_rect $rects, "$key;max";
-		
+			my $rect_peak; 
+
 			unless ($is_host_summary || $C{togglecpu}) {	
 				$current_corenum = 0;
 				$rect_separator = get_rect $rects, "$key;separator";
@@ -417,22 +417,34 @@ sub main_loop ($@) {
 			$rect_iowait->height($heights{iowait});
 			$rect_iowait->x($x);
 			$rect_iowait->y($y);
-		
-			$rect_max->width($width);
-			$rect_max->height(1);
-			$rect_max->x($x);
-			$rect_max->y($C{height} - $maxheights{system} - $maxheights{user});
 
 			my $system_n_user = sum @{$cpuaverage}{qw(user system)};
-			my $max_system_n_user = sum @{$cpumax}{qw(user system)};
+                        my $max_system_n_user = 0;
 			
 			$app->fill($rect_iowait, Loadbars::BLACK);
 			$app->fill($rect_nice, Loadbars::GREEN);
-			$app->fill($rect_max, $max_system_n_user > Loadbars::USER_WHITE ? Loadbars::WHITE 
-			      	: ($max_system_n_user > Loadbars::USER_RED ? Loadbars::RED 
-				: ($max_system_n_user > Loadbars::USER_ORANGE ? Loadbars::ORANGE 
-				: ($max_system_n_user > Loadbars::USER_YELLOW0 ? Loadbars::YELLOW0 
-				: (Loadbars::YELLOW)))));
+
+                        if ($C{togglepeak}) {
+                                my %maxheights = map {
+				        $_ => defined $cpumax->{$_} ? $cpumax->{$_} * ($C{height}/100) : 1 
+
+                                } keys %$cpumax;                                
+
+			        $rect_peak = get_rect $rects, "$key;max";
+			        $rect_peak->width($width);
+                                $rect_peak->height(1);
+                                $rect_peak->x($x);
+                                $rect_peak->y($C{height} - $maxheights{system} - $maxheights{user});
+
+			        $max_system_n_user = sum @{$cpumax}{qw(user system)};
+
+                		$app->fill($rect_peak, $max_system_n_user > Loadbars::USER_WHITE ? Loadbars::WHITE 
+                		      	: ($max_system_n_user > Loadbars::USER_RED ? Loadbars::RED 
+                			: ($max_system_n_user > Loadbars::USER_ORANGE ? Loadbars::ORANGE 
+                			: ($max_system_n_user > Loadbars::USER_YELLOW0 ? Loadbars::YELLOW0 
+                			: (Loadbars::YELLOW)))));
+                        }
+
 			$app->fill($rect_user, $system_n_user > Loadbars::USER_WHITE ? Loadbars::WHITE 
 			      	: ($system_n_user > Loadbars::USER_RED ? Loadbars::RED 
 				: ($system_n_user > Loadbars::USER_ORANGE ? Loadbars::ORANGE 
@@ -467,6 +479,8 @@ sub main_loop ($@) {
 				$app->print($x, $y+=$space, sprintf '%d%s', $cpuaverage->{user}, 'us');
 				$app->print($x, $y+=$space, sprintf '%d%s', $cpuaverage->{system}, 'sy');
 				$app->print($x, $y+=$space, sprintf '%d%s', $system_n_user, 'su');
+				$app->print($x, $y+=$space, sprintf '%d%s', $max_system_n_user, 'pk')
+                                        if $C{togglepeak};
 
 				unless ($is_host_summary) {
 					if (defined $loadavg[0]) {	
@@ -543,6 +557,7 @@ Explanation text display:
 	us = User cpu usage in %
 	sy = System cpu sage in %
 	su = System & user cpu usage in %
+	pk = Max System & user cpu usage peak of last avg. samples in %
 	avg = System load average (desc. order: 1, 5 and 15 min. avg.)
 END
 
@@ -559,6 +574,7 @@ END
 		average_hot_up => { menupos => 4,  cmd => 'a', help => 'Increases number of samples for calculating avg. by 1', mode => 1 },
 		average_hot_dn => { menupos => 5,  cmd => 'y', help => 'Decreases number of samples for calculating avg. by 1', mode => 1 },
 
+		cluster => { menupos => 6, help => 'Cluster name from /etc/clusters', var => \$C{cluster}, mode => 6, type => 's' },
 		configuration => { menupos => 6,  cmd => 'c', help => 'Show current configuration', mode => 4 },
 
 		factor => { menupos => 7,  help => 'Set graph scale factor (1.0 means 100%)', mode => 6, type => 's' },
@@ -586,6 +602,9 @@ END
 
 		toggletxt => { menupos => 22,  help => 'Toggle text display (0 or 1)', mode => 7, type => 'i' },
 		toggletxt_hot => { menupos => 23, cmd => 't', help => 'Toggle text display', mode => 1 },
+
+		togglepeak => { menupos => 22,  help => 'Toggle peak display (0 or 1)', mode => 7, type => 'i' },
+		togglepeak_hot => { menupos => 23, cmd => 'p', help => 'Toggle peak display', mode => 1 },
 
 		width => { menupos => 24,  help => 'Set windows width', mode => 6, type => 'i' },
 	);
@@ -667,6 +686,27 @@ END
 	return (\$hosts, $closure);
 }
 
+sub get_cluster_hosts ($) {
+	my $cluster = shift;
+	my $confile = '/etc/clusters';
+
+	open my $fh, $confile or error "$!: $confile";
+	my $hosts;
+
+	while (<$fh>) {
+		if (/^$cluster\s*(.*)/) {
+			$hosts = $1;
+			last;
+		}		
+	}
+
+	close $fh;
+
+	error "No such cluster in $confile: $cluster" unless defined $hosts;
+
+	return split /\s+/, $hosts;
+}
+
 sub main () {
 	my ($hosts, $dispatch) = dispatch_table;
 	my $usage;
@@ -682,12 +722,14 @@ sub main () {
 
   	my @hosts = split ',', $$hosts;
 
-	if (@hosts) {
+	if (@hosts || defined $C{cluster}) {
+		push @hosts, get_cluster_hosts $C{cluster} if defined $C{cluster}; 
 		system 'ssh-add';
 
 	} else {
 		@hosts = 'localhost';
 	}
+
 
   	my @threads = create_threads @hosts;
 	main_loop $dispatch, @threads;

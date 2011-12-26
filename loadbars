@@ -28,6 +28,8 @@ use constant {
         DEPTH => 8,
 	VERSION => 'loadbars v0.3.1-devel',
 	Copyright => '2010-2011 (c) Paul Buetow <loadbars@mx.buetow.org>',
+	CSSH_CONFFILE => '/etc/clusters',
+        CSSH_MAX_RECURSION => 10,
 	BLACK => SDL::Color->new(-r => 0x00, -g => 0x00, -b => 0x00),
 	BLUE => SDL::Color->new(-r => 0x00, -g => 0x00, -b => 0xff),
 	GREEN => SDL::Color->new(-r => 0x00, -g => 0x90, -b => 0x00),
@@ -686,11 +688,19 @@ END
 	return (\$hosts, $closure);
 }
 
-sub get_cluster_hosts ($) {
-	my $cluster = shift;
-	my $confile = '/etc/clusters';
+# Recursuve function
+sub get_cluster_hosts ($;$);
+sub get_cluster_hosts ($;$) {
+	my ($cluster, $recursion) = @_;
 
-	open my $fh, $confile or error "$!: $confile";
+        unless (defined $recursion) {
+                $recursion = 1;                
+
+        } elsif ($recursion > CSSH_MAX_RECURSION) {
+                  error "CSSH_MAX_RECURSION reached. Infinite circle loop in " .  CSSH_CONFFILE . "?";
+        }
+
+        open my $fh, CSSH_CONFFILE or error "$!: " . CSSH_CONFFILE;
 	my $hosts;
 
 	while (<$fh>) {
@@ -702,9 +712,16 @@ sub get_cluster_hosts ($) {
 
 	close $fh;
 
-	error "No such cluster in $confile: $cluster" unless defined $hosts;
+        unless (defined $hosts) {
+	        error "No such cluster in " . CSSH_CONFFILE . ": $cluster" 
+                        unless defined $recursion;
 
-	return split /\s+/, $hosts;
+                return ($cluster);
+        }                
+
+        my @hosts;            
+        push @hosts, get_cluster_hosts $_, ($recursion + 1) for (split /\s+/, $hosts);
+        return @hosts;
 }
 
 sub main () {

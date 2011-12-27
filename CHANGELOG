@@ -1,3 +1,13 @@
+* --cluster option (which reads the ClusterSSH config file /etc/clusters/)
+  also supports clusters of clusters. e.g.:
+	$ cat /etc/clusters
+	clusterA server01 server02
+	clusterB clusterA server03 
+  So --cluster clusterB will connect to server01 server02 and server03 
+* --hosts option supports username to be specified. E.g.:
+	# ./loadbars --hosts user1@server01,user2@server02
+  will connect to server01 using user1 and server02 with user2.
+
 Mon Dec 26 14:46:25 CET 2011
 * Released v0.3.0
 * Peak CPU load is not displayed by default anymore. User 'p' command or

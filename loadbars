@@ -93,8 +93,9 @@ sub parse_cpu_line ($) {
 	return ($name, \%load);
 }
 
-sub thread_get_stats ($) {
-	my $host = shift;
+sub thread_get_stats ($;$) {
+	my ($host, $user) = @_;
+	$user = defined $user ?  "-l $user" : '';
 
 	my ($sigusr1, $quit) = (0, 0);
 	my $loadavgexp = qr/(\d+\.\d{2}) (\d+\.\d{2}) (\d+\.\d{2})/;
@@ -120,8 +121,10 @@ sub thread_get_stats ($) {
 				done
 			fi
 BASH
+
+
 		my $cmd = $host eq 'localhost' ? $bash 
-			: "ssh -o StrictHostKeyChecking=no $C{sshopts} $host '$bash'";
+			: "ssh $user -o StrictHostKeyChecking=no $C{sshopts} $host '$bash'";
 
 		my $pid = open my $pipe, "$cmd |" or do {
 			say "Warning: $!";
@@ -212,7 +215,7 @@ sub create_threads (@) {
 		$_;
 
 	} map { 
-		threads->create('thread_get_stats', $_);
+		threads->create('thread_get_stats', split /:/);
 
 	} @_;
 }
@@ -220,14 +223,11 @@ sub create_threads (@) {
 sub main_loop ($@) {
 	my ($dispatch, @threads) = @_;
 
-	# Planned for the future
-	my $statusbar_height = 0;
-
 	my $app = SDL::App->new(
 		-title => $C{title},
 		-icon_title => $C{title},
 		-width => $C{width},
-		-height => $C{height}+$statusbar_height,
+		-height => $C{height},
 		-depth => Loadbars::DEPTH,
 		-resizeable => 0,
 	);
@@ -737,7 +737,10 @@ sub main () {
 
 	set_togglecpu_regexp;
 
-  	my @hosts = split ',', $$hosts;
+  	my @hosts = map {
+		my ($a, $b) = split /\@/, $_;
+		defined $b ? "$b:$a" : $a;
+	} split ',', $$hosts;
 
 	if (@hosts || defined $C{cluster}) {
 		push @hosts, get_cluster_hosts $C{cluster} if defined $C{cluster}; 

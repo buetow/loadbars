@@ -176,7 +176,7 @@ sub normalize_loads (%) {
 
 sub get_cpuaverage ($@) {
 	my ($factor, @loads) = @_;	
-          my (%cpumax, %cpuaverage);
+	my (%cpumax, %cpuaverage);
 
 	for my $l (@loads) {
 		for (keys %$l) {
@@ -439,6 +439,7 @@ sub main_loop ($@) {
                                 $rect_peak->y($C{height} - $maxheights{system} - $maxheights{user});
 
 			        $max_system_n_user = sum @{$cpumax}{qw(user system)};
+				$max_system_n_user = 100 if $max_system_n_user > 100;
 
                 		$app->fill($rect_peak, $max_system_n_user > Loadbars::USER_WHITE ? Loadbars::WHITE 
                 		      	: ($max_system_n_user > Loadbars::USER_RED ? Loadbars::RED 

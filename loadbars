@@ -72,7 +72,7 @@ my %C : shared;
 	samples => 1000,
 	sshopts => '',
 	width => 1250,
-	height => 200,
+	height => 150,
 );
 
 # Quick n dirty helpers

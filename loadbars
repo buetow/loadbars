@@ -26,7 +26,7 @@ use threads::shared;
 
 use constant {
         DEPTH => 8,
-	VERSION => 'loadbars v0.3.1',
+	VERSION => 'loadbars v0.3.2-devel',
 	Copyright => '2010-2011 (c) Paul Buetow <loadbars@mx.buetow.org>',
 	CSSH_CONFFILE => '/etc/clusters',
         CSSH_MAX_RECURSION => 10,
@@ -587,7 +587,7 @@ END
 
 		help_hot => { menupos => 11,  cmd => 'h', help => 'Prints this help screen', mode => 1 },
 
-		hosts => { menupos => 12, help => 'Comma separated list of hosts', var => \$hosts, mode => 6, type => 's' },
+		hosts => { menupos => 12, help => 'Comma sep. list of hosts; optional: user@ in front to each host', var => \$hosts, mode => 6, type => 's' },
 
 		inter => { menupos => 13, help => 'Set update interval in seconds (default 0.1)', mode => 7, type => 's' },
 		inter_hot_up => { menupos => 14,  cmd => 'd', help => 'Increases update interval in seconds by 0.1', mode => 1 },

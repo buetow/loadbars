@@ -1,5 +1,5 @@
-* Stats for other stuff (e.g. memory, inodes..., disk usage)
+* Stats for memory
+* Stats for network
 * Dynamic/online resizing of the window
 * Adding and removing hosts online
 * .deb for Debian and Ubuntu
-* Allow sshusername@hostname in --hosts

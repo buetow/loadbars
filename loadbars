@@ -96,6 +96,9 @@ sub parse_cpu_line ($) {
 	my ($name, %load);
 
 	($name, @load{qw(user nice system idle iowait irq softirq steal)}) = split ' ', $line;
+
+    $load{steal} = 0 unless defined $load{steal};
+
 	$load{TOTAL} = sum @load{qw(user nice system idle iowait irq softirq steal)};
 
 	return ($name, \%load);

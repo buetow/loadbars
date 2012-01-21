@@ -23,7 +23,7 @@ Explanations:
     1px horizontal line: Maximum sy+us+io of last 'avg' samples (extended)
     Extended means: text display only if extended mode is turned on
 Examples:
-    loadbars --extended 1 --showcorescores 1 --width 600 --hosts localhost
+    loadbars --extended 1 --showcores 1 --width 600 --hosts localhost
     loadbars --hosts localhost,server1.example.com,server2.example.com
     loadbars --cluster foocluster (foocluster is in /etc/clusters of cssh)
 --average <ARG>	- Num of samples for avg. (more fluent animations)

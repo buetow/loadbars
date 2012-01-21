@@ -413,19 +413,7 @@ sub main_loop ($@) {
 				$app->fill($rect_separator, Loadbars::GREY);
 			}
 			
-			$y = $C{height} - $heights{softirq};
-			$rect_softirq->width($width);
-			$rect_softirq->height($heights{softirq});
-			$rect_softirq->x($x);
-			$rect_softirq->y($y);
-			
-			$y -= $heights{irq};
-			$rect_irq->width($width);
-			$rect_irq->height($heights{irq});
-			$rect_irq->x($x);
-			$rect_irq->y($y);
-
-			$y -= $heights{system};
+			$y = $C{height} - $heights{system};
 			$rect_system->width($width);
 			$rect_system->height($heights{system});
 			$rect_system->x($x);
@@ -455,6 +443,18 @@ sub main_loop ($@) {
 			$rect_idle->x($x);
 			$rect_idle->y($y);
 
+			$y -= $heights{irq};
+			$rect_irq->width($width);
+			$rect_irq->height($heights{irq});
+			$rect_irq->x($x);
+			$rect_irq->y($y);
+
+			$y -= $heights{softirq};
+			$rect_softirq->width($width);
+			$rect_softirq->height($heights{softirq});
+			$rect_softirq->x($x);
+			$rect_softirq->y($y);
+			
 			$y -= $heights{steal};
 			$rect_steal->width($width);
 			$rect_steal->height($heights{steal});

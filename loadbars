@@ -1,6 +1,6 @@
 #!/usr/bin/perl
 
-# loadbars (c) 2010 - 2011, Dipl.-Inform. (FH) Paul Buetow
+# loadbars (c) 2010 - 2012, Dipl.-Inform. (FH) Paul Buetow
 # E-Mail: loadbars@mx.buetow.org WWW: http://loadbars.buetow.org
 # For legal informations see COPYING and COPYING.FONT
 
@@ -25,11 +25,11 @@ use threads;
 use threads::shared;
 
 use constant {
-        DEPTH => 8,
 	VERSION => 'loadbars v0.3.2-devel',
 	Copyright => '2010-2011 (c) Paul Buetow <loadbars@mx.buetow.org>',
 	CSSH_CONFFILE => '/etc/clusters',
-        CSSH_MAX_RECURSION => 10,
+    CSSH_MAX_RECURSION => 10,
+    COLOR_DEPTH => 8,
 	BLACK => SDL::Color->new(-r => 0x00, -g => 0x00, -b => 0x00),
 	BLUE => SDL::Color->new(-r => 0x00, -g => 0x00, -b => 0xff),
 	GREEN => SDL::Color->new(-r => 0x00, -g => 0x90, -b => 0x00),
@@ -37,6 +37,7 @@ use constant {
 	PURPLE => SDL::Color->new(-r => 0xa0, -g => 0x20, -b => 0xf0),
 	RED => SDL::Color->new(-r => 0xff, -g => 0x00, -b => 0x00),
 	WHITE => SDL::Color->new(-r => 0xff, -g => 0xff, -b => 0xff),
+	GREY0 => SDL::Color->new(-r => 0x11, -g => 0x11, -b => 0x11),
 	GREY => SDL::Color->new(-r => 0xaa, -g => 0xaa, -b => 0xaa),
 	YELLOW0 => SDL::Color->new(-r => 0xff, -g => 0xa0, -b => 0x00),
 	YELLOW => SDL::Color->new(-r => 0xff, -g => 0xc0, -b => 0x00),
@@ -228,7 +229,7 @@ sub main_loop ($@) {
 		-icon_title => $C{title},
 		-width => $C{width},
 		-height => $C{height},
-		-depth => Loadbars::DEPTH,
+		-depth => Loadbars::COLOR_DEPTH,
 		-resizeable => 0,
 	);
 
@@ -423,7 +424,7 @@ sub main_loop ($@) {
 			my $system_n_user = sum @{$cpuaverage}{qw(user system)};
                         my $max_system_n_user = 0;
 			
-			$app->fill($rect_iowait, Loadbars::BLACK);
+			$app->fill($rect_iowait, Loadbars::GREY0);
 			$app->fill($rect_nice, Loadbars::GREEN);
 
                         if ($C{togglepeak}) {

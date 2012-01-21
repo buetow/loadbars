@@ -61,12 +61,12 @@ my %C : shared;
 %C = (
 	title => Loadbars::VERSION . ' (press h for help)',
     average => 15,
-	togglecpu => 1,
+	togglecpu => 0,
 	cpuregexp => 'cpu',
 	factor => 1,
 	displaytxt => 1,
 	displaytxthost => 0,
-	togglepeak => 0,
+	togglepeak => 1,
 	inter => 0.1,
 	samples => 1000,
 	sshopts => '',
@@ -80,7 +80,7 @@ sub newline () { say ''; return undef }
 sub debugsay (@) { say "Loadbars::DEBUG: $_" for @_; return undef }
 sub sum (@) { my $sum = 0; $sum += $_ for @_; return $sum }
 sub null ($) { my $arg = shift; return defined $arg ? $arg : 0 }
-sub set_togglecpu_regexp () { $C{cpuregexp} = $C{togglecpu} ? 'cpu ' : 'cpu' }
+sub set_togglecpu_regexp () { $C{cpuregexp} = $C{togglecpu} ? 'cpu' : 'cpu ' }
 sub error ($) { die shift, "\n" }
 
 sub parse_cpu_line ($) {
@@ -434,25 +434,24 @@ sub main_loop ($@) {
 			$app->fill($rect_iowait, Loadbars::PURPLE);
 			$app->fill($rect_nice, Loadbars::GREEN);
 
-                        if ($C{togglepeak}) {
-                                my %maxheights = map {
-				        $_ => defined $cpumax->{$_} ? $cpumax->{$_} * ($C{height}/100) : 1 
-
-                                } keys %$cpumax;                                
-
-			        $rect_peak = get_rect $rects, "$key;max";
-			        $rect_peak->width($width);
-                                $rect_peak->height(1);
-                                $rect_peak->x($x);
-                                $rect_peak->y($C{height} - $maxheights{system} - $maxheights{user});
-
-			        $max_all = sum @{$cpumax}{qw(user system)};
-                    $max_all = 100 if $max_all > 100;
-
-                		$app->fill($rect_peak, $max_all > Loadbars::USER_ORANGE ? Loadbars::ORANGE 
-                			: ($max_all > Loadbars::USER_YELLOW0 ? Loadbars::YELLOW0 
-                			: (Loadbars::YELLOW)));
-                        }
+            if ($C{togglepeak}) {
+                    my %maxheights = map {
+                        $_ => defined $cpumax->{$_} ? $cpumax->{$_} * ($C{height}/100) : 1 
+                    } keys %$cpumax;                                
+        
+                $rect_peak = get_rect $rects, "$key;max";
+                $rect_peak->width($width);
+                        $rect_peak->height(1);
+                        $rect_peak->x($x);
+                        $rect_peak->y($C{height} - $maxheights{system} - $maxheights{user});
+                
+                $max_all = sum @{$cpumax}{qw(user system)};
+                $max_all = 100 if $max_all > 100;
+                
+                $app->fill($rect_peak, $max_all > Loadbars::USER_ORANGE ? Loadbars::ORANGE 
+                	: ($max_all > Loadbars::USER_YELLOW0 ? Loadbars::YELLOW0 
+                	: (Loadbars::YELLOW)));
+            }
 
 			$app->fill($rect_user, $all > Loadbars::USER_ORANGE ? Loadbars::ORANGE 
 				: ($all > Loadbars::USER_YELLOW0 ? Loadbars::YELLOW0 
@@ -727,6 +726,7 @@ sub main () {
 	my ($hosts, $dispatch) = dispatch_table;
 	my $usage;
 
+    use Data::Dumper;
 	GetOptions ('help|?' => \$usage, $dispatch->('options'));
 
 	if (defined $usage) {

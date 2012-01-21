@@ -68,7 +68,6 @@ my %C : shared;
 	extended => 0,
 	displaytxt => 1,
 	displaytxthost => 0,
-	extended => 1,
 	inter => 0.1,
 	samples => 1000,
 	sshopts => '',
@@ -517,27 +516,29 @@ sub main_loop ($@) {
                 }
 
 				$app->print($x, $y+=$space, sprintf '%02d%s', norm $cpuaverage->{nice}, 'ni');
-				$app->print($x, $y+=$space, sprintf '%02d%s', norm $cpuaverage->{iowait}, 'io') if $C{extended};
+				$app->print($x, $y+=$space, sprintf '%02d%s', norm $cpuaverage->{iowait}, 'io');
 				$app->print($x, $y+=$space, sprintf '%02d%s', norm $cpuaverage->{user}, 'us');
 				$app->print($x, $y+=$space, sprintf '%02d%s', norm $cpuaverage->{system}, 'sy');
 				$app->print($x, $y+=$space, sprintf '%02d%s', norm $all, 'al');
 
-                if ($C{extended}) {
-                    $app->print($x, $y+=$space, sprintf '%02d%s', norm $max_all, 'pk'); 
+                $app->print($x, $y+=$space, sprintf '%02d%s', norm $max_all, 'pk') if $C{extended};
                     
-                    unless ($is_host_summary) {
-                    	if (defined $loadavg[0]) {	
-                    		$app->print($x, $y+=$space, 'avg:');
-                    		$app->print($x, $y+=$space, sprintf "%.2f", $loadavg[0]);
-                    		$app->print($x, $y+=$space, sprintf "%.2f", $loadavg[1]);
-                    		$app->print($x, $y+=$space, sprintf "%.2f", $loadavg[2]);
-                    	}
-                    }
+                unless ($is_host_summary) {
+                	if (defined $loadavg[0]) {	
+                		$app->print($x, $y+=$space, 'avg:');
+                		$app->print($x, $y+=$space, sprintf "%.2f", $loadavg[0]);
+                		$app->print($x, $y+=$space, sprintf "%.2f", $loadavg[1]);
+                		$app->print($x, $y+=$space, sprintf "%.2f", $loadavg[2]);
+                	}
                 }
 			}
 
 			# Display an informational text message if any
-			$app->print(0, $y+=$space, $displayinfo) if length $displayinfo;
+            #$app->print(0, $y+=$space, $displayinfo) if length $displayinfo;
+            if (length $displayinfo) {
+                say $displayinfo;
+                $displayinfo = '';
+            }
 		
 			$app->update(
                     $rect_nice, 
@@ -607,7 +608,7 @@ Explanations:
         Color: White
     ni = Nice cpu usage in % 
         Color: Green
-    io = IOwait cpu sage in % (extended)
+    io = IOwait cpu sage in % 
         Color: Purple
     us = User cpu usage in % 
         Color: Yellow, dark yellow if al>50%, orange if al>50%
@@ -615,9 +616,13 @@ Explanations:
         Blue, purple if >30%
     al = 100% minus id
     pk = Max al peak of last avg. samples (extended)
-    avg = System load average; desc. order: 1, 5 and 15 min. avg. (extended)
+    avg = System load average; desc. order: 1, 5 and 15 min. avg. 
     1px horizontal line: Maximum sy+us+io of last 'avg' samples (extended)
-(extended) means: text display only if extended mode is turned on
+    Extended means: text display only if extended mode is turned on
+Examples:
+    loadbars --extended 1 --hosts localhost
+    loadbars --hosts localhost,,server1.example.com,server2.example.com
+    loadbars --cluster foocluster (foocluster is in /etc/clusters of cssh)
 END
 
 	# mode 1: Option is shown in the online help menu (stdout not sdl)
@@ -785,12 +790,11 @@ sub main () {
 	my ($hosts, $dispatch) = dispatch_table;
 	my $usage;
 
-    use Data::Dumper;
 	GetOptions ('help|?' => \$usage, $dispatch->('options'));
 
 	if (defined $usage) {
 		say $dispatch->('usage');
-		exit 0;
+		exit 1;
 	}
 
 	set_togglecpu_regexp;
@@ -805,9 +809,9 @@ sub main () {
 		system 'ssh-add';
 
 	} else {
-		@hosts = 'localhost';
+		say $dispatch->('usage');
+        exit 1;
 	}
-
 
   	my @threads = create_threads @hosts;
 	main_loop $dispatch, @threads;

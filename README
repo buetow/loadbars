@@ -35,7 +35,7 @@ Explanations:
         Color: White
     ni = Nice cpu usage in % 
         Color: Green
-    io = IOwait cpu sage in % (extended)
+    io = IOwait cpu sage in % 
         Color: Purple
     us = User cpu usage in % 
         Color: Yellow, dark yellow if al>50%, orange if al>50%
@@ -43,6 +43,6 @@ Explanations:
         Blue, purple if >30%
     al = 100% minus id
     pk = Max al peak of last avg. samples (extended)
-    avg = System load average; desc. order: 1, 5 and 15 min. avg. (extended)
+    avg = System load average; desc. order: 1, 5 and 15 min. avg. 
     1px horizontal line: Maximum sy+us+io of last 'avg' samples (extended)
 (extended) means: text display only if extended mode is turned on

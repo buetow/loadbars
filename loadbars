@@ -87,7 +87,7 @@ sub error ($) { die shift, "\n" }
 sub norm ($) { 
     my $n = shift; 
 
-    return $n if $C{factor} != 0;
+    return $n if $C{factor} != 1;
     return $n > 100 ? 100 : ($n < 0 ? 0 : $n);
 }
 
@@ -544,12 +544,12 @@ sub main_loop ($@) {
             }
 		
 			$app->update(
-                    $rect_nice, 
-                    $rect_steal, 
-                    $rect_irq, 
-                    $rect_softirq, 
-                    $rect_iowait, 
                     $rect_idle, 
+                    $rect_iowait, 
+                    $rect_irq, 
+                    $rect_nice, 
+                    $rect_softirq, 
+                    $rect_steal, 
                     $rect_system,
                     $rect_user,
                     );

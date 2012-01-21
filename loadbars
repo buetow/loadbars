@@ -425,12 +425,6 @@ sub main_loop ($@) {
 			$rect_user->x($x);
 			$rect_user->y($y);
 			
-			$y -= $heights{iowait};
-			$rect_iowait->width($width);
-			$rect_iowait->height($heights{iowait});
-			$rect_iowait->x($x);
-			$rect_iowait->y($y);
-			
 			$y -= $heights{nice};
 			$rect_nice->width($width);
 			$rect_nice->height($heights{nice});
@@ -443,6 +437,12 @@ sub main_loop ($@) {
 			$rect_idle->x($x);
 			$rect_idle->y($y);
 
+			$y -= $heights{iowait};
+			$rect_iowait->width($width);
+			$rect_iowait->height($heights{iowait});
+			$rect_iowait->x($x);
+			$rect_iowait->y($y);
+			
 			$y -= $heights{irq};
 			$rect_irq->width($width);
 			$rect_irq->height($heights{irq});
@@ -511,15 +511,18 @@ sub main_loop ($@) {
 						$C{showcores} ? $current_barnum + 1: $current_corenum);
 				}
 
+
                 if ($C{extended}) {
-                    $app->print($x, $y+=$space, sprintf '%02d%s', norm $cpuaverage->{idle}, 'id');
                     $app->print($x, $y+=$space, sprintf '%02d%s', norm $cpuaverage->{steal}, 'st');
-                    $app->print($x, $y+=$space, sprintf '%02d%s', norm $cpuaverage->{irq}, 'ir');
                     $app->print($x, $y+=$space, sprintf '%02d%s', norm $cpuaverage->{softirq}, 'sr');
+                    $app->print($x, $y+=$space, sprintf '%02d%s', norm $cpuaverage->{irq}, 'ir');
                 }
 
-				$app->print($x, $y+=$space, sprintf '%02d%s', norm $cpuaverage->{nice}, 'ni');
 				$app->print($x, $y+=$space, sprintf '%02d%s', norm $cpuaverage->{iowait}, 'io');
+
+                $app->print($x, $y+=$space, sprintf '%02d%s', norm $cpuaverage->{idle}, 'id') if $C{extended};
+
+				$app->print($x, $y+=$space, sprintf '%02d%s', norm $cpuaverage->{nice}, 'ni');
 				$app->print($x, $y+=$space, sprintf '%02d%s', norm $cpuaverage->{user}, 'us');
 				$app->print($x, $y+=$space, sprintf '%02d%s', norm $cpuaverage->{system}, 'sy');
 				$app->print($x, $y+=$space, sprintf '%02d%s', norm $all, 'to');
@@ -603,20 +606,20 @@ sub dispatch_table () {
 Explanations:
     st = CPU stolen from VM in % (extended)
         Color: Red
+    sr = Soft IRQ usage in % (extended)
+        Color: White
+    ir = IRQ usage in % (extended)
+        Color: White
+    io = IOwait cpu sage in % 
+        Color: Purple
     id = Idle cpu usage in % (extended)
         Color: Black
     ni = Nice cpu usage in % 
         Color: Green
-    io = IOwait cpu sage in % 
-        Color: Purple
     us = User cpu usage in % 
         Color: Yellow, dark yellow if al>50%, orange if al>50%
     sy = System cpu sage in % 
         Blue, purple if >30%
-    ir = IRQ usage in % (extended)
-        Color: White
-    sr = Soft IRQ usage in % (extended)
-        Color: White
     to = Total CPU usage, which is (100% - id)
     pk = Max al peak of last avg. samples (extended)
     avg = System load average; desc. order: 1, 5 and 15 min. avg. 

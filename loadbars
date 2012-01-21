@@ -64,14 +64,15 @@ my %C : shared;
 	togglecpu => 0,
 	cpuregexp => 'cpu',
 	factor => 1,
+	extended => 0,
 	displaytxt => 1,
 	displaytxthost => 0,
-	togglepeak => 1,
+	extended => 1,
 	inter => 0.1,
 	samples => 1000,
 	sshopts => '',
 	width => 1250,
-	height => 200,
+	height => 220,
 );
 
 # Quick n dirty helpers
@@ -88,7 +89,7 @@ sub parse_cpu_line ($) {
 	my ($name, %load);
 
 	($name, @load{qw(user nice system idle iowait irq softirq)}) = split ' ', $line;
-	$load{TOTAL} = sum @load{qw(user nice system idle iowait)};
+	$load{TOTAL} = sum @load{qw(user nice system idle iowait irq softirq)};
 
 	return ($name, \%load);
 }
@@ -272,15 +273,15 @@ sub main_loop ($@) {
 				%CPUSTATS = ();
 				$displayinfo = 'Toggled CPUs';
 			
+			} elsif ($key_name eq 'e') {
+                $C{extended} = !$C{extended};	
+				$displayinfo = 'Toggled extended display';
+			
 			} elsif ($key_name eq 'h') {
 				say '=> Hotkeys to use in the SDL interface';
 				say $dispatch->('hotkeys');
 				$displayinfo = 'Hotkeys help printed on terminal stdout';
 
-			} elsif ($key_name eq 'p') {
-                                $C{togglepeak} = !$C{togglepeak};	
-				$displayinfo = 'Toggled peak display';
-			
 			} elsif ($key_name eq 't') {
 				$C{displaytxt} = !$C{displaytxt};	
 				$displayinfo = 'Toggled text display';
@@ -380,11 +381,15 @@ sub main_loop ($@) {
 			my $is_host_summary = exists $is_host_summary{$host};
 			
 			my $rect_separator = undef;
+
+			my $rect_idle = get_rect $rects, "$key;idle";
+			my $rect_irq = get_rect $rects, "$key;irq";
+			my $rect_softirq = get_rect $rects, "$key;softirq";
+			my $rect_nice = get_rect $rects, "$key;nice";
+			my $rect_iowait = get_rect $rects, "$key;iowait";
 			my $rect_user = get_rect $rects, "$key;user";
 			my $rect_system = get_rect $rects, "$key;system";
-			my $rect_idle = get_rect $rects, "$key;idle";
-			my $rect_iowait = get_rect $rects, "$key;iowait";
-			my $rect_nice = get_rect $rects, "$key;nice";
+
 			my $rect_peak; 
 
 			unless ($is_host_summary || $C{togglecpu}) {	
@@ -409,32 +414,46 @@ sub main_loop ($@) {
 			$rect_user->x($x);
 			$rect_user->y($y);
 			
-			$y -= $heights{iowait};
-			$rect_iowait->width($width);
-			$rect_iowait->height($heights{iowait});
-			$rect_iowait->x($x);
-			$rect_iowait->y($y);
-			
 			$y -= $heights{nice};
 			$rect_nice->width($width);
 			$rect_nice->height($heights{nice});
 			$rect_nice->x($x);
 			$rect_nice->y($y);
 			
+			$y -= $heights{iowait};
+			$rect_iowait->width($width);
+			$rect_iowait->height($heights{iowait});
+			$rect_iowait->x($x);
+			$rect_iowait->y($y);
+			
+			$y -= $heights{softirq};
+			$rect_iowait->width($width);
+			$rect_iowait->height($heights{softirq});
+			$rect_iowait->x($x);
+			$rect_iowait->y($y);
+			
+			$y -= $heights{irq};
+			$rect_iowait->width($width);
+			$rect_iowait->height($heights{irq});
+			$rect_iowait->x($x);
+			$rect_iowait->y($y);
+
 			$y -= $heights{idle};
 			$rect_idle->width($width);
 			$rect_idle->height($heights{idle});
 			$rect_idle->x($x);
 			$rect_idle->y($y);
 
-			my $all = sum @{$cpuaverage}{qw(user system iowait)};
-                        my $max_all = 0;
+			my $all = 100 - $cpuaverage->{idle};
+            my $max_all = 0;
 			
 			$app->fill($rect_idle, Loadbars::BLACK);
+			$app->fill($rect_irq, Loadbars::WHITE);
+			$app->fill($rect_softirq, Loadbars::WHITE);
 			$app->fill($rect_iowait, Loadbars::PURPLE);
 			$app->fill($rect_nice, Loadbars::GREEN);
 
-            if ($C{togglepeak}) {
+            if ($C{extended}) {
                     my %maxheights = map {
                         $_ => defined $cpumax->{$_} ? $cpumax->{$_} * ($C{height}/100) : 1 
                     } keys %$cpumax;                                
@@ -445,7 +464,7 @@ sub main_loop ($@) {
                         $rect_peak->x($x);
                         $rect_peak->y($C{height} - $maxheights{system} - $maxheights{user});
                 
-                $max_all = sum @{$cpumax}{qw(user system iowait)};
+                $max_all = sum @{$cpumax}{qw(user system iowait irq softirq)};
                 $max_all = 100 if $max_all > 100;
                 
                 $app->fill($rect_peak, $max_all > Loadbars::USER_ORANGE ? Loadbars::ORANGE 
@@ -475,29 +494,44 @@ sub main_loop ($@) {
 						$C{togglecpu} ? $current_barnum + 1: $current_corenum);
 				}
 
-				$app->print($x, $y+=$space, sprintf '%02d%s', $cpuaverage->{idle}, 'id');
+                if ($C{extended}) {
+                    $app->print($x, $y+=$space, sprintf '%02d%s', $cpuaverage->{idle}, 'id');
+                    $app->print($x, $y+=$space, sprintf '%02d%s', $cpuaverage->{irq}, 'ir');
+                    $app->print($x, $y+=$space, sprintf '%02d%s', $cpuaverage->{softirq}, 'sr');
+                }
+
 				$app->print($x, $y+=$space, sprintf '%02d%s', $cpuaverage->{nice}, 'ni');
-				$app->print($x, $y+=$space, sprintf '%02d%s', $cpuaverage->{iowait}, 'io');
+				$app->print($x, $y+=$space, sprintf '%02d%s', $cpuaverage->{iowait}, 'io') if $C{extended};
 				$app->print($x, $y+=$space, sprintf '%02d%s', $cpuaverage->{user}, 'us');
 				$app->print($x, $y+=$space, sprintf '%02d%s', $cpuaverage->{system}, 'sy');
 				$app->print($x, $y+=$space, sprintf '%02d%s', $all, 'al');
-				$app->print($x, $y+=$space, sprintf '%02d%s', $max_all, 'pk') if $C{togglepeak};
 
-				unless ($is_host_summary) {
-					if (defined $loadavg[0]) {	
-						$app->print($x, $y+=$space, 'avg:');
-						$app->print($x, $y+=$space, sprintf "%.2f", $loadavg[0]);
-						$app->print($x, $y+=$space, sprintf "%.2f", $loadavg[1]);
-						$app->print($x, $y+=$space, sprintf "%.2f", $loadavg[2]);
-					}
-		
-				}
+                if ($C{extended}) {
+                    $app->print($x, $y+=$space, sprintf '%02d%s', $max_all, 'pk'); 
+                    
+                    unless ($is_host_summary) {
+                    	if (defined $loadavg[0]) {	
+                    		$app->print($x, $y+=$space, 'avg:');
+                    		$app->print($x, $y+=$space, sprintf "%.2f", $loadavg[0]);
+                    		$app->print($x, $y+=$space, sprintf "%.2f", $loadavg[1]);
+                    		$app->print($x, $y+=$space, sprintf "%.2f", $loadavg[2]);
+                    	}
+                    }
+                }
 			}
 
 			# Display an informational text message if any
 			$app->print(0, $y+=$space, $displayinfo) if length $displayinfo;
 		
-			$app->update($rect_nice, $rect_iowait, $rect_idle, $rect_system, $rect_user);
+			$app->update(
+                    $rect_nice, 
+                    $rect_irq, 
+                    $rect_softirq, 
+                    $rect_iowait, 
+                    $rect_idle, 
+                    $rect_user,
+                    $rect_system);
+
 			$app->update($rect_separator) if defined $rect_separator;
 
 			$x += $width + 1;
@@ -520,7 +554,7 @@ TIMEKEEPER:
 
 		if ($C{inter} > $t2 - $t1) {
 			usleep 10000;
-			# Goto is OK if you don't produce spaghetti code with it
+			# Goto is OK if you don't produce spaghetti code 
 			goto TIMEKEEPER;
 		}
 
@@ -545,20 +579,25 @@ sub dispatch_table () {
 
 	my $textdesc = <<END;
 Explanations:
-    id = Idle cpu usage in %
+    id = Idle cpu usage in % (extended)
         Color: Black
-	ni = Nice cpu usage in % 
+    ir = IRQ usage in % (extended)
+        Color: White
+    sr = Soft IRQ usage in % (extended)
+        Color: White
+    ni = Nice cpu usage in % 
         Color: Green
-	io = IOwait cpu sage in % 
+    io = IOwait cpu sage in % (extended)
         Color: Purple
-	us = User cpu usage in % 
+    us = User cpu usage in % 
         Color: Yellow, dark yellow if al>50%, orange if al>50%
-	sy = System cpu sage in % 
+    sy = System cpu sage in % 
         Blue, purple if >30%
-	al = sy+us+io 
-	pk = Max sy+us+io peak of last avg. samples 
-	avg = System load average (desc. order: 1, 5 and 15 min. avg.)
-    1px horizontal line: Maximum sy+us+io of last 'avg' samples
+    al = sy+us+io+ir+sr
+    pk = Max sy+us+io+ir+sr peak of last avg. samples (extended)
+    avg = System load average; desc. order: 1, 5 and 15 min. avg. (extended)
+    1px horizontal line: Maximum sy+us+io of last 'avg' samples (extended)
+(extended) means: text display only if extended mode is turned on
 END
 
 	# mode 1: Option is shown in the online help menu (stdout not sdl)
@@ -576,6 +615,9 @@ END
 
 		cluster => { menupos => 6, help => 'Cluster name from /etc/clusters', var => \$C{cluster}, mode => 6, type => 's' },
 		configuration => { menupos => 6,  cmd => 'c', help => 'Show current configuration', mode => 4 },
+
+		extended => { menupos => 6,  help => 'Toggle extended display (0 or 1)', mode => 7, type => 'i' },
+		extended_hot => { menupos => 23, cmd => 'e', help => 'Toggle peak display', mode => 1 },
 
 		factor => { menupos => 7,  help => 'Set graph scale factor (1.0 means 100%)', mode => 6, type => 's' },
 		factor_hot_up => { menupos => 8,  cmd => 's', help => 'Increases graph scale factor by 0.1', mode => 1 },
@@ -602,9 +644,6 @@ END
 
 		toggletxt => { menupos => 22,  help => 'Toggle text display (0 or 1)', mode => 7, type => 'i' },
 		toggletxt_hot => { menupos => 23, cmd => 't', help => 'Toggle text display', mode => 1 },
-
-		togglepeak => { menupos => 22,  help => 'Toggle peak display (0 or 1)', mode => 7, type => 'i' },
-		togglepeak_hot => { menupos => 23, cmd => 'p', help => 'Toggle peak display', mode => 1 },
 
 		width => { menupos => 24,  help => 'Set windows width', mode => 6, type => 'i' },
 	);

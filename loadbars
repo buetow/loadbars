@@ -430,7 +430,7 @@ sub main_loop ($@) {
 			my $all = sum @{$cpuaverage}{qw(user system iowait)};
                         my $max_all = 0;
 			
-			$app->fill($rect_idle, Loadbars::GREY0);
+			$app->fill($rect_idle, Loadbars::BLACK);
 			$app->fill($rect_iowait, Loadbars::PURPLE);
 			$app->fill($rect_nice, Loadbars::GREEN);
 
@@ -476,12 +476,13 @@ sub main_loop ($@) {
 						$C{togglecpu} ? $current_barnum + 1: $current_corenum);
 				}
 
-				$app->print($x, $y+=$space, sprintf '%d%s', $cpuaverage->{nice}, 'ni');
-				$app->print($x, $y+=$space, sprintf '%d%s', $cpuaverage->{iowait}, 'io');
-				$app->print($x, $y+=$space, sprintf '%d%s', $cpuaverage->{user}, 'us');
-				$app->print($x, $y+=$space, sprintf '%d%s', $cpuaverage->{system}, 'sy');
-				$app->print($x, $y+=$space, sprintf '%d%s', $all, 'al');
-				$app->print($x, $y+=$space, sprintf '%d%s', $max_all, 'pk') if $C{togglepeak};
+				$app->print($x, $y+=$space, sprintf '%02d%s', $cpuaverage->{idle}, 'id');
+				$app->print($x, $y+=$space, sprintf '%02d%s', $cpuaverage->{nice}, 'ni');
+				$app->print($x, $y+=$space, sprintf '%02d%s', $cpuaverage->{iowait}, 'io');
+				$app->print($x, $y+=$space, sprintf '%02d%s', $cpuaverage->{user}, 'us');
+				$app->print($x, $y+=$space, sprintf '%02d%s', $cpuaverage->{system}, 'sy');
+				$app->print($x, $y+=$space, sprintf '%02d%s', $all, 'al');
+				$app->print($x, $y+=$space, sprintf '%02d%s', $max_all, 'pk') if $C{togglepeak};
 
 				unless ($is_host_summary) {
 					if (defined $loadavg[0]) {	
@@ -545,6 +546,8 @@ sub dispatch_table () {
 
 	my $textdesc = <<END;
 Explanations:
+    id = Idle cpu usage in %
+        Color: Black
 	ni = Nice cpu usage in % 
         Color: Green
 	io = IOwait cpu sage in % 

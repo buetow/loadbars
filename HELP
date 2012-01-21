@@ -1,0 +1,30 @@
+Explanation colors:
+	Blue: System cpu usage 
+	Purple: System usage if system cpu is >30%
+	Yellow: User cpu usage 
+	Darker yellow: User usage if system & user cpu is >50%
+	Orange: User usage if system & user cpu is >70%
+	White: Usage usage if system & user cpu is >99%
+	Green: Nice cpu usage
+        1px horizontal line: Maximum sy+us cpu of last 'avg' samples
+Explanation text display:
+	ni = Nice cpu usage in %
+	us = User cpu usage in %
+	sy = System cpu sage in %
+	su = System & user cpu usage in %
+	pk = Max System & user cpu usage peak of last avg. samples in %
+	avg = System load average (desc. order: 1, 5 and 15 min. avg.)
+--togglecpu <ARG>	- Toggle CPUs (0 or 1)
+--average <ARG>	- Num of samples for avg. (more fluent animations)
+--cluster <ARG>	- Cluster name from /etc/clusters
+--factor <ARG>	- Set graph scale factor (1.0 means 100%)
+--height <ARG>	- Set windows height
+--hosts <ARG>	- Comma separated list of hosts
+--inter <ARG>	- Set update interval in seconds (default 0.1)
+--samples <ARG>	- Set number of samples until ssh reconnects
+--sshopts <ARG>	- Set SSH options
+--title <ARG>	- Set the window title
+--toggletxthost <ARG>	- Toggle hostname/num text display (0 or 1)
+--togglepeak <ARG>	- Toggle peak display (0 or 1)
+--toggletxt <ARG>	- Toggle text display (0 or 1)
+--width <ARG>	- Set windows width

@@ -22,22 +22,4 @@ Versioning schema: a.b.c[.d], where
 	It's not a release if there is a -devel suffix. It's a development 
 	version (in the trunk) then.
 
-Explanation colors:
-	Blue: System cpu usage 
-	Purple: System usage if it's >30%
-	Yellow: User cpu usage 
-	Darker yellow: User usage if system & user cpu is >50%
-	Orange: User usage if system & user cpu is >70%
-	White: Usage usage if system & user cpu is >99%
-	Green: Nice cpu usage
-
-Explanation text display:
-	ni = Nice cpu usage in %
-	us = User cpu usage in %
-	sy = System cpu sage in %
-	su = System & user cpu usage in %
-	avg = System load average (desc. order: 1, 5 and 15 min. avg.)
-
-
-
-
+For some help/usage please consult the HELP file.

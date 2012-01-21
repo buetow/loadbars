@@ -25,7 +25,7 @@ use threads;
 use threads::shared;
 
 use constant {
-	VERSION => 'loadbars v0.3.2-devel',
+	VERSION => 'loadbars v0.4.0-devel',
 	Copyright => '2010-2011 (c) Paul Buetow <loadbars@mx.buetow.org>',
 	CSSH_CONFFILE => '/etc/clusters',
     CSSH_MAX_RECURSION => 10,
@@ -62,7 +62,7 @@ my %C : shared;
 %C = (
 	title => Loadbars::VERSION . ' (press h for help)',
     average => 15,
-	togglecpu => 0,
+	showcores => 0,
 	cpuregexp => 'cpu',
 	factor => 1,
 	extended => 0,
@@ -81,7 +81,7 @@ sub newline () { say ''; return undef }
 sub debugsay (@) { say "Loadbars::DEBUG: $_" for @_; return undef }
 sub sum (@) { my $sum = 0; $sum += $_ for @_; return $sum }
 sub null ($) { my $arg = shift; return defined $arg ? $arg : 0 }
-sub set_togglecpu_regexp () { $C{cpuregexp} = $C{togglecpu} ? 'cpu' : 'cpu ' }
+sub set_showcores_regexp () { $C{cpuregexp} = $C{showcores} ? 'cpu' : 'cpu ' }
 sub error ($) { die shift, "\n" }
 
 sub norm ($) { 
@@ -273,8 +273,8 @@ sub main_loop ($@) {
 			next if $type != 2;
 
 			if ($key_name eq '1') {
-				$C{togglecpu} = !$C{togglecpu};
-				set_togglecpu_regexp;
+				$C{showcores} = !$C{showcores};
+				set_showcores_regexp;
 				$_->kill('USR1') for @threads;
 				%AVGSTATS = ();
 				%CPUSTATS = ();
@@ -400,7 +400,7 @@ sub main_loop ($@) {
 
 			my $rect_peak; 
 
-			unless ($is_host_summary || $C{togglecpu}) {	
+			unless ($is_host_summary || $C{showcores}) {	
 				$current_corenum = 0;
 				$rect_separator = get_rect $rects, "$key;separator";
 				$rect_separator->width(1);
@@ -505,7 +505,7 @@ sub main_loop ($@) {
 
 				} else {
 					$app->print($x, $y, sprintf  '%i:', 
-						$C{togglecpu} ? $current_barnum + 1: $current_corenum);
+						$C{showcores} ? $current_barnum + 1: $current_corenum);
 				}
 
                 if ($C{extended}) {
@@ -620,8 +620,8 @@ Explanations:
     1px horizontal line: Maximum sy+us+io of last 'avg' samples (extended)
     Extended means: text display only if extended mode is turned on
 Examples:
-    loadbars --extended 1 --hosts localhost
-    loadbars --hosts localhost,,server1.example.com,server2.example.com
+    loadbars --extended 1 --showcorescores 1 --width 600 --hosts localhost
+    loadbars --hosts localhost,server1.example.com,server2.example.com
     loadbars --cluster foocluster (foocluster is in /etc/clusters of cssh)
 END
 
@@ -631,9 +631,6 @@ END
 	# Combinations: Like chmod(1)
 
 	my %d = ( 
-		togglecpu => { menupos => 1,  help => 'Toggle CPUs (0 or 1)', mode => 7, type => 'i' },
-		togglecpu_hot => { menupos => 2,  cmd => '1', help => 'Toggle CPUs', mode => 1 },
-
 		average => { menupos => 3,  help => 'Num of samples for avg. (more fluent animations)', mode => 6, type => 'i' },
 		average_hot_up => { menupos => 4,  cmd => 'a', help => 'Increases number of samples for calculating avg. by 1', mode => 1 },
 		average_hot_dn => { menupos => 5,  cmd => 'y', help => 'Decreases number of samples for calculating avg. by 1', mode => 1 },
@@ -661,14 +658,18 @@ END
 		quit_hot => { menupos => 16,  cmd => 'q', help => 'Quits', mode => 1 },
 
 		samples => { menupos => 17,  help => 'Set number of samples until ssh reconnects', mode => 6, type => 'i' },
-		sshopts => { menupos => 18,  help => 'Set SSH options', mode => 6, type => 's' },
-		title => { menupos => 19,  help => 'Set the window title', var => \$C{title}, mode => 6, type => 's' },
 
-		toggletxthost => { menupos => 20,  help => 'Toggle hostname/num text display (0 or 1)', mode => 7, type => 'i' },
-		toggletxthost_hot => { menupos => 21, cmd => 'u', help => 'Toggle hostname/num text display', mode => 1 },
+		showcores => { menupos => 17,  help => 'Toggle core display (0 or 1)', mode => 7, type => 'i' },
+		showcores_hot => { menupos => 17,  cmd => '1', help => 'Toggle CPUs', mode => 1 },
 
-		toggletxt => { menupos => 22,  help => 'Toggle text display (0 or 1)', mode => 7, type => 'i' },
-		toggletxt_hot => { menupos => 23, cmd => 't', help => 'Toggle text display', mode => 1 },
+		showtexthost => { menupos => 18,  help => 'Toggle hostname/num text display (0 or 1)', mode => 7, type => 'i' },
+		showtexthost_hot => { menupos => 18, cmd => 'u', help => 'Toggle hostname/num text display', mode => 1 },
+
+		showtext => { menupos => 19,  help => 'Toggle text display (0 or 1)', mode => 7, type => 'i' },
+		showtext_hot => { menupos => 19, cmd => 't', help => 'Toggle text display', mode => 1 },
+
+		sshopts => { menupos => 20,  help => 'Set SSH options', mode => 6, type => 's' },
+		title => { menupos => 21,  help => 'Set the window title', var => \$C{title}, mode => 6, type => 's' },
 
 		width => { menupos => 24,  help => 'Set windows width', mode => 6, type => 'i' },
 	);
@@ -797,7 +798,7 @@ sub main () {
 		exit 1;
 	}
 
-	set_togglecpu_regexp;
+	set_showcores_regexp;
 
   	my @hosts = map {
 		my ($a, $b) = split /\@/, $_;

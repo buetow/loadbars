@@ -11,7 +11,9 @@ For a changelog see CHANGELOG
 
 For a list of all known bugs see BUGS
 
-Supported platforms are: Linux and FreeBSD (the latter with linprocfs mounted)
+Supported platforms are: Linux and FreeBSD (the latter with linprocfs mounted).
+
+For Linux at least a 2.6 Kernel is required.
 
 Versioning schema: a.b.c[.d], where 
 	d = Optional, bugfixes only release
@@ -28,6 +30,7 @@ Explanation colors:
 	Yellow: User cpu usage 
 	Darker yellow: User usage if system & user cpu is >50%
 	Orange: User usage if system & user cpu is >70%
+	Red: User usage if system & user cpu is >90%
 	White: Usage usage if system & user cpu is >99%
 	Green: Nice cpu usage
 

@@ -43,7 +43,6 @@ use constant {
 	YELLOW => SDL::Color->new(-r => 0xff, -g => 0xc0, -b => 0x00),
 	SYSTEM_PURPLE => 30,
 	USER_WHITE => 99,
-	USER_RED => 90,
 	USER_ORANGE => 70,
 	USER_YELLOW0 => 50,
 	NULL => 0,
@@ -62,7 +61,7 @@ my %C : shared;
 # Setting defaults
 %C = (
 	title => Loadbars::VERSION . ' (press h for help)',
-        average => 15,
+    average => 15,
 	togglecpu => 1,
 	cpuregexp => 'cpu',
 	factor => 1,
@@ -73,7 +72,7 @@ my %C : shared;
 	samples => 1000,
 	sshopts => '',
 	width => 1250,
-	height => 160,
+	height => 200,
 );
 
 # Quick n dirty helpers
@@ -89,10 +88,8 @@ sub parse_cpu_line ($) {
     my $line = shift;
 	my ($name, %load);
 
-    debugsay $line;
-
-	($name, @load{qw(user nice system idle irq softirq)}) = split ' ', $line;
-	$load{TOTAL} = sum @load{qw(user nice system idle)};
+	($name, @load{qw(user nice system idle iowait irq softirq)}) = split ' ', $line;
+	$load{TOTAL} = sum @load{qw(user nice system idle iowait)};
 
 	return ($name, \%load);
 }
@@ -387,6 +384,7 @@ sub main_loop ($@) {
 			my $rect_user = get_rect $rects, "$key;user";
 			my $rect_system = get_rect $rects, "$key;system";
 			my $rect_idle = get_rect $rects, "$key;idle";
+			my $rect_iowait = get_rect $rects, "$key;iowait";
 			my $rect_nice = get_rect $rects, "$key;nice";
 			my $rect_peak; 
 
@@ -412,6 +410,12 @@ sub main_loop ($@) {
 			$rect_user->x($x);
 			$rect_user->y($y);
 			
+			$y -= $heights{iowait};
+			$rect_iowait->width($width);
+			$rect_iowait->height($heights{iowait});
+			$rect_iowait->x($x);
+			$rect_iowait->y($y);
+			
 			$y -= $heights{nice};
 			$rect_nice->width($width);
 			$rect_nice->height($heights{nice});
@@ -424,10 +428,11 @@ sub main_loop ($@) {
 			$rect_idle->x($x);
 			$rect_idle->y($y);
 
-			my $system_n_user = sum @{$cpuaverage}{qw(user system)};
-                        my $max_system_n_user = 0;
+			my $all = sum @{$cpuaverage}{qw(user system iowait)};
+                        my $max_all = 0;
 			
 			$app->fill($rect_idle, Loadbars::GREY0);
+			$app->fill($rect_iowait, Loadbars::PURPLE);
 			$app->fill($rect_nice, Loadbars::GREEN);
 
                         if ($C{togglepeak}) {
@@ -442,29 +447,26 @@ sub main_loop ($@) {
                                 $rect_peak->x($x);
                                 $rect_peak->y($C{height} - $maxheights{system} - $maxheights{user});
 
-			        $max_system_n_user = sum @{$cpumax}{qw(user system)};
-				$max_system_n_user = 100 if $max_system_n_user > 100;
+			        $max_all = sum @{$cpumax}{qw(user system)};
+                    $max_all = 100 if $max_all > 100;
 
-                		$app->fill($rect_peak, $max_system_n_user > Loadbars::USER_WHITE ? Loadbars::WHITE 
-                		      	: ($max_system_n_user > Loadbars::USER_RED ? Loadbars::RED 
-                			: ($max_system_n_user > Loadbars::USER_ORANGE ? Loadbars::ORANGE 
-                			: ($max_system_n_user > Loadbars::USER_YELLOW0 ? Loadbars::YELLOW0 
-                			: (Loadbars::YELLOW)))));
+                		$app->fill($rect_peak, $max_all > Loadbars::USER_WHITE ? Loadbars::WHITE 
+                			: ($max_all > Loadbars::USER_ORANGE ? Loadbars::ORANGE 
+                			: ($max_all > Loadbars::USER_YELLOW0 ? Loadbars::YELLOW0 
+                			: (Loadbars::YELLOW))));
                         }
 
-			$app->fill($rect_user, $system_n_user > Loadbars::USER_WHITE ? Loadbars::WHITE 
-			      	: ($system_n_user > Loadbars::USER_RED ? Loadbars::RED 
-				: ($system_n_user > Loadbars::USER_ORANGE ? Loadbars::ORANGE 
-				: ($system_n_user > Loadbars::USER_YELLOW0 ? Loadbars::YELLOW0 
-				: (Loadbars::YELLOW)))));
+			$app->fill($rect_user, $all > Loadbars::USER_WHITE ? Loadbars::WHITE 
+				: ($all > Loadbars::USER_ORANGE ? Loadbars::ORANGE 
+				: ($all > Loadbars::USER_YELLOW0 ? Loadbars::YELLOW0 
+				: (Loadbars::YELLOW))));
 			$app->fill($rect_system, $cpuaverage->{system} > Loadbars::SYSTEM_PURPLE
 			      	? Loadbars::PURPLE 
 				: Loadbars::BLUE);
-			$app->fill($rect_user, $system_n_user > Loadbars::USER_WHITE ? Loadbars::WHITE 
-			      	: ($system_n_user > Loadbars::USER_RED ? Loadbars::RED 
-				: ($system_n_user > Loadbars::USER_ORANGE ? Loadbars::ORANGE 
-				: ($system_n_user > Loadbars::USER_YELLOW0 ? Loadbars::YELLOW0 
-				: (Loadbars::YELLOW)))));
+			$app->fill($rect_user, $all > Loadbars::USER_WHITE ? Loadbars::WHITE 
+				: ($all > Loadbars::USER_ORANGE ? Loadbars::ORANGE 
+				: ($all > Loadbars::USER_YELLOW0 ? Loadbars::YELLOW0 
+				: (Loadbars::YELLOW))));
 			
 			my ($y, $space) = (5, $font_height);
 			my @loadavg = split ';', $AVGSTATS{$host};
@@ -483,11 +485,11 @@ sub main_loop ($@) {
 				}
 
 				$app->print($x, $y+=$space, sprintf '%d%s', $cpuaverage->{nice}, 'ni');
+				$app->print($x, $y+=$space, sprintf '%d%s', $cpuaverage->{iowait}, 'io');
 				$app->print($x, $y+=$space, sprintf '%d%s', $cpuaverage->{user}, 'us');
 				$app->print($x, $y+=$space, sprintf '%d%s', $cpuaverage->{system}, 'sy');
-				$app->print($x, $y+=$space, sprintf '%d%s', $system_n_user, 'su');
-				$app->print($x, $y+=$space, sprintf '%d%s', $max_system_n_user, 'pk')
-                                        if $C{togglepeak};
+				$app->print($x, $y+=$space, sprintf '%d%s', $all, 'al');
+				$app->print($x, $y+=$space, sprintf '%d%s', $max_all, 'pk') if $C{togglepeak};
 
 				unless ($is_host_summary) {
 					if (defined $loadavg[0]) {	
@@ -503,7 +505,7 @@ sub main_loop ($@) {
 			# Display an informational text message if any
 			$app->print(0, $y+=$space, $displayinfo) if length $displayinfo;
 		
-			$app->update($rect_nice, $rect_idle, $rect_system, $rect_user);
+			$app->update($rect_nice, $rect_iowait, $rect_idle, $rect_system, $rect_user);
 			$app->update($rect_separator) if defined $rect_separator;
 
 			$x += $width + 1;
@@ -550,22 +552,24 @@ sub dispatch_table () {
  	my $hosts = '';
 
 	my $textdesc = <<END;
-Explanation colors:
-	Blue: System cpu usage 
-	Purple: System usage if system cpu is >30%
-	Yellow: User cpu usage 
-	Darker yellow: User usage if system & user cpu is >50%
-	Orange: User usage if system & user cpu is >70%
-	White: Usage usage if system & user cpu is >99%
-	Green: Nice cpu usage
-        1px horizontal line: Maximum sy+us cpu of last 'avg' samples
 Explanation text display:
 	ni = Nice cpu usage in %
 	us = User cpu usage in %
 	sy = System cpu sage in %
-	su = System & user cpu usage in %
-	pk = Max System & user cpu usage peak of last avg. samples in %
+	io = IOwait cpu sage in %
+	al = sy+us+io in %
+	pk = Max sy+us+io peak of last avg. samples in %
 	avg = System load average (desc. order: 1, 5 and 15 min. avg.)
+Explanation colors:
+	Green: ni 
+	Purple: io 
+	Blue: sy 
+	Purple: sy if >30%
+	Yellow: us 
+	Darker yellow: us if sy+us+io cpu is >50%
+	Orange: us if sy+us+io cpu is >70%
+	White: us if sy+us+io cpu is >99%
+    1px horizontal line: Maximum sy+us+io cpu of last 'avg' samples
 END
 
 	# mode 1: Option is shown in the online help menu (stdout not sdl)

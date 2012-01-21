@@ -445,7 +445,7 @@ sub main_loop ($@) {
                         $rect_peak->x($x);
                         $rect_peak->y($C{height} - $maxheights{system} - $maxheights{user});
                 
-                $max_all = sum @{$cpumax}{qw(user system)};
+                $max_all = sum @{$cpumax}{qw(user system iowait)};
                 $max_all = 100 if $max_all > 100;
                 
                 $app->fill($rect_peak, $max_all > Loadbars::USER_ORANGE ? Loadbars::ORANGE 

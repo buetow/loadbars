@@ -60,7 +60,7 @@ my %C : shared;
 
 # Setting defaults
 %C = (
-	title => Loadbars::VERSION . ' (press h for help)',
+	title => Loadbars::VERSION . ' (press h for help on stdout)',
     average => 15,
 	showcores => 0,
 	cpuregexp => 'cpu',

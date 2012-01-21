@@ -405,7 +405,7 @@ sub main_loop ($@) {
 
 			my $rect_peak; 
 
-			unless ($is_host_summary || $C{showcores}) {	
+			unless ($is_host_summary || !$C{showcores}) {	
 				$current_corenum = 0;
 				$rect_separator = get_rect $rects, "$key;separator";
 				$rect_separator->width(1);
@@ -517,7 +517,7 @@ sub main_loop ($@) {
 
 				} else {
 					$app->print($x, $y, sprintf  '%i:', 
-						$C{showcores} ? $current_barnum + 1: $current_corenum);
+						$C{showcores} ? $current_corenum : $current_barnum + 1);
 				}
 
 

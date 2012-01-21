@@ -1,16 +1,18 @@
 Explanations:
-    id = Idle cpu usage in % (extended)
-        Color: Black
-    st = CPU stolen from VM in % (extended)
+    st = Steal in % [see man proc] (extended)
         Color: Red
-    ir = IRQ usage in % (extended)
-        Color: White
+    gt = Guest in % [see man proc] (extended)
+        Color: Red
     sr = Soft IRQ usage in % (extended)
         Color: White
-    ni = Nice cpu usage in % 
-        Color: Green
+    ir = IRQ usage in % (extended)
+        Color: White
     io = IOwait cpu sage in % 
         Color: Purple
+    id = Idle cpu usage in % (extended)
+        Color: Black
+    ni = Nice cpu usage in % 
+        Color: Green
     us = User cpu usage in % 
         Color: Yellow, dark yellow if al>50%, orange if al>50%
     sy = System cpu sage in % 

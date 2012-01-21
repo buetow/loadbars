@@ -95,11 +95,12 @@ sub parse_cpu_line ($) {
     my $line = shift;
 	my ($name, %load);
 
-	($name, @load{qw(user nice system idle iowait irq softirq steal)}) = split ' ', $line;
+	($name, @load{qw(user nice system idle iowait irq softirq steal guest)}) = split ' ', $line;
 
     $load{steal} = 0 unless defined $load{steal};
+    $load{guest} = 0 unless defined $load{guest};
 
-	$load{TOTAL} = sum @load{qw(user nice system idle iowait irq softirq steal)};
+	$load{TOTAL} = sum @load{qw(user nice system idle iowait irq softirq steal guest)};
 
 	return ($name, \%load);
 }
@@ -394,6 +395,7 @@ sub main_loop ($@) {
 
 			my $rect_idle = get_rect $rects, "$key;idle";
 			my $rect_steal = get_rect $rects, "$key;steal";
+			my $rect_guest = get_rect $rects, "$key;guest";
 			my $rect_irq = get_rect $rects, "$key;irq";
 			my $rect_softirq = get_rect $rects, "$key;softirq";
 			my $rect_nice = get_rect $rects, "$key;nice";
@@ -455,6 +457,12 @@ sub main_loop ($@) {
 			$rect_softirq->x($x);
 			$rect_softirq->y($y);
 			
+			$y -= $heights{guest};
+			$rect_guest->width($width);
+			$rect_guest->height($heights{guest});
+			$rect_guest->x($x);
+			$rect_guest->y($y);
+
 			$y -= $heights{steal};
 			$rect_steal->width($width);
 			$rect_steal->height($heights{steal});
@@ -466,6 +474,7 @@ sub main_loop ($@) {
 			
 			$app->fill($rect_idle, Loadbars::BLACK);
 			$app->fill($rect_steal, Loadbars::RED);
+			$app->fill($rect_guest, Loadbars::RED);
 			$app->fill($rect_irq, Loadbars::WHITE);
 			$app->fill($rect_softirq, Loadbars::WHITE);
 			$app->fill($rect_nice, Loadbars::GREEN);
@@ -482,7 +491,7 @@ sub main_loop ($@) {
                         $rect_peak->x($x);
                         $rect_peak->y($C{height} - $maxheights{system} - $maxheights{user});
                 
-                $max_all = sum @{$cpumax}{qw(user system iowait irq softirq steal)};
+                $max_all = sum @{$cpumax}{qw(user system iowait irq softirq steal guest)};
                 
                 $app->fill($rect_peak, $max_all > Loadbars::USER_ORANGE ? Loadbars::ORANGE 
                 	: ($max_all > Loadbars::USER_YELLOW0 ? Loadbars::YELLOW0 
@@ -514,6 +523,7 @@ sub main_loop ($@) {
 
                 if ($C{extended}) {
                     $app->print($x, $y+=$space, sprintf '%02d%s', norm $cpuaverage->{steal}, 'st');
+                    $app->print($x, $y+=$space, sprintf '%02d%s', norm $cpuaverage->{guest}, 'gt');
                     $app->print($x, $y+=$space, sprintf '%02d%s', norm $cpuaverage->{softirq}, 'sr');
                     $app->print($x, $y+=$space, sprintf '%02d%s', norm $cpuaverage->{irq}, 'ir');
                 }
@@ -553,6 +563,7 @@ sub main_loop ($@) {
                     $rect_nice, 
                     $rect_softirq, 
                     $rect_steal, 
+                    $rect_guest, 
                     $rect_system,
                     $rect_user,
                     );
@@ -604,7 +615,9 @@ sub dispatch_table () {
 
 	my $textdesc = <<END;
 Explanations:
-    st = CPU stolen from VM in % (extended)
+    st = Steal in % [see man proc] (extended)
+        Color: Red
+    gt = Guest in % [see man proc] (extended)
         Color: Red
     sr = Soft IRQ usage in % (extended)
         Color: White

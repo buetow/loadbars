@@ -1,4 +1,4 @@
-* Also show stats for idle, iowait, irq, softirq and steal cpu time
+* Also show stats for idle, iowait, irq, softirq, steal and guest cpu time
 * Some parameters have been renamed (see --help)
 * Introduced extended mode (use --extended 1 at startup or 'e' hotkey)
 * Modified the bar colors a little bit (see --help)

@@ -413,31 +413,7 @@ sub main_loop ($@) {
 				$app->fill($rect_separator, Loadbars::GREY);
 			}
 			
-			$y = $C{height} - $heights{system};
-			$rect_system->width($width);
-			$rect_system->height($heights{system});
-			$rect_system->x($x);
-			$rect_system->y($y);
-			
-			$y -= $heights{user};
-			$rect_user->width($width);
-			$rect_user->height($heights{user});
-			$rect_user->x($x);
-			$rect_user->y($y);
-			
-			$y -= $heights{nice};
-			$rect_nice->width($width);
-			$rect_nice->height($heights{nice});
-			$rect_nice->x($x);
-			$rect_nice->y($y);
-			
-			$y -= $heights{iowait};
-			$rect_iowait->width($width);
-			$rect_iowait->height($heights{iowait});
-			$rect_iowait->x($x);
-			$rect_iowait->y($y);
-			
-			$y -= $heights{softirq};
+			$y = $C{height} - $heights{softirq};
 			$rect_softirq->width($width);
 			$rect_softirq->height($heights{softirq});
 			$rect_softirq->x($x);
@@ -449,17 +425,41 @@ sub main_loop ($@) {
 			$rect_irq->x($x);
 			$rect_irq->y($y);
 
-			$y -= $heights{steal};
-			$rect_steal->width($width);
-			$rect_steal->height($heights{steal});
-			$rect_steal->x($x);
-			$rect_steal->y($y);
-
+			$y -= $heights{system};
+			$rect_system->width($width);
+			$rect_system->height($heights{system});
+			$rect_system->x($x);
+			$rect_system->y($y);
+			
+			$y -= $heights{user};
+			$rect_user->width($width);
+			$rect_user->height($heights{user});
+			$rect_user->x($x);
+			$rect_user->y($y);
+			
+			$y -= $heights{iowait};
+			$rect_iowait->width($width);
+			$rect_iowait->height($heights{iowait});
+			$rect_iowait->x($x);
+			$rect_iowait->y($y);
+			
+			$y -= $heights{nice};
+			$rect_nice->width($width);
+			$rect_nice->height($heights{nice});
+			$rect_nice->x($x);
+			$rect_nice->y($y);
+			
 			$y -= $heights{idle};
 			$rect_idle->width($width);
 			$rect_idle->height($heights{idle});
 			$rect_idle->x($x);
 			$rect_idle->y($y);
+
+			$y -= $heights{steal};
+			$rect_steal->width($width);
+			$rect_steal->height($heights{steal});
+			$rect_steal->x($x);
+			$rect_steal->y($y);
 
 			my $all = 100 - $cpuaverage->{idle};
             my $max_all = 0;
@@ -468,8 +468,8 @@ sub main_loop ($@) {
 			$app->fill($rect_steal, Loadbars::RED);
 			$app->fill($rect_irq, Loadbars::WHITE);
 			$app->fill($rect_softirq, Loadbars::WHITE);
-			$app->fill($rect_iowait, Loadbars::PURPLE);
 			$app->fill($rect_nice, Loadbars::GREEN);
+			$app->fill($rect_iowait, Loadbars::PURPLE);
 
             if ($C{extended}) {
                     my %maxheights = map {
@@ -601,14 +601,10 @@ sub dispatch_table () {
 
 	my $textdesc = <<END;
 Explanations:
-    id = Idle cpu usage in % (extended)
-        Color: Black
     st = CPU stolen from VM in % (extended)
         Color: Red
-    ir = IRQ usage in % (extended)
-        Color: White
-    sr = Soft IRQ usage in % (extended)
-        Color: White
+    id = Idle cpu usage in % (extended)
+        Color: Black
     ni = Nice cpu usage in % 
         Color: Green
     io = IOwait cpu sage in % 
@@ -617,6 +613,10 @@ Explanations:
         Color: Yellow, dark yellow if al>50%, orange if al>50%
     sy = System cpu sage in % 
         Blue, purple if >30%
+    ir = IRQ usage in % (extended)
+        Color: White
+    sr = Soft IRQ usage in % (extended)
+        Color: White
     to = Total CPU usage, which is (100% - id)
     pk = Max al peak of last avg. samples (extended)
     avg = System load average; desc. order: 1, 5 and 15 min. avg. 

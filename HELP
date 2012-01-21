@@ -18,7 +18,7 @@ Explanations:
     sy = System cpu sage in % 
         Blue, lighter blue if >30%
     to = Total CPU usage, which is (100% - id)
-    pk = Max al peak of last avg. samples (extended)
+    pk = Max us+sy peak of last avg. samples (extended)
     avg = System load average; desc. order: 1, 5 and 15 min. avg. 
     1px horizontal line: Maximum sy+us+io of last 'avg' samples (extended)
     Extended means: text display only if extended mode is turned on

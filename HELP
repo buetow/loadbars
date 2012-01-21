@@ -14,9 +14,9 @@ Explanations:
     ni = Nice cpu usage in % 
         Color: Green
     us = User cpu usage in % 
-        Color: Yellow, dark yellow if al>50%, orange if al>50%
+        Color: Yellow, dark yellow if to>50%, orange if to>50%
     sy = System cpu sage in % 
-        Blue, purple if >30%
+        Blue, lighter blue if >30%
     to = Total CPU usage, which is (100% - id)
     pk = Max al peak of last avg. samples (extended)
     avg = System load average; desc. order: 1, 5 and 15 min. avg. 

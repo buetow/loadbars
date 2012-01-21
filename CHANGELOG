@@ -1,4 +1,8 @@
-* Bugfix: Max system+user pk is never >100% 
+* Also show stats for idle, iowait, irq, softirq and steal cpu time
+* Some parameters have been renamed (see --help)
+* Introduced extended mode (use --extended 1 at startup or 'e' hotkey)
+* Modified the bar colors a little bit (see --help)
+* Some Bugfixes
 
 Tue Dec 27 12:28:40 CET 2011
 * Released v0.3.1

@@ -41,8 +41,8 @@ Explanations:
         Color: Yellow, dark yellow if al>50%, orange if al>50%
     sy = System cpu sage in % 
         Blue, purple if >30%
-    al = 100% minus id
+    to = Total CPU usage, which is (100% - id)
     pk = Max al peak of last avg. samples (extended)
     avg = System load average; desc. order: 1, 5 and 15 min. avg. 
     1px horizontal line: Maximum sy+us+io of last 'avg' samples (extended)
-(extended) means: text display only if extended mode is turned on
+    Extended means: text display only if extended mode is turned on

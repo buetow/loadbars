@@ -519,7 +519,7 @@ sub main_loop ($@) {
 				$app->print($x, $y+=$space, sprintf '%02d%s', norm $cpuaverage->{iowait}, 'io');
 				$app->print($x, $y+=$space, sprintf '%02d%s', norm $cpuaverage->{user}, 'us');
 				$app->print($x, $y+=$space, sprintf '%02d%s', norm $cpuaverage->{system}, 'sy');
-				$app->print($x, $y+=$space, sprintf '%02d%s', norm $all, 'al');
+				$app->print($x, $y+=$space, sprintf '%02d%s', norm $all, 'to');
 
                 $app->print($x, $y+=$space, sprintf '%02d%s', norm $max_all, 'pk') if $C{extended};
                     
@@ -614,7 +614,7 @@ Explanations:
         Color: Yellow, dark yellow if al>50%, orange if al>50%
     sy = System cpu sage in % 
         Blue, purple if >30%
-    al = 100% minus id
+    to = Total CPU usage, which is (100% - id)
     pk = Max al peak of last avg. samples (extended)
     avg = System load average; desc. order: 1, 5 and 15 min. avg. 
     1px horizontal line: Maximum sy+us+io of last 'avg' samples (extended)

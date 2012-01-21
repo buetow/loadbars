@@ -24,25 +24,4 @@ Versioning schema: a.b.c[.d], where
 	It's not a release if there is a -devel suffix. It's a development 
 	version (in the trunk) then.
 
-Explanations:
-    id = Idle cpu usage in % (extended)
-        Color: Black
-    st = CPU stolen from VM in % (extended)
-        Color: Red
-    ir = IRQ usage in % (extended)
-        Color: White
-    sr = Soft IRQ usage in % (extended)
-        Color: White
-    ni = Nice cpu usage in % 
-        Color: Green
-    io = IOwait cpu sage in % 
-        Color: Purple
-    us = User cpu usage in % 
-        Color: Yellow, dark yellow if al>50%, orange if al>50%
-    sy = System cpu sage in % 
-        Blue, purple if >30%
-    to = Total CPU usage, which is (100% - id)
-    pk = Max al peak of last avg. samples (extended)
-    avg = System load average; desc. order: 1, 5 and 15 min. avg. 
-    1px horizontal line: Maximum sy+us+io of last 'avg' samples (extended)
-    Extended means: text display only if extended mode is turned on
+For some usage/help please see the HELP file.

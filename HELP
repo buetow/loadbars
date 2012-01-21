@@ -1,0 +1,40 @@
+Explanations:
+    id = Idle cpu usage in % (extended)
+        Color: Black
+    st = CPU stolen from VM in % (extended)
+        Color: Red
+    ir = IRQ usage in % (extended)
+        Color: White
+    sr = Soft IRQ usage in % (extended)
+        Color: White
+    ni = Nice cpu usage in % 
+        Color: Green
+    io = IOwait cpu sage in % 
+        Color: Purple
+    us = User cpu usage in % 
+        Color: Yellow, dark yellow if al>50%, orange if al>50%
+    sy = System cpu sage in % 
+        Blue, purple if >30%
+    to = Total CPU usage, which is (100% - id)
+    pk = Max al peak of last avg. samples (extended)
+    avg = System load average; desc. order: 1, 5 and 15 min. avg. 
+    1px horizontal line: Maximum sy+us+io of last 'avg' samples (extended)
+    Extended means: text display only if extended mode is turned on
+Examples:
+    loadbars --extended 1 --showcorescores 1 --width 600 --hosts localhost
+    loadbars --hosts localhost,server1.example.com,server2.example.com
+    loadbars --cluster foocluster (foocluster is in /etc/clusters of cssh)
+--average <ARG>	- Num of samples for avg. (more fluent animations)
+--cluster <ARG>	- Cluster name from /etc/clusters
+--extended <ARG>	- Toggle extended display (0 or 1)
+--factor <ARG>	- Set graph scale factor (1.0 means 100%)
+--height <ARG>	- Set windows height
+--hosts <ARG>	- Comma sep. list of hosts; optional: user@ in front to each host
+--inter <ARG>	- Set update interval in seconds (default 0.1)
+--samples <ARG>	- Set number of samples until ssh reconnects
+--showcores <ARG>	- Toggle core display (0 or 1)
+--showtexthost <ARG>	- Toggle hostname/num text display (0 or 1)
+--showtext <ARG>	- Toggle text display (0 or 1)
+--sshopts <ARG>	- Set SSH options
+--title <ARG>	- Set the window title
+--width <ARG>	- Set windows width

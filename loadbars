@@ -86,10 +86,13 @@ sub set_togglecpu_regexp () { $C{cpuregexp} = $C{togglecpu} ? 'cpu ' : 'cpu' }
 sub error ($) { die shift, "\n" }
 
 sub parse_cpu_line ($) {
+    my $line = shift;
 	my ($name, %load);
 
-	($name, @load{qw(user nice system iowait irq softirq)}) = split ' ', shift;
-	$load{TOTAL} = sum @load{qw(user nice system iowait)};
+    debugsay $line;
+
+	($name, @load{qw(user nice system idle irq softirq)}) = split ' ', $line;
+	$load{TOTAL} = sum @load{qw(user nice system idle)};
 
 	return ($name, \%load);
 }
@@ -383,7 +386,7 @@ sub main_loop ($@) {
 			my $rect_separator = undef;
 			my $rect_user = get_rect $rects, "$key;user";
 			my $rect_system = get_rect $rects, "$key;system";
-			my $rect_iowait = get_rect $rects, "$key;iowait";
+			my $rect_idle = get_rect $rects, "$key;idle";
 			my $rect_nice = get_rect $rects, "$key;nice";
 			my $rect_peak; 
 
@@ -415,16 +418,16 @@ sub main_loop ($@) {
 			$rect_nice->x($x);
 			$rect_nice->y($y);
 			
-			$y -= $heights{iowait};
-			$rect_iowait->width($width);
-			$rect_iowait->height($heights{iowait});
-			$rect_iowait->x($x);
-			$rect_iowait->y($y);
+			$y -= $heights{idle};
+			$rect_idle->width($width);
+			$rect_idle->height($heights{idle});
+			$rect_idle->x($x);
+			$rect_idle->y($y);
 
 			my $system_n_user = sum @{$cpuaverage}{qw(user system)};
                         my $max_system_n_user = 0;
 			
-			$app->fill($rect_iowait, Loadbars::GREY0);
+			$app->fill($rect_idle, Loadbars::GREY0);
 			$app->fill($rect_nice, Loadbars::GREEN);
 
                         if ($C{togglepeak}) {
@@ -500,7 +503,7 @@ sub main_loop ($@) {
 			# Display an informational text message if any
 			$app->print(0, $y+=$space, $displayinfo) if length $displayinfo;
 		
-			$app->update($rect_nice, $rect_iowait, $rect_system, $rect_user);
+			$app->update($rect_nice, $rect_idle, $rect_system, $rect_user);
 			$app->update($rect_separator) if defined $rect_separator;
 
 			$x += $width + 1;

@@ -25,8 +25,8 @@ use threads;
 use threads::shared;
 
 use constant {
-	VERSION => 'loadbars v0.4.0-devel',
-	Copyright => '2010-2011 (c) Paul Buetow <loadbars@mx.buetow.org>',
+	VERSION => 'loadbars v0.4.0-master',
+	Copyright => '2010 - 2012 (c) Paul Buetow <loadbars@mx.buetow.org>',
 	CSSH_CONFFILE => '/etc/clusters',
     CSSH_MAX_RECURSION => 10,
     COLOR_DEPTH => 8,
@@ -623,7 +623,7 @@ Explanations:
         Color: White
     ir = IRQ usage in % (extended)
         Color: White
-    io = IOwait cpu sage in % 
+    io = IOwait cpu usage in % 
         Color: Purple
     id = Idle cpu usage in % (extended)
         Color: Black
@@ -631,9 +631,9 @@ Explanations:
         Color: Green
     us = User cpu usage in % 
         Color: Yellow, dark yellow if to>50%, orange if to>50%
-    sy = System cpu sage in % 
+    sy = System cpu usage in % 
         Blue, lighter blue if >30%
-    to = Total CPU usage, which is (100% - id)
+    to = Total cpu usage, which is (100% - id)
     pk = Max us+sy peak of last avg. samples (extended)
     avg = System load average; desc. order: 1, 5 and 15 min. avg. 
     1px horizontal line: Maximum sy+us+io of last 'avg' samples (extended)

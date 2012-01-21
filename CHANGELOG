@@ -1,3 +1,6 @@
+Sat Jan 21 18:52:50 CET 2012
+* Fixed some docu typos
+
 Sat Jan 21 18:32:45 CET 2012
 * Released v0.4.0
 * Also show stats for idle, iowait, irq, softirq, steal and guest cpu time

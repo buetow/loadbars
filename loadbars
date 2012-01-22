@@ -269,8 +269,6 @@ sub main_loop ($@) {
     my $redraw_background = 0;
     my $font_height       = 14;
 
-    my $displayinfo_time     = 5;
-    my $displayinfo_start    = 0;
     my $displayinfo : shared = '';
     my $infotxt : shared     = '';
     my $quit : shared        = 0;
@@ -313,7 +311,6 @@ sub main_loop ($@) {
             elsif ( $key_name eq 'm' ) {
                 $C{showmem} = !$C{showmem};
                 $displayinfo = 'Toggled show mem';
-                %MEMSTATS_HAS    = ();
 
             }
             elsif ( $key_name eq 't' ) {
@@ -441,6 +438,11 @@ sub main_loop ($@) {
             my $rect_system  = get_rect $rects, "$key;system";
 
             my $rect_peak;
+
+            my $add_x = 0;
+            my ($rect_memused, $rect_memfree, $rect_buffers, $rect_cached, $rect_swapused, $rect_swapfree);
+            if ( $is_host_summary && $C{showmem}) {
+            }
 
             unless ( $is_host_summary || !$C{showcores} ) {
                 $current_corenum = 0;
@@ -579,99 +581,29 @@ sub main_loop ($@) {
                 }
 
                 if ( $C{extended} ) {
-                    $app->print(
-                        $x,
-                        $y += $space,
-                        sprintf '%02d%s',
-                        norm $cpuaverage->{steal}, 'st'
-                    );
-                    $app->print(
-                        $x,
-                        $y += $space,
-                        sprintf '%02d%s',
-                        norm $cpuaverage->{guest}, 'gt'
-                    );
-                    $app->print(
-                        $x,
-                        $y += $space,
-                        sprintf '%02d%s',
-                        norm $cpuaverage->{softirq}, 'sr'
-                    );
-                    $app->print(
-                        $x,
-                        $y += $space,
-                        sprintf '%02d%s',
-                        norm $cpuaverage->{irq}, 'ir'
-                    );
+                    $app->print( $x, $y += $space, sprintf '%02d%s', norm $cpuaverage->{steal}, 'st');
+                    $app->print( $x, $y += $space, sprintf '%02d%s', norm $cpuaverage->{guest}, 'gt');
+                    $app->print( $x, $y += $space, sprintf '%02d%s', norm $cpuaverage->{softirq}, 'sr');
+                    $app->print( $x, $y += $space, sprintf '%02d%s', norm $cpuaverage->{irq}, 'ir');
                 }
 
-                $app->print(
-                    $x,
-                    $y += $space,
-                    sprintf '%02d%s',
-                    norm $cpuaverage->{iowait}, 'io'
-                );
+                $app->print( $x, $y += $space, sprintf '%02d%s', norm $cpuaverage->{iowait}, 'io');
 
-                $app->print(
-                    $x,
-                    $y += $space,
-                    sprintf '%02d%s',
-                    norm $cpuaverage->{idle}, 'id'
-                ) if $C{extended};
+                $app->print( $x, $y += $space, sprintf '%02d%s', norm $cpuaverage->{idle}, 'id') if $C{extended};
 
-                $app->print(
-                    $x,
-                    $y += $space,
-                    sprintf '%02d%s',
-                    norm $cpuaverage->{nice}, 'ni'
-                );
-                $app->print(
-                    $x,
-                    $y += $space,
-                    sprintf '%02d%s',
-                    norm $cpuaverage->{user}, 'us'
-                );
-                $app->print(
-                    $x,
-                    $y += $space,
-                    sprintf '%02d%s',
-                    norm $cpuaverage->{system}, 'sy'
-                );
-                $app->print(
-                    $x,
-                    $y += $space,
-                    sprintf '%02d%s',
-                    norm $all, 'to'
-                );
+                $app->print( $x, $y += $space, sprintf '%02d%s', norm $cpuaverage->{nice}, 'ni');
+                $app->print( $x, $y += $space, sprintf '%02d%s', norm $cpuaverage->{user}, 'us');
+                $app->print( $x, $y += $space, sprintf '%02d%s', norm $cpuaverage->{system}, 'sy');
+                $app->print( $x, $y += $space, sprintf '%02d%s', norm $all, 'to');
 
-                $app->print(
-                    $x,
-                    $y += $space,
-                    sprintf '%02d%s',
-                    norm $max_all, 'pk'
-                ) if $C{extended};
+                $app->print( $x, $y += $space, sprintf '%02d%s', norm $max_all, 'pk') if $C{extended};
 
                 unless ($is_host_summary) {
                     if ( defined $loadavg[0] ) {
                         $app->print( $x, $y += $space, 'avg:' );
-                        $app->print(
-                            $x,
-                            $y += $space,
-                            sprintf "%.2f",
-                            $loadavg[0]
-                        );
-                        $app->print(
-                            $x,
-                            $y += $space,
-                            sprintf "%.2f",
-                            $loadavg[1]
-                        );
-                        $app->print(
-                            $x,
-                            $y += $space,
-                            sprintf "%.2f",
-                            $loadavg[2]
-                        );
+                        $app->print( $x, $y += $space, sprintf "%.2f", $loadavg[0]);
+                        $app->print( $x, $y += $space, sprintf "%.2f", $loadavg[1]);
+                        $app->print( $x, $y += $space, sprintf "%.2f", $loadavg[2]);
                     }
                 }
             }
@@ -691,24 +623,11 @@ sub main_loop ($@) {
 
             $app->update($rect_separator) if defined $rect_separator;
 
-            $x += $width + 1;
+            $x += $width + 1 + $add_x;
         }
 
       TIMEKEEPER:
         $t2 = Time::HiRes::time();
-
-        if ( length $displayinfo ) {
-            if ( $displayinfo_start == 0 ) {
-                $displayinfo_start = $t2;
-
-            }
-            else {
-                if ( $displayinfo_time < $t2 - $displayinfo_start ) {
-                    $displayinfo       = '';
-                    $displayinfo_start = 0;
-                }
-            }
-        }
 
         if ( $C{inter} > $t2 - $t1 ) {
             usleep 10000;

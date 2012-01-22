@@ -53,6 +53,7 @@ $| = 1;
 
 my %AVGSTATS : shared;
 my %CPUSTATS : shared;
+my %MEMSTATS_HAS : shared;
 my %MEMSTATS : shared;
 
 # Global configuration hash
@@ -63,6 +64,7 @@ my %C : shared;
     title          => Loadbars::VERSION . ' (press h for help on stdout)',
     average        => 15,
     showcores      => 0,
+    showmem        => 1,
     cpuregexp      => 'cpu',
     factor         => 1,
     extended       => 0,
@@ -165,6 +167,7 @@ BASH
             } else {
                 for my $meminfo (qw(MemTotal MemFree Buffers Cached SwapTotal SwapFree)) {
                     if (/^$meminfo: *(\d+)/) {
+                        $MEMSTATS_HAS{$host} = 1;
                         $MEMSTATS{"$host;$meminfo"} = $1;
                     }
                 }
@@ -307,6 +310,12 @@ sub main_loop ($@) {
                 $displayinfo = 'Hotkeys help printed on terminal stdout';
 
             }
+            elsif ( $key_name eq 'm' ) {
+                $C{showmem} = !$C{showmem};
+                $displayinfo = 'Toggled show mem';
+                %MEMSTATS_HAS    = ();
+
+            }
             elsif ( $key_name eq 't' ) {
                 $C{displaytxt} = !$C{displaytxt};
                 $displayinfo = 'Toggled text display';
@@ -361,6 +370,7 @@ sub main_loop ($@) {
         my %is_host_summary;
 
         my $new_num_stats = keys %CPUSTATS;
+        $new_num_stats += keys %MEMSTATS_HAS if $C{showmem};
 
         if ( $new_num_stats != $num_stats ) {
             %prev_stats = ();
@@ -886,7 +896,16 @@ END
             type    => 'i'
         },
         showcores_hot =>
-          { menupos => 17, cmd => '1', help => 'Toggle CPUs', mode => 1 },
+          { menupos => 17, cmd => '1', help => 'Toggle show cores', mode => 1 },
+
+        showmem => {
+            menupos => 17,
+            help    => 'Toggle mem display (0 or 1)',
+            mode    => 7,
+            type    => 'i'
+        },
+        showmem_hot =>
+          { menupos => 17, cmd => 'm', help => 'Toggle show mem', mode => 1 },
 
         showtexthost => {
             menupos => 18,

@@ -25,28 +25,28 @@ use threads;
 use threads::shared;
 
 use constant {
-	VERSION => 'loadbars v0.4.0-devel',
-	Copyright => '2010-2011 (c) Paul Buetow <loadbars@mx.buetow.org>',
-	CSSH_CONFFILE => '/etc/clusters',
+    VERSION            => 'loadbars v0.4.0-devel',
+    Copyright          => '2010-2011 (c) Paul Buetow <loadbars@mx.buetow.org>',
+    CSSH_CONFFILE      => '/etc/clusters',
     CSSH_MAX_RECURSION => 10,
-    COLOR_DEPTH => 8,
-	BLACK => SDL::Color->new(-r => 0x00, -g => 0x00, -b => 0x00),
-	BLUE0=> SDL::Color->new(-r => 0x00, -g => 0x00, -b => 0xff),
-	BLUE => SDL::Color->new(-r => 0x00, -g => 0x00, -b => 0x88),
-	GREEN => SDL::Color->new(-r => 0x00, -g => 0x90, -b => 0x00),
-	ORANGE => SDL::Color->new(-r => 0xff, -g => 0x70, -b => 0x00),
-	PURPLE => SDL::Color->new(-r => 0xa0, -g => 0x20, -b => 0xf0),
-	RED => SDL::Color->new(-r => 0xff, -g => 0x00, -b => 0x00),
-	WHITE => SDL::Color->new(-r => 0xff, -g => 0xff, -b => 0xff),
-	GREY0 => SDL::Color->new(-r => 0x11, -g => 0x11, -b => 0x11),
-	GREY => SDL::Color->new(-r => 0xaa, -g => 0xaa, -b => 0xaa),
-	YELLOW0 => SDL::Color->new(-r => 0xff, -g => 0xa0, -b => 0x00),
-	YELLOW => SDL::Color->new(-r => 0xff, -g => 0xc0, -b => 0x00),
-	SYSTEM_BLUE0 => 30,
-	USER_ORANGE => 70,
-	USER_YELLOW0 => 50,
-	NULL => 0,
-	DEBUG => 0,
+    COLOR_DEPTH        => 8,
+    BLACK              => SDL::Color->new( -r => 0x00, -g => 0x00, -b => 0x00 ),
+    BLUE0              => SDL::Color->new( -r => 0x00, -g => 0x00, -b => 0xff ),
+    BLUE               => SDL::Color->new( -r => 0x00, -g => 0x00, -b => 0x88 ),
+    GREEN              => SDL::Color->new( -r => 0x00, -g => 0x90, -b => 0x00 ),
+    ORANGE             => SDL::Color->new( -r => 0xff, -g => 0x70, -b => 0x00 ),
+    PURPLE             => SDL::Color->new( -r => 0xa0, -g => 0x20, -b => 0xf0 ),
+    RED                => SDL::Color->new( -r => 0xff, -g => 0x00, -b => 0x00 ),
+    WHITE              => SDL::Color->new( -r => 0xff, -g => 0xff, -b => 0xff ),
+    GREY0              => SDL::Color->new( -r => 0x11, -g => 0x11, -b => 0x11 ),
+    GREY               => SDL::Color->new( -r => 0xaa, -g => 0xaa, -b => 0xaa ),
+    YELLOW0            => SDL::Color->new( -r => 0xff, -g => 0xa0, -b => 0x00 ),
+    YELLOW             => SDL::Color->new( -r => 0xff, -g => 0xc0, -b => 0x00 ),
+    SYSTEM_BLUE0       => 30,
+    USER_ORANGE        => 70,
+    USER_YELLOW0       => 50,
+    NULL               => 0,
+    DEBUG              => 0,
 };
 
 $| = 1;
@@ -60,19 +60,19 @@ my %C : shared;
 
 # Setting defaults
 %C = (
-	title => Loadbars::VERSION . ' (press h for help on stdout)',
-    average => 15,
-	showcores => 0,
-	cpuregexp => 'cpu',
-	factor => 1,
-	extended => 0,
-	displaytxt => 1,
-	displaytxthost => 0,
-	inter => 0.1,
-	samples => 1000,
-	sshopts => '',
-	width => 1250,
-	height => 230,
+    title          => Loadbars::VERSION . ' (press h for help on stdout)',
+    average        => 15,
+    showcores      => 0,
+    cpuregexp      => 'cpu',
+    factor         => 1,
+    extended       => 0,
+    displaytxt     => 1,
+    displaytxthost => 0,
+    inter          => 0.1,
+    samples        => 1000,
+    sshopts        => '',
+    width          => 1250,
+    height         => 230,
 );
 
 # Quick n dirty helpers
@@ -84,36 +84,38 @@ sub null ($) { my $arg = shift; return defined $arg ? $arg : 0 }
 sub set_showcores_regexp () { $C{cpuregexp} = $C{showcores} ? 'cpu' : 'cpu ' }
 sub error ($) { die shift, "\n" }
 
-sub norm ($) { 
-    my $n = shift; 
+sub norm ($) {
+    my $n = shift;
 
     return $n if $C{factor} != 1;
-    return $n > 100 ? 100 : ($n < 0 ? 0 : $n);
+    return $n > 100 ? 100 : ( $n < 0 ? 0 : $n );
 }
 
 sub parse_cpu_line ($) {
     my $line = shift;
-	my ($name, %load);
+    my ( $name, %load );
 
-	($name, @load{qw(user nice system idle iowait irq softirq steal guest)}) = split ' ', $line;
+    ( $name, @load{qw(user nice system idle iowait irq softirq steal guest)} ) =
+      split ' ', $line;
 
     $load{steal} = 0 unless defined $load{steal};
     $load{guest} = 0 unless defined $load{guest};
 
-	$load{TOTAL} = sum @load{qw(user nice system idle iowait irq softirq steal guest)};
+    $load{TOTAL} =
+      sum @load{qw(user nice system idle iowait irq softirq steal guest)};
 
-	return ($name, \%load);
+    return ( $name, \%load );
 }
 
 sub thread_get_stats ($;$) {
-	my ($host, $user) = @_;
-	$user = defined $user ?  "-l $user" : '';
+    my ( $host, $user ) = @_;
+    $user = defined $user ? "-l $user" : '';
 
-	my ($sigusr1, $quit) = (0, 0);
-	my $loadavgexp = qr/(\d+\.\d{2}) (\d+\.\d{2}) (\d+\.\d{2})/;
+    my ( $sigusr1, $quit ) = ( 0, 0 );
+    my $loadavgexp = qr/(\d+\.\d{2}) (\d+\.\d{2}) (\d+\.\d{2})/;
 
-	for (;;) {
-		my $bash = <<"BASH";
+    for ( ; ; ) {
+        my $bash = <<"BASH";
 			if [ -e /proc/stat ]; then 
 				loadavg=/proc/loadavg
 				stat=/proc/stat
@@ -134,486 +136,591 @@ sub thread_get_stats ($;$) {
 			fi
 BASH
 
+        my $cmd =
+            $host eq 'localhost'
+          ? $bash
+          : "ssh $user -o StrictHostKeyChecking=no $C{sshopts} $host '$bash'";
 
-		my $cmd = $host eq 'localhost' ? $bash 
-			: "ssh $user -o StrictHostKeyChecking=no $C{sshopts} $host '$bash'";
+        my $pid = open my $pipe, "$cmd |" or do {
+            say "Warning: $!";
+            sleep 3;
+            next;
+        };
 
-		my $pid = open my $pipe, "$cmd |" or do {
-			say "Warning: $!";
-			sleep 3;
-			next;
-		};
+        # Toggle CPUs
+        $SIG{USR1} = sub { $sigusr1 = 1 };
+        my $cpuregexp = qr/$C{cpuregexp}/;
 
-		# Toggle CPUs
-		$SIG{USR1} = sub { $sigusr1 = 1 };
-		my $cpuregexp = qr/$C{cpuregexp}/;
+        while (<$pipe>) {
+            if (/^$loadavgexp/) {
+                $AVGSTATS{$host} = "$1;$2;$3";
 
-		while (<$pipe>) {		
-	   		if (/^$loadavgexp/) {
-				$AVGSTATS{$host} = "$1;$2;$3";
+            }
+            elsif (/$cpuregexp/) {
+                my ( $name, $load ) = parse_cpu_line $_;
+                $CPUSTATS{"$host;$name"} = join ';',
+                  map  { $_ . '=' . $load->{$_} }
+                  grep { defined $load->{$_} } keys %$load;
+            }
 
-			} elsif (/$cpuregexp/) {
-				my ($name, $load) = parse_cpu_line $_;
-				$CPUSTATS{"$host;$name"} = join ';', 
-				   	map { $_ . '=' . $load->{$_} } 
-					grep { defined $load->{$_} } keys %$load;
-			}
+            if ($sigusr1) {
+                $cpuregexp = qr/$C{cpuregexp}/;
+                $sigusr1   = 0;
+            }
+        }
 
-			if ($sigusr1) {
-				$cpuregexp = qr/$C{cpuregexp}/;
-				$sigusr1 = 0;
-			}
-		}
+    }
 
-	} 
-
-	return undef;
+    return undef;
 }
 
 sub get_rect ($$) {
-	my ($rects, $name) = @_;
+    my ( $rects, $name ) = @_;
 
-	return $rects->{$name} if exists $rects->{$name};
-	return $rects->{$name} = SDL::Rect->new();
+    return $rects->{$name} if exists $rects->{$name};
+    return $rects->{$name} = SDL::Rect->new();
 }
 
 sub normalize_loads (%) {
-  	my %loads = @_;
+    my %loads = @_;
 
-	return %loads unless exists $loads{TOTAL};
+    return %loads unless exists $loads{TOTAL};
 
-	my $total = $loads{TOTAL} == 0 ? 1 : $loads{TOTAL};
-	return map { $_ => $loads{$_} / ($total / 100) } keys %loads;
+    my $total = $loads{TOTAL} == 0 ? 1 : $loads{TOTAL};
+    return map { $_ => $loads{$_} / ( $total / 100 ) } keys %loads;
 }
 
 sub get_cpuaverage ($@) {
-	my ($factor, @loads) = @_;	
-	my (%cpumax, %cpuaverage);
+    my ( $factor, @loads ) = @_;
+    my ( %cpumax, %cpuaverage );
 
-	for my $l (@loads) {
-		for (keys %$l) {
-		        $cpuaverage{$_} += $l->{$_};
+    for my $l (@loads) {
+        for ( keys %$l ) {
+            $cpuaverage{$_} += $l->{$_};
 
-                        $cpumax{$_} = $l->{$_}
-                                if not exists $cpumax{$_} or $cpumax{$_} < $l->{$_};
-                }
-	}
-
-	my $div = @loads / $factor;
-
-        for (keys %cpuaverage) {                
-	        $cpuaverage{$_} /= $div;
-	        $cpumax{$_} /= $factor;
+            $cpumax{$_} = $l->{$_}
+              if not exists $cpumax{$_}
+                  or $cpumax{$_} < $l->{$_};
         }
+    }
 
-	return (\%cpumax, \%cpuaverage);
+    my $div = @loads / $factor;
+
+    for ( keys %cpuaverage ) {
+        $cpuaverage{$_} /= $div;
+        $cpumax{$_}     /= $factor;
+    }
+
+    return ( \%cpumax, \%cpuaverage );
 }
 
 sub draw_background ($$) {
-   	my ($app, $rects) = @_;
-	my $rect = get_rect $rects, 'background';
+    my ( $app, $rects ) = @_;
+    my $rect = get_rect $rects, 'background';
 
-	$rect->width($C{width});
-	$rect->height($C{height});
-	$app->fill($rect, Loadbars::BLACK);
-	$app->update($rect);
+    $rect->width( $C{width} );
+    $rect->height( $C{height} );
+    $app->fill( $rect, Loadbars::BLACK );
+    $app->update($rect);
 
-	return undef;
+    return undef;
 }
 
 sub create_threads (@) {
-	return map { 
-		$_->detach(); 
-		$_;
+    return map {
+        $_->detach();
+        $_;
 
-	} map { 
-		threads->create('thread_get_stats', split /:/);
+      } map {
+        threads->create( 'thread_get_stats', split /:/ );
 
-	} @_;
+      } @_;
 }
 
 sub main_loop ($@) {
-	my ($dispatch, @threads) = @_;
+    my ( $dispatch, @threads ) = @_;
 
-	my $app = SDL::App->new(
-		-title => $C{title},
-		-icon_title => $C{title},
-		-width => $C{width},
-		-height => $C{height},
-		-depth => Loadbars::COLOR_DEPTH,
-		-resizeable => 0,
-	);
+    my $app = SDL::App->new(
+        -title      => $C{title},
+        -icon_title => $C{title},
+        -width      => $C{width},
+        -height     => $C{height},
+        -depth      => Loadbars::COLOR_DEPTH,
+        -resizeable => 0,
+    );
 
-	SDL::Font->new('font.png')->use();
+    SDL::Font->new('font.png')->use();
 
-	my $num_stats = keys %CPUSTATS;
+    my $num_stats = keys %CPUSTATS;
 
-	my $rects = {};
-	my %prev_stats;
-	my %last_loads;
+    my $rects = {};
+    my %prev_stats;
+    my %last_loads;
 
-	my $redraw_background = 0;
-	my $font_height = 14;
+    my $redraw_background = 0;
+    my $font_height       = 14;
 
-	my $displayinfo_time = 5;
-	my $displayinfo_start = 0;
-	my $displayinfo : shared = '';
-	my $infotxt : shared = '';
-	my $quit : shared = 0;
+    my $displayinfo_time     = 5;
+    my $displayinfo_start    = 0;
+    my $displayinfo : shared = '';
+    my $infotxt : shared     = '';
+    my $quit : shared        = 0;
 
-	my ($t1, $t2) = (Time::HiRes::time(), undef);
-	my $event = SDL::Event->new();
+    my ( $t1, $t2 ) = ( Time::HiRes::time(), undef );
+    my $event = SDL::Event->new();
 
-	my $event_thread = async {
-		for (;;) {
-			$event->pump();
-			$event->poll();
-			$event->wait();
+    my $event_thread = async {
+        for ( ; ; ) {
+            $event->pump();
+            $event->poll();
+            $event->wait();
 
-			my $type = $event->type();
-			my $key_name = $event->key_name(); 
+            my $type     = $event->type();
+            my $key_name = $event->key_name();
 
-			debugsay "Event type=$type key_name=$key_name" if Loadbars::DEBUG;
-			next if $type != 2;
+            debugsay "Event type=$type key_name=$key_name" if Loadbars::DEBUG;
+            next if $type != 2;
 
-			if ($key_name eq '1') {
-				$C{showcores} = !$C{showcores};
-				set_showcores_regexp;
-				$_->kill('USR1') for @threads;
-				%AVGSTATS = ();
-				%CPUSTATS = ();
-				$displayinfo = 'Toggled CPUs';
-			
-			} elsif ($key_name eq 'e') {
-                $C{extended} = !$C{extended};	
-				$displayinfo = 'Toggled extended display';
-			
-			} elsif ($key_name eq 'h') {
-				say '=> Hotkeys to use in the SDL interface';
-				say $dispatch->('hotkeys');
-				$displayinfo = 'Hotkeys help printed on terminal stdout';
+            if ( $key_name eq '1' ) {
+                $C{showcores} = !$C{showcores};
+                set_showcores_regexp;
+                $_->kill('USR1') for @threads;
+                %AVGSTATS    = ();
+                %CPUSTATS    = ();
+                $displayinfo = 'Toggled CPUs';
 
-			} elsif ($key_name eq 't') {
-				$C{displaytxt} = !$C{displaytxt};	
-				$displayinfo = 'Toggled text display';
-			
-			} elsif ($key_name eq 'u') {
-				$C{displaytxthost} = !$C{displaytxthost};	
-				$displayinfo = 'Toggled number/hostname display';
+            }
+            elsif ( $key_name eq 'e' ) {
+                $C{extended} = !$C{extended};
+                $displayinfo = 'Toggled extended display';
 
-			} elsif ($key_name eq 'q') {
-				$quit = 1;
-				last;
+            }
+            elsif ( $key_name eq 'h' ) {
+                say '=> Hotkeys to use in the SDL interface';
+                say $dispatch->('hotkeys');
+                $displayinfo = 'Hotkeys help printed on terminal stdout';
 
-			# Increase and decrease pairs
-			} elsif ($key_name eq 'a') {
-				++$C{average};
-				$displayinfo = "Set sample average to $C{average}";
-			} elsif ($key_name eq 'y' or $key_name eq 'z') {
-				my $avg = $C{average};
-				--$avg;
-				$C{average} = $avg > 1 ? $avg : 2;
-				$displayinfo = "Set sample average to $C{average}";
-			
-			} elsif ($key_name eq 's') {
-				$C{factor} += 0.1;
-				$displayinfo = "Set scale factor to $C{factor}";
-			} elsif ($key_name eq 'x' or $key_name eq 'z') {
-				$C{factor} -= 0.1;
-				$displayinfo = "Set scale factor to $C{factor}";
+            }
+            elsif ( $key_name eq 't' ) {
+                $C{displaytxt} = !$C{displaytxt};
+                $displayinfo = 'Toggled text display';
 
-			} elsif ($key_name eq 'd') {
-				$C{inter} += 0.1;
-				$displayinfo = "Set graph update interval to $C{inter}";
-			} elsif ($key_name eq 'c' or $key_name eq 'z') {
-				my $int = $C{inter};
-				$int -= 0.1;
-				$C{inter} = $int > 0 ? $int : 0.1;
-				$displayinfo = "Set graph update interval to $C{inter}";
-			}
-		}
-	};
+            }
+            elsif ( $key_name eq 'u' ) {
+                $C{displaytxthost} = !$C{displaytxthost};
+                $displayinfo = 'Toggled number/hostname display';
 
-	do {
-		my ($x, $y) = (0, 0);
-		my %is_host_summary;
+            }
+            elsif ( $key_name eq 'q' ) {
+                $quit = 1;
+                last;
 
-		my $new_num_stats = keys %CPUSTATS;
+                # Increase and decrease pairs
+            }
+            elsif ( $key_name eq 'a' ) {
+                ++$C{average};
+                $displayinfo = "Set sample average to $C{average}";
+            }
+            elsif ( $key_name eq 'y' or $key_name eq 'z' ) {
+                my $avg = $C{average};
+                --$avg;
+                $C{average} = $avg > 1 ? $avg : 2;
+                $displayinfo = "Set sample average to $C{average}";
 
-		if ($new_num_stats != $num_stats) {
-			%prev_stats = ();
-			%last_loads = ();
-	
-			$num_stats = $new_num_stats;
-			$redraw_background = 1;
-		}
+            }
+            elsif ( $key_name eq 's' ) {
+                $C{factor} += 0.1;
+                $displayinfo = "Set scale factor to $C{factor}";
+            }
+            elsif ( $key_name eq 'x' or $key_name eq 'z' ) {
+                $C{factor} -= 0.1;
+                $displayinfo = "Set scale factor to $C{factor}";
 
-		# Avoid division by null
-		# Also substract 1 (each bar is followed by an 1px separator bar)
-		my $width = $C{width} / ($num_stats ? $num_stats : 1) - 1;
+            }
+            elsif ( $key_name eq 'd' ) {
+                $C{inter} += 0.1;
+                $displayinfo = "Set graph update interval to $C{inter}";
+            }
+            elsif ( $key_name eq 'c' or $key_name eq 'z' ) {
+                my $int = $C{inter};
+                $int -= 0.1;
+                $C{inter} = $int > 0 ? $int : 0.1;
+                $displayinfo = "Set graph update interval to $C{inter}";
+            }
+        }
+    };
 
-		my ($current_barnum, $current_corenum) = (-1, -1);
+    do {
+        my ( $x, $y ) = ( 0, 0 );
+        my %is_host_summary;
 
-		for my $key (sort keys %CPUSTATS) {
-			++$current_barnum;
-			++$current_corenum;
-			my ($host, $name) = split ';', $key;
+        my $new_num_stats = keys %CPUSTATS;
 
-			next unless defined $CPUSTATS{$key};
+        if ( $new_num_stats != $num_stats ) {
+            %prev_stats = ();
+            %last_loads = ();
 
-			my %stat = map { 
-			   	my ($k, $v) = split '='; $k => $v 
+            $num_stats         = $new_num_stats;
+            $redraw_background = 1;
+        }
 
-			} split ';', $CPUSTATS{$key};
+        # Avoid division by null
+        # Also substract 1 (each bar is followed by an 1px separator bar)
+        my $width = $C{width} / ( $num_stats ? $num_stats : 1 ) - 1;
 
-			unless (exists $prev_stats{$key}) {
-				$prev_stats{$key} = \%stat;
-				next;
-			}
+        my ( $current_barnum, $current_corenum ) = ( -1, -1 );
 
-			my $prev_stat = $prev_stats{$key};
-			my %loads = null $stat{TOTAL} == null $prev_stat->{TOTAL} 
-				? %stat : map { 
-					$_ => $stat{$_} - $prev_stat->{$_} 
-				} keys %stat;
+        for my $key ( sort keys %CPUSTATS ) {
+            ++$current_barnum;
+            ++$current_corenum;
+            my ( $host, $name ) = split ';', $key;
 
-			$prev_stats{$key} = \%stat;
+            next unless defined $CPUSTATS{$key};
 
-			%loads = normalize_loads %loads;
-			push @{$last_loads{$key}}, \%loads;
-			shift @{$last_loads{$key}} while @{$last_loads{$key}} >= $C{average};
+            my %stat = map {
+                my ( $k, $v ) = split '=';
+                $k => $v
 
-			my ($cpumax, $cpuaverage) = get_cpuaverage $C{factor}, @{$last_loads{$key}};
+            } split ';', $CPUSTATS{$key};
 
-			my %heights = map { 
-				$_ => defined $cpuaverage->{$_} ? $cpuaverage->{$_} * ($C{height}/100) : 1 
-			} keys %$cpuaverage;
-
-			my $is_host_summary = exists $is_host_summary{$host};
-			
-			my $rect_separator = undef;
-
-			my $rect_idle = get_rect $rects, "$key;idle";
-			my $rect_steal = get_rect $rects, "$key;steal";
-			my $rect_guest = get_rect $rects, "$key;guest";
-			my $rect_irq = get_rect $rects, "$key;irq";
-			my $rect_softirq = get_rect $rects, "$key;softirq";
-			my $rect_nice = get_rect $rects, "$key;nice";
-			my $rect_iowait = get_rect $rects, "$key;iowait";
-			my $rect_user = get_rect $rects, "$key;user";
-			my $rect_system = get_rect $rects, "$key;system";
-
-			my $rect_peak; 
-
-			unless ($is_host_summary || !$C{showcores}) {	
-				$current_corenum = 0;
-				$rect_separator = get_rect $rects, "$key;separator";
-				$rect_separator->width(1);
-				$rect_separator->height($C{height});
-				$rect_separator->x($x-1);
-				$rect_separator->y(0);
-				$app->fill($rect_separator, Loadbars::GREY);
-			}
-			
-			$y = $C{height} - $heights{system};
-			$rect_system->width($width);
-			$rect_system->height($heights{system});
-			$rect_system->x($x);
-			$rect_system->y($y);
-			
-			$y -= $heights{user};
-			$rect_user->width($width);
-			$rect_user->height($heights{user});
-			$rect_user->x($x);
-			$rect_user->y($y);
-			
-			$y -= $heights{nice};
-			$rect_nice->width($width);
-			$rect_nice->height($heights{nice});
-			$rect_nice->x($x);
-			$rect_nice->y($y);
-			
-			$y -= $heights{idle};
-			$rect_idle->width($width);
-			$rect_idle->height($heights{idle});
-			$rect_idle->x($x);
-			$rect_idle->y($y);
-
-			$y -= $heights{iowait};
-			$rect_iowait->width($width);
-			$rect_iowait->height($heights{iowait});
-			$rect_iowait->x($x);
-			$rect_iowait->y($y);
-			
-			$y -= $heights{irq};
-			$rect_irq->width($width);
-			$rect_irq->height($heights{irq});
-			$rect_irq->x($x);
-			$rect_irq->y($y);
-
-			$y -= $heights{softirq};
-			$rect_softirq->width($width);
-			$rect_softirq->height($heights{softirq});
-			$rect_softirq->x($x);
-			$rect_softirq->y($y);
-			
-			$y -= $heights{guest};
-			$rect_guest->width($width);
-			$rect_guest->height($heights{guest});
-			$rect_guest->x($x);
-			$rect_guest->y($y);
-
-			$y -= $heights{steal};
-			$rect_steal->width($width);
-			$rect_steal->height($heights{steal});
-			$rect_steal->x($x);
-			$rect_steal->y($y);
-
-			my $all = 100 - $cpuaverage->{idle};
-            my $max_all = 0;
-			
-			$app->fill($rect_idle, Loadbars::BLACK);
-			$app->fill($rect_steal, Loadbars::RED);
-			$app->fill($rect_guest, Loadbars::RED);
-			$app->fill($rect_irq, Loadbars::WHITE);
-			$app->fill($rect_softirq, Loadbars::WHITE);
-			$app->fill($rect_nice, Loadbars::GREEN);
-			$app->fill($rect_iowait, Loadbars::PURPLE);
-
-            if ($C{extended}) {
-                my %maxheights = map {
-                    $_ => defined $cpumax->{$_} ? $cpumax->{$_} * ($C{height}/100) : 1 
-                } keys %$cpumax;                                
-        
-                $rect_peak = get_rect $rects, "$key;max";
-                $rect_peak->width($width);
-                        $rect_peak->height(1);
-                        $rect_peak->x($x);
-                        $rect_peak->y($C{height} - $maxheights{system} - $maxheights{user});
-                
-                $max_all = sum @{$cpumax}{qw(user system iowait irq softirq steal guest)};
-                
-                $app->fill($rect_peak, $max_all > Loadbars::USER_ORANGE ? Loadbars::ORANGE 
-                	: ($max_all > Loadbars::USER_YELLOW0 ? Loadbars::YELLOW0 
-                	: (Loadbars::YELLOW)));
+            unless ( exists $prev_stats{$key} ) {
+                $prev_stats{$key} = \%stat;
+                next;
             }
 
-			$app->fill($rect_user, $all > Loadbars::USER_ORANGE ? Loadbars::ORANGE 
-				: ($all > Loadbars::USER_YELLOW0 ? Loadbars::YELLOW0 
-				: (Loadbars::YELLOW)));
-			$app->fill($rect_system, $cpuaverage->{system} > Loadbars::SYSTEM_BLUE0 ? Loadbars::BLUE0 
-				: Loadbars::BLUE);
-			
-			my ($y, $space) = (5, $font_height);
-			my @loadavg = split ';', $AVGSTATS{$host};
-			$is_host_summary{$host} = 1 if defined $loadavg[0];
+            my $prev_stat = $prev_stats{$key};
+            my %loads =
+              null $stat{TOTAL} == null $prev_stat->{TOTAL}
+              ? %stat
+              : map { $_ => $stat{$_} - $prev_stat->{$_} } keys %stat;
 
-			if ($C{displaytxt}) {
-				if ($C{displaytxthost} && not $is_host_summary) {
-					# If hostname is printed don't use FQDN
-					# because of its length.
-					$host =~ /([^\.]*)/;
-					$app->print($x, $y, sprintf '%s:', $1);
+            $prev_stats{$key} = \%stat;
 
-				} else {
-					$app->print($x, $y, sprintf  '%i:', 
-						$C{showcores} ? $current_corenum : $current_barnum + 1);
-				}
+            %loads = normalize_loads %loads;
+            push @{ $last_loads{$key} }, \%loads;
+            shift @{ $last_loads{$key} }
+              while @{ $last_loads{$key} } >= $C{average};
 
+            my ( $cpumax, $cpuaverage ) = get_cpuaverage $C{factor},
+              @{ $last_loads{$key} };
 
-                if ($C{extended}) {
-                    $app->print($x, $y+=$space, sprintf '%02d%s', norm $cpuaverage->{steal}, 'st');
-                    $app->print($x, $y+=$space, sprintf '%02d%s', norm $cpuaverage->{guest}, 'gt');
-                    $app->print($x, $y+=$space, sprintf '%02d%s', norm $cpuaverage->{softirq}, 'sr');
-                    $app->print($x, $y+=$space, sprintf '%02d%s', norm $cpuaverage->{irq}, 'ir');
+            my %heights = map {
+                    $_ => defined $cpuaverage->{$_}
+                  ? $cpuaverage->{$_} * ( $C{height} / 100 )
+                  : 1
+            } keys %$cpuaverage;
+
+            my $is_host_summary = exists $is_host_summary{$host};
+
+            my $rect_separator = undef;
+
+            my $rect_idle    = get_rect $rects, "$key;idle";
+            my $rect_steal   = get_rect $rects, "$key;steal";
+            my $rect_guest   = get_rect $rects, "$key;guest";
+            my $rect_irq     = get_rect $rects, "$key;irq";
+            my $rect_softirq = get_rect $rects, "$key;softirq";
+            my $rect_nice    = get_rect $rects, "$key;nice";
+            my $rect_iowait  = get_rect $rects, "$key;iowait";
+            my $rect_user    = get_rect $rects, "$key;user";
+            my $rect_system  = get_rect $rects, "$key;system";
+
+            my $rect_peak;
+
+            unless ( $is_host_summary || !$C{showcores} ) {
+                $current_corenum = 0;
+                $rect_separator = get_rect $rects, "$key;separator";
+                $rect_separator->width(1);
+                $rect_separator->height( $C{height} );
+                $rect_separator->x( $x - 1 );
+                $rect_separator->y(0);
+                $app->fill( $rect_separator, Loadbars::GREY );
+            }
+
+            $y = $C{height} - $heights{system};
+            $rect_system->width($width);
+            $rect_system->height( $heights{system} );
+            $rect_system->x($x);
+            $rect_system->y($y);
+
+            $y -= $heights{user};
+            $rect_user->width($width);
+            $rect_user->height( $heights{user} );
+            $rect_user->x($x);
+            $rect_user->y($y);
+
+            $y -= $heights{nice};
+            $rect_nice->width($width);
+            $rect_nice->height( $heights{nice} );
+            $rect_nice->x($x);
+            $rect_nice->y($y);
+
+            $y -= $heights{idle};
+            $rect_idle->width($width);
+            $rect_idle->height( $heights{idle} );
+            $rect_idle->x($x);
+            $rect_idle->y($y);
+
+            $y -= $heights{iowait};
+            $rect_iowait->width($width);
+            $rect_iowait->height( $heights{iowait} );
+            $rect_iowait->x($x);
+            $rect_iowait->y($y);
+
+            $y -= $heights{irq};
+            $rect_irq->width($width);
+            $rect_irq->height( $heights{irq} );
+            $rect_irq->x($x);
+            $rect_irq->y($y);
+
+            $y -= $heights{softirq};
+            $rect_softirq->width($width);
+            $rect_softirq->height( $heights{softirq} );
+            $rect_softirq->x($x);
+            $rect_softirq->y($y);
+
+            $y -= $heights{guest};
+            $rect_guest->width($width);
+            $rect_guest->height( $heights{guest} );
+            $rect_guest->x($x);
+            $rect_guest->y($y);
+
+            $y -= $heights{steal};
+            $rect_steal->width($width);
+            $rect_steal->height( $heights{steal} );
+            $rect_steal->x($x);
+            $rect_steal->y($y);
+
+            my $all     = 100 - $cpuaverage->{idle};
+            my $max_all = 0;
+
+            $app->fill( $rect_idle,    Loadbars::BLACK );
+            $app->fill( $rect_steal,   Loadbars::RED );
+            $app->fill( $rect_guest,   Loadbars::RED );
+            $app->fill( $rect_irq,     Loadbars::WHITE );
+            $app->fill( $rect_softirq, Loadbars::WHITE );
+            $app->fill( $rect_nice,    Loadbars::GREEN );
+            $app->fill( $rect_iowait,  Loadbars::PURPLE );
+
+            if ( $C{extended} ) {
+                my %maxheights = map {
+                        $_ => defined $cpumax->{$_}
+                      ? $cpumax->{$_} * ( $C{height} / 100 )
+                      : 1
+                } keys %$cpumax;
+
+                $rect_peak = get_rect $rects, "$key;max";
+                $rect_peak->width($width);
+                $rect_peak->height(1);
+                $rect_peak->x($x);
+                $rect_peak->y(
+                    $C{height} - $maxheights{system} - $maxheights{user} );
+
+                $max_all =
+                  sum @{$cpumax}
+                  {qw(user system iowait irq softirq steal guest)};
+
+                $app->fill(
+                    $rect_peak,
+                    $max_all > Loadbars::USER_ORANGE ? Loadbars::ORANGE
+                    : (
+                        $max_all > Loadbars::USER_YELLOW0 ? Loadbars::YELLOW0
+                        : (Loadbars::YELLOW)
+                    )
+                );
+            }
+
+            $app->fill(
+                $rect_user,
+                $all > Loadbars::USER_ORANGE ? Loadbars::ORANGE
+                : (
+                    $all > Loadbars::USER_YELLOW0 ? Loadbars::YELLOW0
+                    : (Loadbars::YELLOW)
+                )
+            );
+            $app->fill( $rect_system,
+                $cpuaverage->{system} > Loadbars::SYSTEM_BLUE0
+                ? Loadbars::BLUE0
+                : Loadbars::BLUE );
+
+            my ( $y, $space ) = ( 5, $font_height );
+            my @loadavg = split ';', $AVGSTATS{$host};
+            $is_host_summary{$host} = 1 if defined $loadavg[0];
+
+            if ( $C{displaytxt} ) {
+                if ( $C{displaytxthost} && not $is_host_summary ) {
+
+                    # If hostname is printed don't use FQDN
+                    # because of its length.
+                    $host =~ /([^\.]*)/;
+                    $app->print( $x, $y, sprintf '%s:', $1 );
+
+                }
+                else {
+                    $app->print( $x, $y, sprintf '%i:',
+                          $C{showcores}
+                        ? $current_corenum
+                        : $current_barnum + 1 );
                 }
 
-				$app->print($x, $y+=$space, sprintf '%02d%s', norm $cpuaverage->{iowait}, 'io');
+                if ( $C{extended} ) {
+                    $app->print(
+                        $x,
+                        $y += $space,
+                        sprintf '%02d%s',
+                        norm $cpuaverage->{steal}, 'st'
+                    );
+                    $app->print(
+                        $x,
+                        $y += $space,
+                        sprintf '%02d%s',
+                        norm $cpuaverage->{guest}, 'gt'
+                    );
+                    $app->print(
+                        $x,
+                        $y += $space,
+                        sprintf '%02d%s',
+                        norm $cpuaverage->{softirq}, 'sr'
+                    );
+                    $app->print(
+                        $x,
+                        $y += $space,
+                        sprintf '%02d%s',
+                        norm $cpuaverage->{irq}, 'ir'
+                    );
+                }
 
-                $app->print($x, $y+=$space, sprintf '%02d%s', norm $cpuaverage->{idle}, 'id') if $C{extended};
+                $app->print(
+                    $x,
+                    $y += $space,
+                    sprintf '%02d%s',
+                    norm $cpuaverage->{iowait}, 'io'
+                );
 
-				$app->print($x, $y+=$space, sprintf '%02d%s', norm $cpuaverage->{nice}, 'ni');
-				$app->print($x, $y+=$space, sprintf '%02d%s', norm $cpuaverage->{user}, 'us');
-				$app->print($x, $y+=$space, sprintf '%02d%s', norm $cpuaverage->{system}, 'sy');
-				$app->print($x, $y+=$space, sprintf '%02d%s', norm $all, 'to');
+                $app->print(
+                    $x,
+                    $y += $space,
+                    sprintf '%02d%s',
+                    norm $cpuaverage->{idle}, 'id'
+                ) if $C{extended};
 
-                $app->print($x, $y+=$space, sprintf '%02d%s', norm $max_all, 'pk') if $C{extended};
-                    
+                $app->print(
+                    $x,
+                    $y += $space,
+                    sprintf '%02d%s',
+                    norm $cpuaverage->{nice}, 'ni'
+                );
+                $app->print(
+                    $x,
+                    $y += $space,
+                    sprintf '%02d%s',
+                    norm $cpuaverage->{user}, 'us'
+                );
+                $app->print(
+                    $x,
+                    $y += $space,
+                    sprintf '%02d%s',
+                    norm $cpuaverage->{system}, 'sy'
+                );
+                $app->print(
+                    $x,
+                    $y += $space,
+                    sprintf '%02d%s',
+                    norm $all, 'to'
+                );
+
+                $app->print(
+                    $x,
+                    $y += $space,
+                    sprintf '%02d%s',
+                    norm $max_all, 'pk'
+                ) if $C{extended};
+
                 unless ($is_host_summary) {
-                	if (defined $loadavg[0]) {	
-                		$app->print($x, $y+=$space, 'avg:');
-                		$app->print($x, $y+=$space, sprintf "%.2f", $loadavg[0]);
-                		$app->print($x, $y+=$space, sprintf "%.2f", $loadavg[1]);
-                		$app->print($x, $y+=$space, sprintf "%.2f", $loadavg[2]);
-                	}
+                    if ( defined $loadavg[0] ) {
+                        $app->print( $x, $y += $space, 'avg:' );
+                        $app->print(
+                            $x,
+                            $y += $space,
+                            sprintf "%.2f",
+                            $loadavg[0]
+                        );
+                        $app->print(
+                            $x,
+                            $y += $space,
+                            sprintf "%.2f",
+                            $loadavg[1]
+                        );
+                        $app->print(
+                            $x,
+                            $y += $space,
+                            sprintf "%.2f",
+                            $loadavg[2]
+                        );
+                    }
                 }
-			}
+            }
 
-			# Display an informational text message if any
+            # Display an informational text message if any
             #$app->print(0, $y+=$space, $displayinfo) if length $displayinfo;
-            if (length $displayinfo) {
+            if ( length $displayinfo ) {
                 say $displayinfo;
                 $displayinfo = '';
             }
-		
-			$app->update(
-                    $rect_idle, 
-                    $rect_iowait, 
-                    $rect_irq, 
-                    $rect_nice, 
-                    $rect_softirq, 
-                    $rect_steal, 
-                    $rect_guest, 
-                    $rect_system,
-                    $rect_user,
-                    );
 
-			$app->update($rect_separator) if defined $rect_separator;
+            $app->update(
+                $rect_idle,  $rect_iowait,  $rect_irq,
+                $rect_nice,  $rect_softirq, $rect_steal,
+                $rect_guest, $rect_system,  $rect_user,
+            );
 
-			$x += $width + 1;
-		}
+            $app->update($rect_separator) if defined $rect_separator;
 
-TIMEKEEPER:
-		$t2 = Time::HiRes::time();
+            $x += $width + 1;
+        }
 
-		if (length $displayinfo) {
-			if ($displayinfo_start == 0) {
-				$displayinfo_start = $t2;
+      TIMEKEEPER:
+        $t2 = Time::HiRes::time();
 
-			} else {
-				if ($displayinfo_time < $t2 - $displayinfo_start) {
-					$displayinfo = '';
-					$displayinfo_start = 0;
-				}		
-			}	
-		}
+        if ( length $displayinfo ) {
+            if ( $displayinfo_start == 0 ) {
+                $displayinfo_start = $t2;
 
-		if ($C{inter} > $t2 - $t1) {
-			usleep 10000;
-			# Goto is OK if you don't produce spaghetti code 
-			goto TIMEKEEPER;
-		}
+            }
+            else {
+                if ( $displayinfo_time < $t2 - $displayinfo_start ) {
+                    $displayinfo       = '';
+                    $displayinfo_start = 0;
+                }
+            }
+        }
 
-		$t1 = $t2;
+        if ( $C{inter} > $t2 - $t1 ) {
+            usleep 10000;
 
-		if ($redraw_background) {
-			draw_background $app, $rects;
-			$redraw_background = 0;
-		}
+            # Goto is OK if you don't produce spaghetti code
+            goto TIMEKEEPER;
+        }
 
-	} until $quit;
+        $t1 = $t2;
 
-	say "Good bye";
-	# $_->kill('STOP') for @threads;
-	$event_thread->join();
-	exit 0;
+        if ($redraw_background) {
+            draw_background $app, $rects;
+            $redraw_background = 0;
+        }
+
+    } until $quit;
+
+    say "Good bye";
+
+    # $_->kill('STOP') for @threads;
+    $event_thread->join();
+    exit 0;
 }
 
-
 sub dispatch_table () {
- 	my $hosts = '';
+    my $hosts = '';
 
-	my $textdesc = <<END;
+    my $textdesc = <<END;
 Explanations:
     st = Steal in % [see man proc] (extended)
         Color: Red
@@ -644,197 +751,343 @@ Examples:
     loadbars --cluster foocluster (foocluster is in /etc/clusters of cssh)
 END
 
-	# mode 1: Option is shown in the online help menu (stdout not sdl)
-	# mode 2: Option is shown in the 'usage' screen from the command line
-	# mode 4: Option is used to generate the GetOptions parameters for Getopt::Long
-	# Combinations: Like chmod(1)
+ # mode 1: Option is shown in the online help menu (stdout not sdl)
+ # mode 2: Option is shown in the 'usage' screen from the command line
+ # mode 4: Option is used to generate the GetOptions parameters for Getopt::Long
+ # Combinations: Like chmod(1)
 
-	my %d = ( 
-		average => { menupos => 3,  help => 'Num of samples for avg. (more fluent animations)', mode => 6, type => 'i' },
-		average_hot_up => { menupos => 4,  cmd => 'a', help => 'Increases number of samples for calculating avg. by 1', mode => 1 },
-		average_hot_dn => { menupos => 5,  cmd => 'y', help => 'Decreases number of samples for calculating avg. by 1', mode => 1 },
+    my %d = (
+        average => {
+            menupos => 3,
+            help    => 'Num of samples for avg. (more fluent animations)',
+            mode    => 6,
+            type    => 'i'
+        },
+        average_hot_up => {
+            menupos => 4,
+            cmd     => 'a',
+            help    => 'Increases number of samples for calculating avg. by 1',
+            mode    => 1
+        },
+        average_hot_dn => {
+            menupos => 5,
+            cmd     => 'y',
+            help    => 'Decreases number of samples for calculating avg. by 1',
+            mode    => 1
+        },
 
-		cluster => { menupos => 6, help => 'Cluster name from /etc/clusters', var => \$C{cluster}, mode => 6, type => 's' },
-		configuration => { menupos => 6,  cmd => 'c', help => 'Show current configuration', mode => 4 },
+        cluster => {
+            menupos => 6,
+            help    => 'Cluster name from /etc/clusters',
+            var     => \$C{cluster},
+            mode    => 6,
+            type    => 's'
+        },
+        configuration => {
+            menupos => 6,
+            cmd     => 'c',
+            help    => 'Show current configuration',
+            mode    => 4
+        },
 
-		extended => { menupos => 6,  help => 'Toggle extended display (0 or 1)', mode => 7, type => 'i' },
-		extended_hot => { menupos => 23, cmd => 'e', help => 'Toggle peak display', mode => 1 },
+        extended => {
+            menupos => 6,
+            help    => 'Toggle extended display (0 or 1)',
+            mode    => 7,
+            type    => 'i'
+        },
+        extended_hot => {
+            menupos => 23,
+            cmd     => 'e',
+            help    => 'Toggle peak display',
+            mode    => 1
+        },
 
-		factor => { menupos => 7,  help => 'Set graph scale factor (1.0 means 100%)', mode => 6, type => 's' },
-		factor_hot_up => { menupos => 8,  cmd => 's', help => 'Increases graph scale factor by 0.1', mode => 1 },
-		factor_hot_dn => { menupos => 9,  cmd => 'x', help => 'Decreases graph scale factor by 0.1', mode => 1 },
+        factor => {
+            menupos => 7,
+            help    => 'Set graph scale factor (1.0 means 100%)',
+            mode    => 6,
+            type    => 's'
+        },
+        factor_hot_up => {
+            menupos => 8,
+            cmd     => 's',
+            help    => 'Increases graph scale factor by 0.1',
+            mode    => 1
+        },
+        factor_hot_dn => {
+            menupos => 9,
+            cmd     => 'x',
+            help    => 'Decreases graph scale factor by 0.1',
+            mode    => 1
+        },
 
-		height => { menupos => 10,  help => 'Set windows height', mode => 6, type => 'i' },
+        height => {
+            menupos => 10,
+            help    => 'Set windows height',
+            mode    => 6,
+            type    => 'i'
+        },
 
-		help_hot => { menupos => 11,  cmd => 'h', help => 'Prints this help screen', mode => 1 },
+        help_hot => {
+            menupos => 11,
+            cmd     => 'h',
+            help    => 'Prints this help screen',
+            mode    => 1
+        },
 
-		hosts => { menupos => 12, help => 'Comma sep. list of hosts; optional: user@ in front to each host', var => \$hosts, mode => 6, type => 's' },
+        hosts => {
+            menupos => 12,
+            help =>
+              'Comma sep. list of hosts; optional: user@ in front to each host',
+            var  => \$hosts,
+            mode => 6,
+            type => 's'
+        },
 
-		inter => { menupos => 13, help => 'Set update interval in seconds (default 0.1)', mode => 7, type => 's' },
-		inter_hot_up => { menupos => 14,  cmd => 'd', help => 'Increases update interval in seconds by 0.1', mode => 1 },
-		inter_hot_dn => { menupos => 15,  cmd => 'c', help => 'Decreases update interval in seconds by 0.1', mode => 1 },
+        inter => {
+            menupos => 13,
+            help    => 'Set update interval in seconds (default 0.1)',
+            mode    => 7,
+            type    => 's'
+        },
+        inter_hot_up => {
+            menupos => 14,
+            cmd     => 'd',
+            help    => 'Increases update interval in seconds by 0.1',
+            mode    => 1
+        },
+        inter_hot_dn => {
+            menupos => 15,
+            cmd     => 'c',
+            help    => 'Decreases update interval in seconds by 0.1',
+            mode    => 1
+        },
 
-		quit_hot => { menupos => 16,  cmd => 'q', help => 'Quits', mode => 1 },
+        quit_hot => { menupos => 16, cmd => 'q', help => 'Quits', mode => 1 },
 
-		samples => { menupos => 17,  help => 'Set number of samples until ssh reconnects', mode => 6, type => 'i' },
+        samples => {
+            menupos => 17,
+            help    => 'Set number of samples until ssh reconnects',
+            mode    => 6,
+            type    => 'i'
+        },
 
-		showcores => { menupos => 17,  help => 'Toggle core display (0 or 1)', mode => 7, type => 'i' },
-		showcores_hot => { menupos => 17,  cmd => '1', help => 'Toggle CPUs', mode => 1 },
+        showcores => {
+            menupos => 17,
+            help    => 'Toggle core display (0 or 1)',
+            mode    => 7,
+            type    => 'i'
+        },
+        showcores_hot =>
+          { menupos => 17, cmd => '1', help => 'Toggle CPUs', mode => 1 },
 
-		showtexthost => { menupos => 18,  help => 'Toggle hostname/num text display (0 or 1)', mode => 7, type => 'i' },
-		showtexthost_hot => { menupos => 18, cmd => 'u', help => 'Toggle hostname/num text display', mode => 1 },
+        showtexthost => {
+            menupos => 18,
+            help    => 'Toggle hostname/num text display (0 or 1)',
+            mode    => 7,
+            type    => 'i'
+        },
+        showtexthost_hot => {
+            menupos => 18,
+            cmd     => 'u',
+            help    => 'Toggle hostname/num text display',
+            mode    => 1
+        },
 
-		showtext => { menupos => 19,  help => 'Toggle text display (0 or 1)', mode => 7, type => 'i' },
-		showtext_hot => { menupos => 19, cmd => 't', help => 'Toggle text display', mode => 1 },
+        showtext => {
+            menupos => 19,
+            help    => 'Toggle text display (0 or 1)',
+            mode    => 7,
+            type    => 'i'
+        },
+        showtext_hot => {
+            menupos => 19,
+            cmd     => 't',
+            help    => 'Toggle text display',
+            mode    => 1
+        },
 
-		sshopts => { menupos => 20,  help => 'Set SSH options', mode => 6, type => 's' },
-		title => { menupos => 21,  help => 'Set the window title', var => \$C{title}, mode => 6, type => 's' },
+        sshopts =>
+          { menupos => 20, help => 'Set SSH options', mode => 6, type => 's' },
+        title => {
+            menupos => 21,
+            help    => 'Set the window title',
+            var     => \$C{title},
+            mode    => 6,
+            type    => 's'
+        },
 
-		width => { menupos => 24,  help => 'Set windows width', mode => 6, type => 'i' },
-	);
+        width => {
+            menupos => 24,
+            help    => 'Set windows width',
+            mode    => 6,
+            type    => 'i'
+        },
+    );
 
-	my %d_by_short = map { 
-	   	$d{$_}{cmd} => $d{$_} 
+    my %d_by_short = map {
+        $d{$_}{cmd} => $d{$_}
 
-	} grep { 
-	   	exists $d{$_}{cmd} 
+      } grep {
+        exists $d{$_}{cmd}
 
-	} keys %d;
+      } keys %d;
 
-	my $closure = sub ($;$) {
-		my ($arg, @rest) = @_;
+    my $closure = sub ($;$) {
+        my ( $arg, @rest ) = @_;
 
-		if ($arg eq 'command') {
-			my ($cmd, @args) = @rest;
+        if ( $arg eq 'command' ) {
+            my ( $cmd, @args ) = @rest;
 
-			my $cb = $d{$cmd};
-			$cb = $d_by_short{$cmd} unless defined $cb;
+            my $cb = $d{$cmd};
+            $cb = $d_by_short{$cmd} unless defined $cb;
 
-			unless (defined $cb) {
-				system $cmd;	
-				return 0;
-			}
+            unless ( defined $cb ) {
+                system $cmd;
+                return 0;
+            }
 
-			if (length $cmd == 1) {
-				for my $key (grep { exists $d{$_}{cmd} } keys %d) {
-					do { $cmd = $key; last } if $d{$key}{cmd} eq $cmd;
-				}
-			}
+            if ( length $cmd == 1 ) {
+                for my $key ( grep { exists $d{$_}{cmd} } keys %d ) {
+                    do { $cmd = $key; last } if $d{$key}{cmd} eq $cmd;
+                }
+            }
 
-		} elsif ($arg eq 'hotkeys') {
-			$textdesc . "Hotkeys:\n" .  (join "\n", map { 
-				"$_\t- $d_by_short{$_}{help}" 
+        }
+        elsif ( $arg eq 'hotkeys' ) {
+            $textdesc . "Hotkeys:\n" . (
+                join "\n",
+                map {
+                    "$_\t- $d_by_short{$_}{help}"
 
-			} grep { 
-			   	$d_by_short{$_}{mode} & 1 and exists $d_by_short{$_}{help};
+                  } grep {
+                    $d_by_short{$_}{mode} & 1 and exists $d_by_short{$_}{help};
 
-			} sort { $d_by_short{$a}{menupos} <=> $d_by_short{$b}{menupos} } sort keys %d_by_short);
+                  } sort { $d_by_short{$a}{menupos} <=> $d_by_short{$b}{menupos} }
+                  sort keys %d_by_short
+            );
 
-		} elsif ($arg eq 'usage') {
-			$textdesc .  (join "\n", map { 
-					if ($_ eq 'help') {
-			   		"--$_\t\t- $d{$_}{help}" 
-					} else {
-			   		"--$_ <ARG>\t- $d{$_}{help}" 
-					}
+        }
+        elsif ( $arg eq 'usage' ) {
+            $textdesc . (
+                join "\n",
+                map {
+                    if ( $_ eq 'help' )
+                    {
+                        "--$_\t\t- $d{$_}{help}";
+                    }
+                    else {
+                        "--$_ <ARG>\t- $d{$_}{help}";
+                    }
 
-			} grep { 
-			   	$d{$_}{mode} & 2 and exists $d{$_}{help} 
+                  } grep {
+                    $d{$_}{mode} & 2
+                      and exists $d{$_}{help}
 
-			} sort { $d{$a}{menupos} <=> $d{$b}{menupos} } sort keys %d);
+                  } sort { $d{$a}{menupos} <=> $d{$b}{menupos} } sort keys %d
+            );
 
-		} elsif ($arg eq 'options') {
-			map { 
-			   	"$_=".$d{$_}{type} => (defined $d{$_}{var} ? $d{$_}{var} : \$C{$_});
+        }
+        elsif ( $arg eq 'options' ) {
+            map {
+                "$_="
+                  . $d{$_}{type} =>
+                  ( defined $d{$_}{var} ? $d{$_}{var} : \$C{$_} );
 
-			} grep { 
-			   	$d{$_}{mode} & 4 and exists $d{$_}{type}; 
+              } grep {
+                $d{$_}{mode} & 4 and exists $d{$_}{type};
 
-			} sort keys %d;
-		} 
-	};
+              } sort keys %d;
+        }
+    };
 
-	$d{configuration}{cb} = sub { 
-		say sort map { 
-		   	"$_->[0] = $_->[1]" 
+    $d{configuration}{cb} = sub {
+        say sort map {
+            "$_->[0] = $_->[1]"
 
-		} grep { 
-		   	defined $_->[1] 
+          } grep {
+            defined $_->[1]
 
-		} map { 
-		   	[$_ => exists $d{$_}{var} ? ${$d{$_}{var}} : $C{$_}] 
+          } map {
+            [ $_ => exists $d{$_}{var} ? ${ $d{$_}{var} } : $C{$_} ]
 
-		} keys %d
-	};
+          } keys %d;
+    };
 
-	return (\$hosts, $closure);
+    return ( \$hosts, $closure );
 }
 
 # Recursuve function
 sub get_cluster_hosts ($;$);
+
 sub get_cluster_hosts ($;$) {
-	my ($cluster, $recursion) = @_;
+    my ( $cluster, $recursion ) = @_;
 
-        unless (defined $recursion) {
-                $recursion = 1;                
+    unless ( defined $recursion ) {
+        $recursion = 1;
 
-        } elsif ($recursion > CSSH_MAX_RECURSION) {
-                  error "CSSH_MAX_RECURSION reached. Infinite circle loop in " .  CSSH_CONFFILE . "?";
+    }
+    elsif ( $recursion > CSSH_MAX_RECURSION ) {
+        error "CSSH_MAX_RECURSION reached. Infinite circle loop in "
+          . CSSH_CONFFILE . "?";
+    }
+
+    open my $fh, CSSH_CONFFILE or error "$!: " . CSSH_CONFFILE;
+    my $hosts;
+
+    while (<$fh>) {
+        if (/^$cluster\s*(.*)/) {
+            $hosts = $1;
+            last;
         }
+    }
 
-        open my $fh, CSSH_CONFFILE or error "$!: " . CSSH_CONFFILE;
-	my $hosts;
+    close $fh;
 
-	while (<$fh>) {
-		if (/^$cluster\s*(.*)/) {
-			$hosts = $1;
-			last;
-		}		
-	}
+    unless ( defined $hosts ) {
+        error "No such cluster in " . CSSH_CONFFILE . ": $cluster"
+          unless defined $recursion;
 
-	close $fh;
+        return ($cluster);
+    }
 
-        unless (defined $hosts) {
-	        error "No such cluster in " . CSSH_CONFFILE . ": $cluster" 
-                        unless defined $recursion;
-
-                return ($cluster);
-        }                
-
-        my @hosts;            
-        push @hosts, get_cluster_hosts $_, ($recursion + 1) for (split /\s+/, $hosts);
-        return @hosts;
+    my @hosts;
+    push @hosts, get_cluster_hosts $_, ( $recursion + 1 )
+      for ( split /\s+/, $hosts );
+    return @hosts;
 }
 
 sub main () {
-	my ($hosts, $dispatch) = dispatch_table;
-	my $usage;
+    my ( $hosts, $dispatch ) = dispatch_table;
+    my $usage;
 
-	GetOptions ('help|?' => \$usage, $dispatch->('options'));
+    GetOptions( 'help|?' => \$usage, $dispatch->('options') );
 
-	if (defined $usage) {
-		say $dispatch->('usage');
-		exit 1;
-	}
-
-	set_showcores_regexp;
-
-  	my @hosts = map {
-		my ($a, $b) = split /\@/, $_;
-		defined $b ? "$b:$a" : $a;
-	} split ',', $$hosts;
-
-	if (@hosts || defined $C{cluster}) {
-		push @hosts, get_cluster_hosts $C{cluster} if defined $C{cluster}; 
-		system 'ssh-add';
-
-	} else {
-		say $dispatch->('usage');
+    if ( defined $usage ) {
+        say $dispatch->('usage');
         exit 1;
-	}
+    }
 
-  	my @threads = create_threads @hosts;
-	main_loop $dispatch, @threads;
+    set_showcores_regexp;
+
+    my @hosts = map {
+        my ( $a, $b ) = split /\@/, $_;
+        defined $b ? "$b:$a" : $a;
+    } split ',', $$hosts;
+
+    if ( @hosts || defined $C{cluster} ) {
+        push @hosts, get_cluster_hosts $C{cluster} if defined $C{cluster};
+        system 'ssh-add';
+
+    }
+    else {
+        say $dispatch->('usage');
+        exit 1;
+    }
+
+    my @threads = create_threads @hosts;
+    main_loop $dispatch, @threads;
 }
 
 main;

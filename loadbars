@@ -91,7 +91,7 @@ sub error ($) { die shift, "\n" }
 sub percentage ($$) {
     my ($total, $part) = @_;
 
-    return int (null $part / notnull ( null $total / 100 ));
+    return int (null($part) / notnull ( null($total) / 100 ));
 }
 
 sub norm ($) {

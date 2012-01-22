@@ -790,7 +790,7 @@ END
         extended_hot => {
             menupos => 23,
             cmd     => 'e',
-            help    => 'Toggle peak display',
+            help    => 'Toggle extended mode',
             mode    => 1
         },
 

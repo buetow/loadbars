@@ -40,6 +40,7 @@ use constant {
     WHITE              => SDL::Color->new( -r => 0xff, -g => 0xff, -b => 0xff ),
     GREY0              => SDL::Color->new( -r => 0x11, -g => 0x11, -b => 0x11 ),
     GREY               => SDL::Color->new( -r => 0xaa, -g => 0xaa, -b => 0xaa ),
+    DARK_GREY          => SDL::Color->new( -r => 0x15, -g => 0x15, -b => 0x15 ),
     YELLOW0            => SDL::Color->new( -r => 0xff, -g => 0xa0, -b => 0x00 ),
     YELLOW             => SDL::Color->new( -r => 0xff, -g => 0xc0, -b => 0x00 ),
     SYSTEM_BLUE0       => 30,
@@ -64,7 +65,7 @@ my %C : shared;
     title          => Loadbars::VERSION . ' (press h for help on stdout)',
     average        => 15,
     showcores      => 0,
-    showmem        => 1,
+    showmem        => 0,
     cpuregexp      => 'cpu',
     factor         => 1,
     extended       => 0,
@@ -82,9 +83,16 @@ sub say (@) { print "$_\n" for @_; return undef }
 sub newline () { say ''; return undef }
 sub debugsay (@) { say "Loadbars::DEBUG: $_" for @_; return undef }
 sub sum (@) { my $sum = 0; $sum += $_ for @_; return $sum }
-sub null ($) { my $arg = shift; return defined $arg ? $arg : 0 }
+sub null ($) { defined $_[0] ? $_[0] : 0 }
+sub notnull ($) {  $_[0] != 0 ? $_[0] : 1 }
 sub set_showcores_regexp () { $C{cpuregexp} = $C{showcores} ? 'cpu' : 'cpu ' }
 sub error ($) { die shift, "\n" }
+
+sub percentage ($$) {
+    my ($total, $part) = @_;
+
+    return int (null $part / notnull ( null $total / 100 ));
+}
 
 sub norm ($) {
     my $n = shift;
@@ -439,30 +447,6 @@ sub main_loop ($@) {
 
             my $rect_peak;
 
-            my $add_x = 0;
-            my ($rect_memused, $rect_memfree, $rect_buffers, $rect_cached, $rect_swapused, $rect_swapfree);
-
-            if ( $is_host_summary ) {
-                if ( $C{showmem} ) {
-                    $rect_memused = get_rect $rects, "$host;memused";
-                    $rect_memfree = get_rect $rects, "$host;memfree";
-                    $rect_buffers = get_rect $rects, "$host;buffers";
-                    $rect_cached = get_rect $rects, "$host;cached";
-                    $rect_swapused = get_rect $rects, "$host;swapused";
-                    $rect_swapfree = get_rect $rects, "$host;swapfree";
-                    $add_x = $width + 1, 
-                }
-
-                if ( $C{showcores} ) {
-                    $current_corenum = 0;
-                    $rect_separator = get_rect $rects, "$key;separator";
-                    $rect_separator->width(1);
-                    $rect_separator->height( $C{height} );
-                    $rect_separator->x( $x - 1 );
-                    $rect_separator->y(0);
-                    $app->fill( $rect_separator, Loadbars::GREY );
-                }
-            }
 
             $y = $C{height} - $heights{system};
             $rect_system->width($width);
@@ -518,9 +502,6 @@ sub main_loop ($@) {
             $rect_steal->x($x);
             $rect_steal->y($y);
 
-            if ( $C{showcores} ) {
-            }
-
             my $all     = 100 - $cpuaverage->{idle};
             my $max_all = 0;
 
@@ -531,6 +512,77 @@ sub main_loop ($@) {
             $app->fill( $rect_softirq, Loadbars::WHITE );
             $app->fill( $rect_nice,    Loadbars::GREEN );
             $app->fill( $rect_iowait,  Loadbars::PURPLE );
+
+            my $add_x = 0;
+            my $rect_memused = get_rect $rects, "$host;memused";
+            my $rect_memfree = get_rect $rects, "$host;memfree";
+            my $rect_buffers = get_rect $rects, "$host;buffers";
+            my $rect_cached = get_rect $rects, "$host;cached";
+            my $rect_swapused = get_rect $rects, "$host;swapused";
+            my $rect_swapfree = get_rect $rects, "$host;swapfree";
+
+            my %meminfo;
+            if ( $is_host_summary ) {
+                if ( $C{showmem} ) {
+                    $add_x = $width + 1;
+
+                    my $ram_per = percentage $MEMSTATS{"$host;MemTotal"}, $MEMSTATS{"$host;MemFree"};
+                    my $swap_per = percentage $MEMSTATS{"$host;SwapTotal"}, $MEMSTATS{"$host;SwapFree"};
+
+                    %meminfo = (
+                        ram_per => $ram_per,
+                        swap_per => $swap_per,
+                    );
+
+                    my %heights = (
+                            MemFree => $ram_per * ( $C{height} / 100 ),
+                            MemUsed => (100 - $ram_per) * ( $C{height} / 100 ),
+                            SwapFree => $swap_per * ( $C{height} / 100 ),
+                            SwapUsed => (100 - $swap_per) * ( $C{height} / 100 ),
+                    );
+
+                    my $half_width = $width / 2;
+                    $y = $C{height} - $heights{MemUsed};
+                    $rect_memused->width($half_width);
+                    $rect_memused->height( $heights{MemUsed} );
+                    $rect_memused->x($x+$add_x);
+                    $rect_memused->y($y);
+
+                    $y -= $heights{MemFree};
+                    $rect_memfree->width($half_width);
+                    $rect_memfree->height( $heights{MemFree} );
+                    $rect_memfree->x($x+$add_x);
+                    $rect_memfree->y($y);
+
+                    $y = $C{height} - $heights{SwapUsed};
+                    $rect_swapused->width($half_width);
+                    $rect_swapused->height( $heights{SwapUsed} );
+                    $rect_swapused->x($x+$add_x+$half_width);
+                    $rect_swapused->y($y);
+
+                    $y -= $heights{SwapFree};
+                    $rect_swapfree->width($half_width);
+                    $rect_swapfree->height( $heights{SwapFree} );
+                    $rect_swapfree->x($x+$add_x+$half_width);
+                    $rect_swapfree->y($y);
+                    
+                    $app->fill( $rect_memused,   Loadbars::DARK_GREY );
+                    $app->fill( $rect_memfree,    Loadbars::BLACK );
+
+                    $app->fill( $rect_swapused,   Loadbars::GREY );
+                    $app->fill( $rect_swapfree,    Loadbars::BLACK );
+                }
+
+                if ( $C{showcores} ) {
+                    $current_corenum = 0;
+                    $rect_separator = get_rect $rects, "$key;separator";
+                    $rect_separator->width(1);
+                    $rect_separator->height( $C{height} );
+                    $rect_separator->x( $x - 1 );
+                    $rect_separator->y(0);
+                    $app->fill( $rect_separator, Loadbars::GREY );
+                }
+            }
 
             if ( $C{extended} ) {
                 my %maxheights = map {
@@ -560,8 +612,14 @@ sub main_loop ($@) {
             my @loadavg = split ';', $AVGSTATS{$host};
 
             if ( $C{displaytxt} ) {
+                if ( $C{showmem} && $is_host_summary ) {
+                    my $y_ = $y;
+                    $app->print( $x+$add_x, $y_, 'Ram:');
+                    $app->print( $x+$add_x, $y_ += $space, sprintf '%02d', (100-$meminfo{ram_per}));
+                    $app->print( $x+$add_x, $y_ += $space, 'Swp:');
+                    $app->print( $x+$add_x, $y_ += $space, sprintf '%02d', (100-$meminfo{swap_per}));
+                }
                 if ( $C{displaytxthost} && $is_host_summary ) {
-
                     # If hostname is printed don't use FQDN
                     # because of its length.
                     $host =~ /([^\.]*)/;
@@ -592,7 +650,7 @@ sub main_loop ($@) {
 
                 if ($is_host_summary) {
                     if ( defined $loadavg[0] ) {
-                        $app->print( $x, $y += $space, 'avg:' );
+                        $app->print( $x, $y += $space, 'Avg:' );
                         $app->print( $x, $y += $space, sprintf "%.2f", $loadavg[0]);
                         $app->print( $x, $y += $space, sprintf "%.2f", $loadavg[1]);
                         $app->print( $x, $y += $space, sprintf "%.2f", $loadavg[2]);
@@ -613,6 +671,7 @@ sub main_loop ($@) {
                 $rect_guest, $rect_system,  $rect_user,
             );
 
+            $app->update( $rect_memfree, $rect_memused, $rect_swapused, $rect_swapfree ) if $C{showmem};
             $app->update($rect_separator) if defined $rect_separator;
 
             $x += $width + 1 + $add_x;
@@ -648,7 +707,7 @@ sub dispatch_table () {
     my $hosts = '';
 
     my $textdesc = <<END;
-Explanations:
+CPU stuff:
     st = Steal in % [see man proc] (extended)
         Color: Red
     gt = Guest in % [see man proc] (extended)
@@ -672,6 +731,11 @@ Explanations:
     avg = System load average; desc. order: 1, 5 and 15 min. avg. 
     1px horizontal line: Maximum sy+us+io of last 'avg' samples (extended)
     Extended means: text display only if extended mode is turned on
+Memory stuff:
+    Ram: System ram usage in %
+        Color: Dark grey
+    Swp: System swap usage in %
+        Color: Grey
 Examples:
     loadbars --extended 1 --showcores 1 --width 600 --hosts localhost
     loadbars --hosts localhost,server1.example.com,server2.example.com

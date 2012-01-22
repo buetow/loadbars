@@ -1,4 +1,4 @@
-Explanations:
+CPU stuff:
     st = Steal in % [see man proc] (extended)
         Color: Red
     gt = Guest in % [see man proc] (extended)
@@ -22,6 +22,11 @@ Explanations:
     avg = System load average; desc. order: 1, 5 and 15 min. avg. 
     1px horizontal line: Maximum sy+us+io of last 'avg' samples (extended)
     Extended means: text display only if extended mode is turned on
+Memory stuff:
+    Ram: System ram usage in %
+        Color: Dark grey
+    Swp: System swap usage in %
+        Color: Grey
 Examples:
     loadbars --extended 1 --showcores 1 --width 600 --hosts localhost
     loadbars --hosts localhost,server1.example.com,server2.example.com
@@ -35,6 +40,7 @@ Examples:
 --inter <ARG>	- Set update interval in seconds (default 0.1)
 --samples <ARG>	- Set number of samples until ssh reconnects
 --showcores <ARG>	- Toggle core display (0 or 1)
+--showmem <ARG>	- Toggle mem display (0 or 1)
 --showtexthost <ARG>	- Toggle hostname/num text display (0 or 1)
 --showtext <ARG>	- Toggle text display (0 or 1)
 --sshopts <ARG>	- Set SSH options

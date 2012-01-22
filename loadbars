@@ -161,6 +161,13 @@ BASH
                 $CPUSTATS{"$host;$name"} = join ';',
                   map  { $_ . '=' . $load->{$_} }
                   grep { defined $load->{$_} } keys %$load;
+
+            } else {
+                for my $meminfo (qw(MemTotal MemFree Buffers Cached SwapTotal SwapFree)) {
+                    if (/^$meminfo: *(\d+)/) {
+                        $MEMSTATS{"$host;$meminfo"} = $1;
+                    }
+                }
             }
 
             if ($sigusr1) {
@@ -168,7 +175,6 @@ BASH
                 $sigusr1   = 0;
             }
         }
-
     }
 
     return undef;

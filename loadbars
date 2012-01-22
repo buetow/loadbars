@@ -442,18 +442,26 @@ sub main_loop ($@) {
             my $add_x = 0;
             my ($rect_memused, $rect_memfree, $rect_buffers, $rect_cached, $rect_swapused, $rect_swapfree);
 
-            if ( $is_host_summary && $C{showcores} ) {
-                $current_corenum = 0;
-                $rect_separator = get_rect $rects, "$key;separator";
-                $rect_separator->width(1);
-                $rect_separator->height( $C{height} );
-                $rect_separator->x( $x - 1 );
-                $rect_separator->y(0);
-                $app->fill( $rect_separator, Loadbars::GREY );
-            }
+            if ( $is_host_summary ) {
+                if ( $C{showmem} ) {
+                    $rect_memused = get_rect $rects, "$host;memused";
+                    $rect_memfree = get_rect $rects, "$host;memfree";
+                    $rect_buffers = get_rect $rects, "$host;buffers";
+                    $rect_cached = get_rect $rects, "$host;cached";
+                    $rect_swapused = get_rect $rects, "$host;swapused";
+                    $rect_swapfree = get_rect $rects, "$host;swapfree";
+                    $add_x = $width + 1, 
+                }
 
-            if ($C{showmem} && $name eq 'cpu') {
-               $add_x = $width + 1, 
+                if ( $C{showcores} ) {
+                    $current_corenum = 0;
+                    $rect_separator = get_rect $rects, "$key;separator";
+                    $rect_separator->width(1);
+                    $rect_separator->height( $C{height} );
+                    $rect_separator->x( $x - 1 );
+                    $rect_separator->y(0);
+                    $app->fill( $rect_separator, Loadbars::GREY );
+                }
             }
 
             $y = $C{height} - $heights{system};
@@ -509,6 +517,9 @@ sub main_loop ($@) {
             $rect_steal->height( $heights{steal} );
             $rect_steal->x($x);
             $rect_steal->y($y);
+
+            if ( $C{showcores} ) {
+            }
 
             my $all     = 100 - $cpuaverage->{idle};
             my $max_all = 0;

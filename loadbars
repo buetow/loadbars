@@ -276,37 +276,21 @@ sub set_dimensions ($$) {
     my $display_info = 0;
 
     if ($width < 1) {
-        if ($C{width} != 1) {
-            $C{width} = 1;
-            $display_info = 1;
-        }
+        $C{width} = 1 if $C{width} != 1;
 
     } elsif ($width > $C{maxwidth}) {
-        if ($C{width} != $C{maxwidth}) {
-            $C{width} = $C{maxwidth};
-            $display_info = 1;
-        }
+        $C{width} = $C{maxwidth} if $C{width} != $C{maxwidth};
 
     } elsif ($C{width} != $width) {
         $C{width} = $width;
-        $display_info = 1;
     }
 
     if ($height < 1) {
-        if ($C{height} != 1) {
-            $C{height} = 1;
-            $display_info = 1;
-        }
+        $C{height} = 1 if $C{height} != 1;
 
-    } else {
-        if ($C{height} != $height) {
-            $C{height} = $height;
-            $display_info = 1;
-        }
+    } elsif ($C{height} != $height) {
+        $C{height} = $height;
     }
-
-    display_info "Resizing window to $C{width}x$C{height}"
-        if $display_info;
 }
 
 sub main_loop ($@) {

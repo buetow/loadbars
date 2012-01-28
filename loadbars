@@ -636,6 +636,7 @@ sub main_loop ($@) {
                 ? Loadbars::BLUE0 : Loadbars::BLUE );
 
             my ( $y, $space ) = ( 5, $font_height );
+
             my @loadavg = split ';', $AVGSTATS{$host};
 
             if ( $C{displaytxt} ) {
@@ -921,6 +922,7 @@ END
             menupos => 16,
             help    => 'Set max width',
             mode    => 6,
+            type    => 'i'
         },
 
         quit_hot => { menupos => 16, cmd => 'q', help => 'Quits', mode => 1 },

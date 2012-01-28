@@ -261,15 +261,26 @@ sub display_info ($) {
 
 sub set_dimensions ($$) {
     my ($width, $height) = @_;
+    my $display_info = 0;
 
     if ($width < 1) {
-        $C{width} = 1;
+        if ($C{width} != 1) {
+            $C{width} = 1;
+            $display_info = 1;
+        }
 
     } elsif ($width > $C{maxwidth}) {
-        $C{width} = $C{maxwidth};
-        display_info 'Disabling text display, text does not fit into window. Use \'t\' to re-enable.';
-        $C{displaytxt} = 0;
-        $C{displaytxtoff} = 1;
+        if ($C{width} != $C{maxwidth}) {
+            $C{width} = $C{maxwidth};
+            $display_info = 1;
+        }
+
+        if ($C{displaytxtoff} == 0 || $C{displaytxt}) {
+            display_info 'Disabling text display, text does not fit into window. Use \'t\' to re-enable.';
+            $C{displaytxtoff} = 1;
+            $C{displaytxt} = 0;
+        }
+
 
     } else {        
         if ($C{displaytxtoff}) {
@@ -278,17 +289,27 @@ sub set_dimensions ($$) {
             $C{displaytxtoff} = 0;
         }
 
-        $C{width} = $width;
+        if ($C{width} != $width) {
+            $C{width} = $width;
+            $display_info = 1;
+        }
     }
 
     if ($height < 1) {
-        $C{height} = 1;
+        if ($C{height} != 1) {
+            $C{height} = 1;
+            $display_info = 1;
+        }
 
     } else {
-        $C{height} = $height;
+        if ($C{height} != $height) {
+            $C{height} = $height;
+            $display_info = 1;
+        }
     }
 
-    display_info "Resizing to $C{width}x$C{height}";
+    display_info "Resizing to $C{width}x$C{height}"
+        if $display_info;
 }
 
 sub main_loop ($@) {

@@ -2,12 +2,14 @@
 * Remove --width option 
 * Add --barwidth option, each bar is barwidth pixels now
 * Add --maxwidth option, which represents the max total window width
-* Key right increases window width by 100px and left decreases by 100px
-* Key down increases window height by 100px and up decreases by 100px
 * Auto disable text display if text does not fit into window (maxwidth) pixels
 * Auto re-enable text display if text does fit again into window 
-* No sporadic crashes on shutdown anymore
+* Key right increases window width by 100px and left decreases by 100px
+* Key down increases window height by 100px and up decreases by 100px
 * Set 'samples' default values from 1000 down to 500.
+* No sporadic crashes on shutdown anymore
+* Some internal tweaks, no separate event thread needed anymore. This fixes
+  some sporadic bugs.
 
 Sun Jan 21 14:16:37 CET 2012
 * Released v0.4.0

@@ -26,7 +26,7 @@ use threads::shared;
 
 use constant {
     VERSION            => 'loadbars v0.4.1-devel',
-    Copyright          => '2010-2011 (c) Paul Buetow <loadbars@mx.buetow.org>',
+    Copyright          => '2010-2012 (c) Paul Buetow <loadbars@mx.buetow.org>',
     CSSH_CONFFILE      => '/etc/clusters',
     CSSH_MAX_RECURSION => 10,
     COLOR_DEPTH        => 8,
@@ -74,7 +74,7 @@ my %C : shared;
     inter          => 0.1,
     samples        => 1000,
     sshopts        => '',
-    width          => 1250,
+    barwidth       => 40,
     height         => 230,
 );
 
@@ -147,7 +147,7 @@ sub thread_get_stats ($;$) {
 BASH
 
         my $cmd =
-            $host eq 'localhost'
+            ($host eq 'localhost' || $host eq '127.0.0.1')
           ? $bash
           : "ssh $user -o StrictHostKeyChecking=no $C{sshopts} $host '$bash'";
 
@@ -257,20 +257,20 @@ sub create_threads (@) {
 sub main_loop ($@) {
     my ( $dispatch, @threads ) = @_;
 
+    my $num_stats = keys %CPUSTATS;
+    $num_stats += keys %MEMSTATS_HAS if $C{showmem};
+    $C{width} = $C{barwidth} * $num_stats;
+
     my $app = SDL::App->new(
         -title      => $C{title},
         -icon_title => $C{title},
         -width      => $C{width},
         -height     => $C{height},
         -depth      => Loadbars::COLOR_DEPTH,
-        -resizeable => 0,
+        -resizeable => 1,
     );
 
     SDL::Font->new('font.png')->use();
-
-    my $num_stats = keys %CPUSTATS;
-    $num_stats += keys %MEMSTATS_HAS if $C{showmem};
-
     my $rects = {};
     my %prev_stats;
     my %last_loads;
@@ -281,12 +281,16 @@ sub main_loop ($@) {
     my $displayinfo : shared = '';
     my $infotxt : shared     = '';
     my $quit : shared        = 0;
+    my $resize_window : shared = 0;
+    my %newsize : shared;
 
     my ( $t1, $t2 ) = ( Time::HiRes::time(), undef );
     my $event = SDL::Event->new();
+    my $lock : shared = 0;
 
     my $event_thread = async {
         for ( ; ; ) {
+            sleep 0.1 while $lock;
             $event->pump();
             $event->poll();
             $event->wait();
@@ -368,6 +372,21 @@ sub main_loop ($@) {
                 $C{inter} = $int > 0 ? $int : 0.1;
                 $displayinfo = "Set graph update interval to $C{inter}";
             }
+
+            elsif ( $key_name eq '9' ) {
+                $newsize{width} = $C{width} - $C{barwidth} / 2;
+                $newsize{height} = $C{height};
+                $resize_window = 1;
+                $displayinfo = "Resizing to $newsize{width}x$newsize{height}";
+                $lock = 1;
+            }
+            elsif ( $key_name eq '0' ) {
+                $newsize{width} = $C{width} + $C{barwidth} / 2;
+                $newsize{height} = $C{height};
+                $resize_window = 1;
+                $displayinfo = "Resizing to $newsize{width}x$newsize{height}";
+                $lock = 1;
+            }
         }
     };
 
@@ -381,8 +400,11 @@ sub main_loop ($@) {
             %prev_stats = ();
             %last_loads = ();
 
-            $num_stats         = $new_num_stats;
-            $redraw_background = 1;
+            $num_stats = $new_num_stats;
+            $newsize{width} = $C{barwidth} * $num_stats;
+            $newsize{height} = $C{height};
+            $resize_window = 1;
+            $lock = 1;
         }
 
         # Avoid division by null
@@ -446,7 +468,6 @@ sub main_loop ($@) {
             my $rect_system  = get_rect $rects, "$key;system";
 
             my $rect_peak;
-
 
             $y = $C{height} - $heights{system};
             $rect_system->width($width);
@@ -689,6 +710,15 @@ sub main_loop ($@) {
 
         $t1 = $t2;
 
+        if ($resize_window) {
+            #eval '$app->resize( $C{width}, $C{height} );';
+            $C{width} = $newsize{width};
+            $C{height} = $newsize{height};
+            $app->resize( $C{width}, $C{height} );
+            $resize_window = $lock = 0;
+            $redraw_background = 1;
+        } 
+        
         if ($redraw_background) {
             draw_background $app, $rects;
             $redraw_background = 0;
@@ -765,6 +795,13 @@ END
             cmd     => 'y',
             help    => 'Decreases number of samples for calculating avg. by 1',
             mode    => 1
+        },
+
+        barwidth => {
+            menupos => 5,
+            help    => 'Set bar width',
+            mode    => 6,
+            type    => 'i'
         },
 
         cluster => {
@@ -918,12 +955,6 @@ END
             type    => 's'
         },
 
-        width => {
-            menupos => 24,
-            help    => 'Set windows width',
-            mode    => 6,
-            type    => 'i'
-        },
     );
 
     my %d_by_short = map {

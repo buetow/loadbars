@@ -1,4 +1,7 @@
-* Add stats for memory
+* Remove --width option but introduced --barwidth option
+* Add auto width, each bars width is --barwidth, which is 40px by default
+* Add online resize option (0 and 9 hotkeys)
+* Add stats for memory (--showmem option or m hotkey)
 
 Sun Jan 21 14:16:37 CET 2012
 * Released v0.4.0

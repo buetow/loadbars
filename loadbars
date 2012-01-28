@@ -814,9 +814,9 @@ Memory stuff:
     Swp: System swap usage in %
         Color: Grey
 Examples:
-    loadbars --extended 1 --showcores 1 --width 600 --hosts localhost
+    loadbars --extended 1 --showcores 1 --height 300 --hosts localhost
     loadbars --hosts localhost,server1.example.com,server2.example.com
-    loadbars --cluster foocluster (foocluster is in /etc/clusters of cssh)
+    loadbars --cluster foocluster (foocluster is in /etc/clusters [ClusterSSH])
 END
 
  # mode 1: Option is shown in the online help menu (stdout not sdl)

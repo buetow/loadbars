@@ -262,10 +262,13 @@ sub display_info ($) {
 sub set_dimensions ($$) {
     my ($width, $height) = @_;
 
-    if ($width > $C{maxwidth}) {
+    if ($width < 1) {
+        $C{width} = 1;
+
+    } elsif ($width > $C{maxwidth}) {
         $C{width} = $C{maxwidth};
         display_info "Don't set width to $width, it'd exceed maxwidth $C{maxwidth}. "
-            . 'Disabling text display, text will be too large. '
+            . 'Disabling text display, text will not fit into screen. '
             . 'It is possible to re-enable text display using the \'t\' hotkey';
         $C{displaytxt} = 0;
         $C{displaytxtoff} = 1;
@@ -280,7 +283,12 @@ sub set_dimensions ($$) {
         $C{width} = $width;
     }
 
-    $C{height} = $height;
+    if ($height < 1) {
+        $C{height} = 1;
+
+    } else {
+        $C{height} = $height;
+    }
 
     display_info "Resizing to $C{width}x$C{height}";
 }
@@ -399,12 +407,12 @@ sub main_loop ($@) {
         }
         
         elsif ( $key_name eq '9' ) {
-            $newsize{width} = $C{width} - $C{barwidth} / 2;
+            $newsize{width} = $C{width} - 100;
             $newsize{height} = $C{height};
             $resize_window = 1;
         }
         elsif ( $key_name eq '0' ) {
-            $newsize{width} = $C{width} + $C{barwidth} / 2;
+            $newsize{width} = $C{width} + 100;
             $newsize{height} = $C{height};
             $resize_window = 1;
         }
@@ -819,13 +827,13 @@ END
         },
         barwidth_hot_up => {
             menupos => 5,
-            help    => 'Increase bar width by barwidth / 2',
+            help    => 'Increase bar width by 100px',
             cmd     => '0',
             mode    => 1,
         },
         barwidth_hot_dn => {
             menupos => 5,
-            help    => 'Decrease bar width by barwidth / 2',
+            help    => 'Decrease bar width by 100px',
             cmd     => '9',
             mode    => 1,
         },

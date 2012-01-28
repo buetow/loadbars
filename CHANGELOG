@@ -1,6 +1,7 @@
 * Remove --width option but introduced --barwidth option
 * Add auto width, each bars width is --barwidth, which is 40px by default
 * Add online resize option (0 and 9 hotkeys)
+* Auto disable text display if text does not fit into screen 
 * Add stats for memory (--showmem option or m hotkey)
 
 Sun Jan 21 14:16:37 CET 2012

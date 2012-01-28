@@ -7,7 +7,7 @@
 * Auto disable text display if text does not fit into window (maxwidth) pixels
 * Auto re-enable text display if text does fit again into window 
 * No sporadic crashes on shutdown anymore
-* Set 'samples' default values from 1000 down to 100.
+* Set 'samples' default values from 1000 down to 500.
 
 Sun Jan 21 14:16:37 CET 2012
 * Released v0.4.0

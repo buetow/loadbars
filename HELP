@@ -32,12 +32,14 @@ Examples:
     loadbars --hosts localhost,server1.example.com,server2.example.com
     loadbars --cluster foocluster (foocluster is in /etc/clusters of cssh)
 --average <ARG>	- Num of samples for avg. (more fluent animations)
+--barwidth <ARG>	- Set bar width
 --cluster <ARG>	- Cluster name from /etc/clusters
 --extended <ARG>	- Toggle extended display (0 or 1)
 --factor <ARG>	- Set graph scale factor (1.0 means 100%)
 --height <ARG>	- Set windows height
 --hosts <ARG>	- Comma sep. list of hosts; optional: user@ in front to each host
 --inter <ARG>	- Set update interval in seconds (default 0.1)
+--maxwidth <ARG>	- Set max width
 --samples <ARG>	- Set number of samples until ssh reconnects
 --showcores <ARG>	- Toggle core display (0 or 1)
 --showmem <ARG>	- Toggle mem display (0 or 1)
@@ -45,4 +47,3 @@ Examples:
 --showtext <ARG>	- Toggle text display (0 or 1)
 --sshopts <ARG>	- Set SSH options
 --title <ARG>	- Set the window title
---width <ARG>	- Set windows width

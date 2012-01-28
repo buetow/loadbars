@@ -72,7 +72,7 @@ my %C : shared;
     displaytxtoff  => 0,
     displaytxthost => 0,
     inter          => 0.1,
-    samples        => 100,
+    samples        => 500,
     sshopts        => '',
     barwidth       => 35,
     maxwidth       => 1280, 

@@ -259,6 +259,21 @@ sub display_info ($) {
     say "==> " . shift;
 }
 
+sub auto_off_text ($) {
+    my ($barwidth) = @_;
+
+    if ($barwidth < $C{barwidth} - 1 && $C{displaytxtoff} == 0) {
+        display_info 'Disabling text display, text does not fit into window. Use \'t\' to re-enable.';
+        $C{displaytxtoff} = 1;
+        $C{displaytxt} = 0;
+
+    } elsif ($C{displaytxtoff} && $barwidth >= $C{barwidth} - 1) {
+        display_info 'Re-enabling text display, text fits into window now.';
+        $C{displaytxt} = 1;
+        $C{displaytxtoff} = 0;
+    }
+}
+
 sub set_dimensions ($$) {
     my ($width, $height) = @_;
     my $display_info = 0;
@@ -275,24 +290,9 @@ sub set_dimensions ($$) {
             $display_info = 1;
         }
 
-        if ($C{displaytxtoff} == 0 || $C{displaytxt}) {
-            display_info 'Disabling text display, text does not fit into window. Use \'t\' to re-enable.';
-            $C{displaytxtoff} = 1;
-            $C{displaytxt} = 0;
-        }
-
-
-    } else {        
-        if ($C{displaytxtoff}) {
-            display_info 'Re-enabling text display, text fits into window now.';
-            $C{displaytxt} = 1;
-            $C{displaytxtoff} = 0;
-        }
-
-        if ($C{width} != $width) {
-            $C{width} = $width;
-            $display_info = 1;
-        }
+    } elsif ($C{width} != $width) {
+        $C{width} = $width;
+        $display_info = 1;
     }
 
     if ($height < 1) {
@@ -308,7 +308,7 @@ sub set_dimensions ($$) {
         }
     }
 
-    display_info "Resizing to $C{width}x$C{height}"
+    display_info "Resizing window to $C{width}x$C{height}"
         if $display_info;
 }
 
@@ -774,12 +774,12 @@ sub main_loop ($@) {
             $redraw_background = 0;
         }
 
+        auto_off_text $width;
+
     } until $quit;
 
     say "Good bye";
 
-    # $_->kill('STOP') for @threads;
-#$event_thread->join();
     exit 0;
 }
 

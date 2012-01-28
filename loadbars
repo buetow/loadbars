@@ -88,6 +88,7 @@ sub null ($) { defined $_[0] ? $_[0] : 0 }
 sub notnull ($) {  $_[0] != 0 ? $_[0] : 1 }
 sub set_showcores_regexp () { $C{cpuregexp} = $C{showcores} ? 'cpu' : 'cpu ' }
 sub error ($) { die shift, "\n" }
+sub display_info ($) { say "==> " . shift }
 
 sub percentage ($$) {
     my ($total, $part) = @_;
@@ -253,10 +254,6 @@ sub create_threads (@) {
         threads->create( 'thread_get_stats', split /:/ );
 
       } @_;
-}
-
-sub display_info ($) {
-    say "==> " . shift;
 }
 
 sub auto_off_text ($) {

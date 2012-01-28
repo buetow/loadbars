@@ -271,6 +271,7 @@ sub main_loop ($@) {
     );
 
     SDL::Font->new('font.png')->use();
+
     my $rects = {};
     my %prev_stats;
     my %last_loads;
@@ -718,7 +719,7 @@ sub main_loop ($@) {
             $resize_window = $lock = 0;
             $redraw_background = 1;
         } 
-        
+
         if ($redraw_background) {
             draw_background $app, $rects;
             $redraw_background = 0;

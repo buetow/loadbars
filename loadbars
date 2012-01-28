@@ -69,11 +69,13 @@ my %C : shared;
     factor         => 1,
     extended       => 0,
     displaytxt     => 1,
+    displaytxtoff  => 0,
     displaytxthost => 0,
     inter          => 0.1,
     samples        => 1000,
     sshopts        => '',
-    barwidth       => 40,
+    barwidth       => 35,
+    maxwidth       => 1280, 
     height         => 230,
 );
 
@@ -253,6 +255,36 @@ sub create_threads (@) {
       } @_;
 }
 
+sub display_info ($) {
+    say "==> " . shift;
+}
+
+sub set_dimensions ($$) {
+    my ($width, $height) = @_;
+
+    if ($width > $C{maxwidth}) {
+        $C{width} = $C{maxwidth};
+        display_info "Don't set width to $width, it'd exceed maxwidth $C{maxwidth}. "
+            . 'Disabling text display, text will be too large. '
+            . 'It is possible to re-enable text display using the \'t\' hotkey';
+        $C{displaytxt} = 0;
+        $C{displaytxtoff} = 1;
+
+    } else {        
+        if ($C{displaytxtoff}) {
+            display_info 'Re-enabling text display because width is ok now.';
+            $C{displaytxt} = 1;
+            $C{displaytxtoff} = 0;
+        }
+
+        $C{width} = $width;
+    }
+
+    $C{height} = $height;
+
+    display_info "Resizing to $C{width}x$C{height}";
+}
+
 sub main_loop ($@) {
     my ( $dispatch, @threads ) = @_;
 
@@ -277,7 +309,6 @@ sub main_loop ($@) {
     my $redraw_background = 0;
     my $font_height       = 14;
 
-    my $displayinfo : shared = '';
     my $infotxt : shared = '';
     my $quit : shared = 0;
     my $resize_window : shared = 0;
@@ -302,33 +333,33 @@ sub main_loop ($@) {
             $_->kill('USR1') for @threads;
             %AVGSTATS    = ();
             %CPUSTATS    = ();
-            $displayinfo = 'Toggled CPUs';
+            display_info 'Toggled CPUs';
         
         }
         elsif ( $key_name eq 'e' ) {
             $C{extended} = !$C{extended};
-            $displayinfo = 'Toggled extended display';
+            display_info 'Toggled extended display';
         
         }
         elsif ( $key_name eq 'h' ) {
             say '=> Hotkeys to use in the SDL interface';
             say $dispatch->('hotkeys');
-            $displayinfo = 'Hotkeys help printed on terminal stdout';
+            display_info 'Hotkeys help printed on terminal stdout';
         
         }
         elsif ( $key_name eq 'm' ) {
             $C{showmem} = !$C{showmem};
-            $displayinfo = 'Toggled show mem';
+            display_info 'Toggled show mem';
         
         }
         elsif ( $key_name eq 't' ) {
             $C{displaytxt} = !$C{displaytxt};
-            $displayinfo = 'Toggled text display';
+            display_info 'Toggled text display';
         
         }
         elsif ( $key_name eq 'u' ) {
             $C{displaytxthost} = !$C{displaytxthost};
-            $displayinfo = 'Toggled number/hostname display';
+            display_info 'Toggled number/hostname display';
         
         }
         elsif ( $key_name eq 'q' ) {
@@ -338,46 +369,44 @@ sub main_loop ($@) {
         }
         elsif ( $key_name eq 'a' ) {
             ++$C{average};
-            $displayinfo = "Set sample average to $C{average}";
+            display_info "Set sample average to $C{average}";
         }
         elsif ( $key_name eq 'y' or $key_name eq 'z' ) {
             my $avg = $C{average};
             --$avg;
             $C{average} = $avg > 1 ? $avg : 2;
-            $displayinfo = "Set sample average to $C{average}";
+            display_info "Set sample average to $C{average}";
         
         }
         elsif ( $key_name eq 's' ) {
             $C{factor} += 0.1;
-            $displayinfo = "Set scale factor to $C{factor}";
+            display_info "Set scale factor to $C{factor}";
         }
         elsif ( $key_name eq 'x' or $key_name eq 'z' ) {
             $C{factor} -= 0.1;
-            $displayinfo = "Set scale factor to $C{factor}";
+            display_info "Set scale factor to $C{factor}";
         
         }
         elsif ( $key_name eq 'd' ) {
             $C{inter} += 0.1;
-            $displayinfo = "Set graph update interval to $C{inter}";
+            display_info "Set graph update interval to $C{inter}";
         }
         elsif ( $key_name eq 'c' or $key_name eq 'z' ) {
             my $int = $C{inter};
             $int -= 0.1;
             $C{inter} = $int > 0 ? $int : 0.1;
-            $displayinfo = "Set graph update interval to $C{inter}";
+            display_info "Set graph update interval to $C{inter}";
         }
         
         elsif ( $key_name eq '9' ) {
             $newsize{width} = $C{width} - $C{barwidth} / 2;
             $newsize{height} = $C{height};
             $resize_window = 1;
-            $displayinfo = "Resizing to $newsize{width}x$newsize{height}";
         }
         elsif ( $key_name eq '0' ) {
             $newsize{width} = $C{width} + $C{barwidth} / 2;
             $newsize{height} = $C{height};
             $resize_window = 1;
-            $displayinfo = "Resizing to $newsize{width}x$newsize{height}";
         }
     };
 
@@ -656,13 +685,6 @@ sub main_loop ($@) {
                 }
             }
 
-            # Display an informational text message if any
-            #$app->print(0, $y+=$space, $displayinfo) if length $displayinfo;
-            if ( length $displayinfo ) {
-                say $displayinfo;
-                $displayinfo = '';
-            }
-
             $app->update(
                 $rect_idle,  $rect_iowait,  $rect_irq,
                 $rect_nice,  $rect_softirq, $rect_steal,
@@ -704,8 +726,7 @@ sub main_loop ($@) {
         }
 
         if ($resize_window) {
-            $C{width} = $newsize{width};
-            $C{height} = $newsize{height};
+            set_dimensions $newsize{width}, $newsize{height};
             $app->resize( $C{width}, $C{height} );
             $resize_window = 0;
             $redraw_background = 1;
@@ -894,6 +915,12 @@ END
             cmd     => 'c',
             help    => 'Decreases update interval in seconds by 0.1',
             mode    => 1
+        },
+
+        maxwidth => {
+            menupos => 16,
+            help    => 'Set max width',
+            mode    => 6,
         },
 
         quit_hot => { menupos => 16, cmd => 'q', help => 'Quits', mode => 1 },

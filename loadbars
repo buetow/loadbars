@@ -47,7 +47,6 @@ use constant {
     USER_ORANGE        => 70,
     USER_YELLOW0       => 50,
     NULL               => 0,
-    DEBUG              => 0,
 };
 
 $| = 1;
@@ -257,9 +256,8 @@ sub create_threads (@) {
 sub main_loop ($@) {
     my ( $dispatch, @threads ) = @_;
 
-    my $num_stats = keys %CPUSTATS;
-    $num_stats += keys %MEMSTATS_HAS if $C{showmem};
-    $C{width} = $C{barwidth} * $num_stats;
+    my $num_stats = 1;
+    $C{width} = $C{barwidth};
 
     my $app = SDL::App->new(
         -title      => $C{title},
@@ -280,133 +278,111 @@ sub main_loop ($@) {
     my $font_height       = 14;
 
     my $displayinfo : shared = '';
-    my $infotxt : shared     = '';
-    my $quit : shared        = 0;
+    my $infotxt : shared = '';
+    my $quit : shared = 0;
     my $resize_window : shared = 0;
     my %newsize : shared;
 
     my ( $t1, $t2 ) = ( Time::HiRes::time(), undef );
-    my $event = SDL::Event->new();
-    my $lock : shared = 0;
 
-    my $event_thread = async {
-        for ( ; ; ) {
-            sleep 0.1 while $lock;
-            $event->pump();
-            $event->poll();
-            $event->wait();
+    my $event_handler = sub {
+        my $event = SDL::Event->new();
 
-            my $type     = $event->type();
-            my $key_name = $event->key_name();
+        $event->poll();
+        
+        my $type     = $event->type();
+        my $key_name = $event->key_name();
+        
+        return if $type != 2;
+        debugsay "Event type=$type key_name=$key_name";
+        
+        if ( $key_name eq '1' ) {
+            $C{showcores} = !$C{showcores};
+            set_showcores_regexp;
+            $_->kill('USR1') for @threads;
+            %AVGSTATS    = ();
+            %CPUSTATS    = ();
+            $displayinfo = 'Toggled CPUs';
+        
+        }
+        elsif ( $key_name eq 'e' ) {
+            $C{extended} = !$C{extended};
+            $displayinfo = 'Toggled extended display';
+        
+        }
+        elsif ( $key_name eq 'h' ) {
+            say '=> Hotkeys to use in the SDL interface';
+            say $dispatch->('hotkeys');
+            $displayinfo = 'Hotkeys help printed on terminal stdout';
+        
+        }
+        elsif ( $key_name eq 'm' ) {
+            $C{showmem} = !$C{showmem};
+            $displayinfo = 'Toggled show mem';
+        
+        }
+        elsif ( $key_name eq 't' ) {
+            $C{displaytxt} = !$C{displaytxt};
+            $displayinfo = 'Toggled text display';
+        
+        }
+        elsif ( $key_name eq 'u' ) {
+            $C{displaytxthost} = !$C{displaytxthost};
+            $displayinfo = 'Toggled number/hostname display';
+        
+        }
+        elsif ( $key_name eq 'q' ) {
+            $quit = 1;
+            return;
 
-            debugsay "Event type=$type key_name=$key_name" if Loadbars::DEBUG;
-            next if $type != 2;
-
-            if ( $key_name eq '1' ) {
-                $C{showcores} = !$C{showcores};
-                set_showcores_regexp;
-                $_->kill('USR1') for @threads;
-                %AVGSTATS    = ();
-                %CPUSTATS    = ();
-                $displayinfo = 'Toggled CPUs';
-
-            }
-            elsif ( $key_name eq 'e' ) {
-                $C{extended} = !$C{extended};
-                $displayinfo = 'Toggled extended display';
-
-            }
-            elsif ( $key_name eq 'h' ) {
-                say '=> Hotkeys to use in the SDL interface';
-                say $dispatch->('hotkeys');
-                $displayinfo = 'Hotkeys help printed on terminal stdout';
-
-            }
-            elsif ( $key_name eq 'm' ) {
-                $C{showmem} = !$C{showmem};
-                $displayinfo = 'Toggled show mem';
-
-            }
-            elsif ( $key_name eq 't' ) {
-                $C{displaytxt} = !$C{displaytxt};
-                $displayinfo = 'Toggled text display';
-
-            }
-            elsif ( $key_name eq 'u' ) {
-                $C{displaytxthost} = !$C{displaytxthost};
-                $displayinfo = 'Toggled number/hostname display';
-
-            }
-            elsif ( $key_name eq 'q' ) {
-                $quit = 1;
-                last;
-
-                # Increase and decrease pairs
-            }
-            elsif ( $key_name eq 'a' ) {
-                ++$C{average};
-                $displayinfo = "Set sample average to $C{average}";
-            }
-            elsif ( $key_name eq 'y' or $key_name eq 'z' ) {
-                my $avg = $C{average};
-                --$avg;
-                $C{average} = $avg > 1 ? $avg : 2;
-                $displayinfo = "Set sample average to $C{average}";
-
-            }
-            elsif ( $key_name eq 's' ) {
-                $C{factor} += 0.1;
-                $displayinfo = "Set scale factor to $C{factor}";
-            }
-            elsif ( $key_name eq 'x' or $key_name eq 'z' ) {
-                $C{factor} -= 0.1;
-                $displayinfo = "Set scale factor to $C{factor}";
-
-            }
-            elsif ( $key_name eq 'd' ) {
-                $C{inter} += 0.1;
-                $displayinfo = "Set graph update interval to $C{inter}";
-            }
-            elsif ( $key_name eq 'c' or $key_name eq 'z' ) {
-                my $int = $C{inter};
-                $int -= 0.1;
-                $C{inter} = $int > 0 ? $int : 0.1;
-                $displayinfo = "Set graph update interval to $C{inter}";
-            }
-
-            elsif ( $key_name eq '9' ) {
-                $newsize{width} = $C{width} - $C{barwidth} / 2;
-                $newsize{height} = $C{height};
-                $resize_window = 1;
-                $displayinfo = "Resizing to $newsize{width}x$newsize{height}";
-                $lock = 1;
-            }
-            elsif ( $key_name eq '0' ) {
-                $newsize{width} = $C{width} + $C{barwidth} / 2;
-                $newsize{height} = $C{height};
-                $resize_window = 1;
-                $displayinfo = "Resizing to $newsize{width}x$newsize{height}";
-                $lock = 1;
-            }
+        }
+        elsif ( $key_name eq 'a' ) {
+            ++$C{average};
+            $displayinfo = "Set sample average to $C{average}";
+        }
+        elsif ( $key_name eq 'y' or $key_name eq 'z' ) {
+            my $avg = $C{average};
+            --$avg;
+            $C{average} = $avg > 1 ? $avg : 2;
+            $displayinfo = "Set sample average to $C{average}";
+        
+        }
+        elsif ( $key_name eq 's' ) {
+            $C{factor} += 0.1;
+            $displayinfo = "Set scale factor to $C{factor}";
+        }
+        elsif ( $key_name eq 'x' or $key_name eq 'z' ) {
+            $C{factor} -= 0.1;
+            $displayinfo = "Set scale factor to $C{factor}";
+        
+        }
+        elsif ( $key_name eq 'd' ) {
+            $C{inter} += 0.1;
+            $displayinfo = "Set graph update interval to $C{inter}";
+        }
+        elsif ( $key_name eq 'c' or $key_name eq 'z' ) {
+            my $int = $C{inter};
+            $int -= 0.1;
+            $C{inter} = $int > 0 ? $int : 0.1;
+            $displayinfo = "Set graph update interval to $C{inter}";
+        }
+        
+        elsif ( $key_name eq '9' ) {
+            $newsize{width} = $C{width} - $C{barwidth} / 2;
+            $newsize{height} = $C{height};
+            $resize_window = 1;
+            $displayinfo = "Resizing to $newsize{width}x$newsize{height}";
+        }
+        elsif ( $key_name eq '0' ) {
+            $newsize{width} = $C{width} + $C{barwidth} / 2;
+            $newsize{height} = $C{height};
+            $resize_window = 1;
+            $displayinfo = "Resizing to $newsize{width}x$newsize{height}";
         }
     };
 
     do {
         my ( $x, $y ) = ( 0, 0 );
-
-        my $new_num_stats = keys %CPUSTATS;
-        $new_num_stats += keys %MEMSTATS_HAS if $C{showmem};
-
-        if ( $new_num_stats != $num_stats ) {
-            %prev_stats = ();
-            %last_loads = ();
-
-            $num_stats = $new_num_stats;
-            $newsize{width} = $C{barwidth} * $num_stats;
-            $newsize{height} = $C{height};
-            $resize_window = 1;
-            $lock = 1;
-        }
 
         # Avoid division by null
         # Also substract 1 (each bar is followed by an 1px separator bar)
@@ -415,7 +391,7 @@ sub main_loop ($@) {
         my ( $current_barnum, $current_corenum ) = ( -1, -1 );
 
         for my $key ( sort keys %CPUSTATS ) {
-            ++$current_barnum;
+            last if (++$current_barnum > $num_stats);
             ++$current_corenum;
             my ( $host, $name ) = split ';', $key;
 
@@ -697,7 +673,10 @@ sub main_loop ($@) {
             $app->update($rect_separator) if defined $rect_separator;
 
             $x += $width + 1 + $add_x;
+
         }
+
+        $event_handler->();
 
       TIMEKEEPER:
         $t2 = Time::HiRes::time();
@@ -711,12 +690,24 @@ sub main_loop ($@) {
 
         $t1 = $t2;
 
+        my $new_num_stats = keys %CPUSTATS;
+        $new_num_stats += keys %MEMSTATS_HAS if $C{showmem};
+
+        if ( $new_num_stats != $num_stats ) {
+            %prev_stats = ();
+            %last_loads = ();
+
+            $num_stats = $new_num_stats;
+            $newsize{width} = $C{barwidth} * $num_stats;
+            $newsize{height} = $C{height};
+            $resize_window = 1;
+        }
+
         if ($resize_window) {
-            #eval '$app->resize( $C{width}, $C{height} );';
             $C{width} = $newsize{width};
             $C{height} = $newsize{height};
             $app->resize( $C{width}, $C{height} );
-            $resize_window = $lock = 0;
+            $resize_window = 0;
             $redraw_background = 1;
         } 
 
@@ -730,7 +721,7 @@ sub main_loop ($@) {
     say "Good bye";
 
     # $_->kill('STOP') for @threads;
-    $event_thread->join();
+#$event_thread->join();
     exit 0;
 }
 

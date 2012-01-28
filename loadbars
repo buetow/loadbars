@@ -25,7 +25,7 @@ use threads;
 use threads::shared;
 
 use constant {
-    VERSION            => 'loadbars v0.4.1-devel',
+    VERSION            => 'loadbars v0.5.0-devel',
     Copyright          => '2010-2012 (c) Paul Buetow <loadbars@mx.buetow.org>',
     CSSH_CONFFILE      => '/etc/clusters',
     CSSH_MAX_RECURSION => 10,
@@ -72,7 +72,7 @@ my %C : shared;
     displaytxtoff  => 0,
     displaytxthost => 0,
     inter          => 0.1,
-    samples        => 1000,
+    samples        => 100,
     sshopts        => '',
     barwidth       => 35,
     maxwidth       => 1280, 
@@ -267,15 +267,13 @@ sub set_dimensions ($$) {
 
     } elsif ($width > $C{maxwidth}) {
         $C{width} = $C{maxwidth};
-        display_info "Don't set width to $width, it'd exceed maxwidth $C{maxwidth}. "
-            . 'Disabling text display, text will not fit into screen. '
-            . 'It is possible to re-enable text display using the \'t\' hotkey';
+        display_info 'Disabling text display, text does not fit into window. Use \'t\' to re-enable.';
         $C{displaytxt} = 0;
         $C{displaytxtoff} = 1;
 
     } else {        
         if ($C{displaytxtoff}) {
-            display_info 'Re-enabling text display because width is ok now.';
+            display_info 'Re-enabling text display, text fits into window now.';
             $C{displaytxt} = 1;
             $C{displaytxtoff} = 0;
         }
@@ -333,7 +331,7 @@ sub main_loop ($@) {
         my $key_name = $event->key_name();
         
         return if $type != 2;
-        debugsay "Event type=$type key_name=$key_name";
+        #debugsay "Event type=$type key_name=$key_name";
         
         if ( $key_name eq '1' ) {
             $C{showcores} = !$C{showcores};
@@ -406,14 +404,24 @@ sub main_loop ($@) {
             display_info "Set graph update interval to $C{inter}";
         }
         
-        elsif ( $key_name eq '9' ) {
+        elsif ( $key_name eq 'left') {
             $newsize{width} = $C{width} - 100;
             $newsize{height} = $C{height};
             $resize_window = 1;
         }
-        elsif ( $key_name eq '0' ) {
+        elsif ( $key_name eq 'right' ) {
             $newsize{width} = $C{width} + 100;
             $newsize{height} = $C{height};
+            $resize_window = 1;
+        }
+        elsif ( $key_name eq 'up' ) {
+            $newsize{width} = $C{width};
+            $newsize{height} = $C{height} - 100;
+            $resize_window = 1;
+        }
+        elsif ( $key_name eq 'down' ) {
+            $newsize{width} = $C{width};
+            $newsize{height} = $C{height} + 100;
             $resize_window = 1;
         }
     };
@@ -421,9 +429,8 @@ sub main_loop ($@) {
     do {
         my ( $x, $y ) = ( 0, 0 );
 
-        # Avoid division by null
         # Also substract 1 (each bar is followed by an 1px separator bar)
-        my $width = $C{width} / ( $num_stats ? $num_stats : 1 ) - 1;
+        my $width = $C{width} / notnull($num_stats) - 1;
 
         my ( $current_barnum, $current_corenum ) = ( -1, -1 );
 
@@ -825,16 +832,28 @@ END
             mode    => 6,
             type    => 'i'
         },
-        barwidth_hot_up => {
-            menupos => 5,
-            help    => 'Increase bar width by 100px',
-            cmd     => '0',
+        windowwidth_hot_up => {
+            menupos => 90,
+            help    => 'Increase window width by 100px',
+            cmd     => 'right',
             mode    => 1,
         },
-        barwidth_hot_dn => {
-            menupos => 5,
-            help    => 'Decrease bar width by 100px',
-            cmd     => '9',
+        windowwidth_hot_dn => {
+            menupos => 91,
+            help    => 'Decrease window width by 100px',
+            cmd     => 'left',
+            mode    => 1,
+        },
+        windowheight_hot_up => {
+            menupos => 92,
+            help    => 'Increase window height by 100px',
+            cmd     => 'down',
+            mode    => 1,
+        },
+        windowheight_hot_dn => {
+            menupos => 93,
+            help    => 'Decrease window height by 100px',
+            cmd     => 'up',
             mode    => 1,
         },
 

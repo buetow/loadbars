@@ -1,8 +1,13 @@
-* Remove --width option but introduced --barwidth option
-* Add auto width, each bars width is --barwidth, which is 40px by default
-* Add online resize option (0 and 9 hotkeys)
-* Auto disable text display if text does not fit into screen 
 * Add stats for memory (--showmem option or m hotkey)
+* Remove --width option 
+* Add --barwidth option, each bar is barwidth pixels now
+* Add --maxwidth option, which represents the max total window width
+* Key right increases window width by 100px and left decreases by 100px
+* Key down increases window height by 100px and up decreases by 100px
+* Auto disable text display if text does not fit into window (maxwidth) pixels
+* Auto re-enable text display if text does fit again into window 
+* No sporadic crashes on shutdown anymore
+* Set 'samples' default values from 1000 down to 100.
 
 Sun Jan 21 14:16:37 CET 2012
 * Released v0.4.0

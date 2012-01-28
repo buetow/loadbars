@@ -803,6 +803,18 @@ END
             mode    => 6,
             type    => 'i'
         },
+        barwidth_hot_up => {
+            menupos => 5,
+            help    => 'Increase bar width by barwidth / 2',
+            cmd     => '0',
+            mode    => 1,
+        },
+        barwidth_hot_dn => {
+            menupos => 5,
+            help    => 'Decrease bar width by barwidth / 2',
+            cmd     => '9',
+            mode    => 1,
+        },
 
         cluster => {
             menupos => 6,

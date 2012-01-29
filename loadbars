@@ -25,7 +25,7 @@ use threads;
 use threads::shared;
 
 use constant {
-    VERSION => 'loadbars v0.4.0-master',
+    VERSION => 'loadbars v0.4.0.1',
     Copyright => '2010 - 2012 (c) Paul Buetow <loadbars@mx.buetow.org>',
     CSSH_CONFFILE => '/etc/clusters',
     CSSH_MAX_RECURSION => 10,

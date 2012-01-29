@@ -128,24 +128,24 @@ sub thread_get_stats ($;$) {
 
     for ( ; ; ) {
         my $bash = <<"BASH";
-			if [ -e /proc/stat ]; then 
-				loadavg=/proc/loadavg
-				stat=/proc/stat
-				meminfo=/proc/meminfo
+            if [ -e /proc/stat ]; then 
+                loadavg=/proc/loadavg
+                stat=/proc/stat
+                meminfo=/proc/meminfo
 
-				for i in \$(seq $C{samples}); do 
-				   	cat \$loadavg \$stat \$meminfo
-					sleep $C{inter}
-				done
-			else 
-			   	loadavg=/compat/linux/proc/loadavg
-			   	stat=/compat/linux/proc/stat
+                for i in \$(seq $C{samples}); do 
+                    cat \$loadavg \$stat \$meminfo
+                    sleep $C{inter}
+                done
+            else 
+                loadavg=/compat/linux/proc/loadavg
+                stat=/compat/linux/proc/stat
 
-				for i in \$(jot $C{samples}); do 
-				   	cat \$loadavg \$stat
-					sleep $C{inter}
-				done
-			fi
+                for i in \$(jot $C{samples}); do 
+                    cat \$loadavg \$stat
+                    sleep $C{inter}
+                done
+            fi
 BASH
 
         my $cmd =

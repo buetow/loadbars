@@ -1,5 +1,6 @@
-Sat Jan 21 18:52:50 CET 2012
+Sun Jan 29 12:30:00 CET 2012
 * Fixed some docu typos
+* Code cleanup: Replaced tabs by 4 whitespaces
 
 Sat Jan 21 18:32:45 CET 2012
 * Released v0.4.0

@@ -55,8 +55,8 @@ my %AVGSTATS : shared;
 my %CPUSTATS : shared;
 my %MEMSTATS : shared;
 my %MEMSTATS_HAS : shared;
-my %NETSTATS : shared;
-my %NETSTATS_HAS : shared;
+#my %NETSTATS : shared;
+#my %NETSTATS_HAS : shared;
 
 # Global configuration hash
 my %C : shared;
@@ -127,6 +127,8 @@ sub thread_get_stats ($;$) {
 
     my ( $sigusr1, $quit ) = ( 0, 0 );
     my $loadavgexp = qr/(\d+\.\d{2}) (\d+\.\d{2}) (\d+\.\d{2})/;
+    my $cpustatsregexp = qr/CPUSTATS/;
+    my $memstatsregexp = qr/MEMSTATS/;
 
     for ( ; ; ) {
         my $bash = <<"BASH";
@@ -134,15 +136,12 @@ sub thread_get_stats ($;$) {
                 loadavg=/proc/loadavg
                 stat=/proc/stat
                 meminfo=/proc/meminfo
-                dev=/proc/net/dev
 
                 for i in \$(seq $C{samples}); do 
                     echo CPUSTATS
                     cat \$loadavg \$stat 
                     echo MEMSTATS
                     cat \$meminfo 
-                    echo NETSTATS
-                    cat \$dev
                     sleep $C{inter}
                 done
             else 
@@ -174,41 +173,31 @@ BASH
         my $mode = 0;
 
         while (<$pipe>) {
-            if (/CPUSTATS/) {
-                $mode = 0;
-
-            } elsif (/MEMSTATS/) {
-                $mode = 1;
-
-            } elsif (/NETSTATS/) {
-                $mode = 2;
-            }
-
             if ($mode == 0) {
-               if (/^$loadavgexp/) {
-                   $AVGSTATS{$host} = "$1;$2;$3";
+                if (/$memstatsregexp/) {
+                    $mode = 1;
+
+                } elsif (/^$loadavgexp/) {
+                    $AVGSTATS{$host} = "$1;$2;$3";
     
-               }
-               elsif (/$cpuregexp/) {
+                } elsif (/$cpuregexp/) {
                    my ( $name, $load ) = parse_cpu_line $_;
                    $CPUSTATS{"$host;$name"} = join ';',
                      map  { $_ . '=' . $load->{$_} }
                      grep { defined $load->{$_} } keys %$load;
                }
             } elsif ($mode == 1) {
-                for my $meminfo (qw(MemTotal MemFree Buffers Cached SwapTotal SwapFree)) {
-                    if (/^$meminfo: *(\d+)/) {
-                        $MEMSTATS_HAS{$host} = 1;
-                        $MEMSTATS{"$host;$meminfo"} = $1;
+                if (/$cpustatsregexp/) {
+                    $mode = 0;
+
+                } else {
+                    for my $meminfo (qw(MemTotal MemFree Buffers Cached SwapTotal SwapFree)) {
+                        if (/^$meminfo: *(\d+)/) {
+                            $MEMSTATS_HAS{$host} = 1;
+                            $MEMSTATS{"$host;$meminfo"} = $1;
+                        }
                     }
                 }
-            } elsif ($mode == 2) {
-=cut
-                if (/.* (\w+):/) {
-                    local $, = "::";
-                    print $_;
-                }
-=cut
             }
 
             if ($sigusr1) {

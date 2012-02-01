@@ -346,7 +346,7 @@ sub main_loop ($@) {
     my ( $t1, $t2 ) = ( Time::HiRes::time(), undef );
 
     my $event_handler = sub {
-        1 while $event->poll();
+        1 while $event->poll() == 1;
    
         my $type = $event->type();
         return if $type != 2;
@@ -354,7 +354,6 @@ sub main_loop ($@) {
         my $key_name = $event->key_name();
         #debugsay "===> Event type=$type key_name=$key_name";
 
-        
         if ( $key_name eq '1' ) {
             $C{showcores} = !$C{showcores};
             set_showcores_regexp;

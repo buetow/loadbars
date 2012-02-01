@@ -11,6 +11,7 @@ use warnings;
 
 use Getopt::Long;
 
+use SDL;
 use SDL::App;
 use SDL::Rect;
 use SDL::Color;
@@ -340,19 +341,19 @@ sub main_loop ($@) {
     my $quit : shared = 0;
     my $resize_window : shared = 0;
     my %newsize : shared;
+    my $event = SDL::Event->new();
 
     my ( $t1, $t2 ) = ( Time::HiRes::time(), undef );
 
     my $event_handler = sub {
-        my $event = SDL::Event->new();
-
-        $event->poll();
-        
-        my $type     = $event->type();
-        my $key_name = $event->key_name();
-        
+        1 while $event->poll();
+   
+        my $type = $event->type();
         return if $type != 2;
-        #debugsay "Event type=$type key_name=$key_name";
+
+        my $key_name = $event->key_name();
+        #debugsay "===> Event type=$type key_name=$key_name";
+
         
         if ( $key_name eq '1' ) {
             $C{showcores} = !$C{showcores};

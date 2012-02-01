@@ -346,93 +346,90 @@ sub main_loop ($@) {
     my ( $t1, $t2 ) = ( Time::HiRes::time(), undef );
 
     my $event_handler = sub {
-        1 while $event->poll() == 1;
-   
-        my $type = $event->type();
-        return if $type != 2;
-
-        my $key_name = $event->key_name();
-        #debugsay "===> Event type=$type key_name=$key_name";
-
-        if ( $key_name eq '1' ) {
-            $C{showcores} = !$C{showcores};
-            set_showcores_regexp;
-            $_->kill('USR1') for @threads;
-            %AVGSTATS    = ();
-            %CPUSTATS    = ();
-            display_info 'Toggled CPUs';
-        
-        }
-        elsif ( $key_name eq 'e' ) {
-            $C{extended} = !$C{extended};
-            display_info 'Toggled extended display';
-        
-        }
-        elsif ( $key_name eq 'h' ) {
-            say '=> Hotkeys to use in the SDL interface';
-            say $dispatch->('hotkeys');
-            display_info 'Hotkeys help printed on terminal stdout';
-        
-        }
-        elsif ( $key_name eq 'm' ) {
-            $C{showmem} = !$C{showmem};
-            display_info 'Toggled show mem';
-        
-        }
-        elsif ( $key_name eq 't' ) {
-            $C{displaytxt} = !$C{displaytxt};
-            display_info 'Toggled text display';
-        
-        }
-        elsif ( $key_name eq 'u' ) {
-            $C{displaytxthost} = !$C{displaytxthost};
-            display_info 'Toggled number/hostname display';
-        
-        }
-        elsif ( $key_name eq 'q' ) {
-            $quit = 1;
-            return;
-
-        }
-        elsif ( $key_name eq 'a' ) {
-            ++$C{average};
-            display_info "Set sample average to $C{average}";
-        }
-        elsif ( $key_name eq 'y' or $key_name eq 'z' ) {
-            my $avg = $C{average};
-            --$avg;
-            $C{average} = $avg > 1 ? $avg : 2;
-            display_info "Set sample average to $C{average}";
-        
-        }
-        elsif ( $key_name eq 's' ) {
-            $C{factor} += 0.1;
-            display_info "Set scale factor to $C{factor}";
-        }
-        elsif ( $key_name eq 'x' or $key_name eq 'z' ) {
-            $C{factor} -= 0.1;
-            display_info "Set scale factor to $C{factor}";
-        
-        }
-        elsif ( $key_name eq 'left') {
-            $newsize{width} = $C{width} - 100;
-            $newsize{height} = $C{height};
-            $resize_window = 1;
-        }
-        elsif ( $key_name eq 'right' ) {
-            $newsize{width} = $C{width} + 100;
-            $newsize{height} = $C{height};
-            $resize_window = 1;
-        }
-        elsif ( $key_name eq 'up' ) {
-            $newsize{width} = $C{width};
-            $newsize{height} = $C{height} - 100;
-            $resize_window = 1;
-        }
-        elsif ( $key_name eq 'down' ) {
-            $newsize{width} = $C{width};
-            $newsize{height} = $C{height} + 100;
-            $resize_window = 1;
+        while ($event->poll() == 1) {
+            next if $event->type() != 2;
+            my $key_name = $event->key_name();
+            
+            if ( $key_name eq '1' ) {
+                $C{showcores} = !$C{showcores};
+                set_showcores_regexp;
+                $_->kill('USR1') for @threads;
+                %AVGSTATS    = ();
+                %CPUSTATS    = ();
+                display_info 'Toggled CPUs';
+            
+            }
+            elsif ( $key_name eq 'e' ) {
+                $C{extended} = !$C{extended};
+                display_info 'Toggled extended display';
+            
+            }
+            elsif ( $key_name eq 'h' ) {
+                say '=> Hotkeys to use in the SDL interface';
+                say $dispatch->('hotkeys');
+                display_info 'Hotkeys help printed on terminal stdout';
+            
+            }
+            elsif ( $key_name eq 'm' ) {
+                $C{showmem} = !$C{showmem};
+                display_info 'Toggled show mem';
+            
+            }
+            elsif ( $key_name eq 't' ) {
+                $C{displaytxt} = !$C{displaytxt};
+                display_info 'Toggled text display';
+            
+            }
+            elsif ( $key_name eq 'u' ) {
+                $C{displaytxthost} = !$C{displaytxthost};
+                display_info 'Toggled number/hostname display';
+            
+            }
+            elsif ( $key_name eq 'q' ) {
+                $quit = 1;
+                return;
+            
+            }
+            elsif ( $key_name eq 'a' ) {
+                ++$C{average};
+                display_info "Set sample average to $C{average}";
+            }
+            elsif ( $key_name eq 'y' or $key_name eq 'z' ) {
+                my $avg = $C{average};
+                --$avg;
+                $C{average} = $avg > 1 ? $avg : 2;
+                display_info "Set sample average to $C{average}";
+            
+            }
+            elsif ( $key_name eq 's' ) {
+                $C{factor} += 0.1;
+                display_info "Set scale factor to $C{factor}";
+            }
+            elsif ( $key_name eq 'x' or $key_name eq 'z' ) {
+                $C{factor} -= 0.1;
+                display_info "Set scale factor to $C{factor}";
+            
+            }
+            elsif ( $key_name eq 'left') {
+                $newsize{width} = $C{width} - 100;
+                $newsize{height} = $C{height};
+                $resize_window = 1;
+            }
+            elsif ( $key_name eq 'right' ) {
+                $newsize{width} = $C{width} + 100;
+                $newsize{height} = $C{height};
+                $resize_window = 1;
+            }
+            elsif ( $key_name eq 'up' ) {
+                $newsize{width} = $C{width};
+                $newsize{height} = $C{height} - 100;
+                $resize_window = 1;
+            }
+            elsif ( $key_name eq 'down' ) {
+                $newsize{width} = $C{width};
+                $newsize{height} = $C{height} + 100;
+                $resize_window = 1;
+            }
         }
     };
 

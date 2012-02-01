@@ -128,8 +128,6 @@ sub thread_get_stats ($;$) {
 
     my ( $sigusr1, $quit ) = ( 0, 0 );
     my $loadavgexp = qr/(\d+\.\d{2}) (\d+\.\d{2}) (\d+\.\d{2})/;
-    my $cpustatsregexp = qr/CPUSTATS/;
-    my $memstatsregexp = qr/MEMSTATS/;
     my $inter = INTERVAL;
 
     for ( ; ; ) {
@@ -175,8 +173,10 @@ BASH
         my $mode = 0;
 
         while (<$pipe>) {
+            chomp;
+
             if ($mode == 0) {
-                if (/$memstatsregexp/) {
+                if ($_ eq 'MEMSTATS') {
                     $mode = 1;
 
                 } elsif (/^$loadavgexp/) {
@@ -189,7 +189,7 @@ BASH
                      grep { defined $load->{$_} } keys %$load;
                }
             } elsif ($mode == 1) {
-                if (/$cpustatsregexp/) {
+                if ($_ eq 'CPUSTATS') {
                     $mode = 0;
 
                 } else {
@@ -724,8 +724,6 @@ sub main_loop ($@) {
 
         }
 
-        $event_handler->();
-
       TIMEKEEPER:
         $t2 = Time::HiRes::time();
         my $t_diff = $t2 - $t1;
@@ -740,6 +738,8 @@ sub main_loop ($@) {
             display_info  "WARN: Loop is behind $t_diff seconds, your computer may be too slow";
         }
         $t1 = $t2;
+
+        $event_handler->();
 
         my $new_num_stats = keys %CPUSTATS;
         $new_num_stats += keys %MEMSTATS_HAS if $C{showmem};

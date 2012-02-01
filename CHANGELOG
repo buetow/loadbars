@@ -1,5 +1,5 @@
 * Add stats for memory (--showmem option or m hotkey)
-* Remove --width option 
+* Remove --width and --inter options
 * Add --barwidth option, each bar is barwidth pixels now
 * Add --maxwidth option, which represents the max total window width
 * Auto disable text display if text does not fit into window (maxwidth) pixels

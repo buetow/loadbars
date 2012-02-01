@@ -47,6 +47,8 @@ use constant {
     USER_ORANGE        => 70,
     USER_YELLOW0       => 50,
     NULL               => 0,
+    INTERVAL           => 0.1,
+    INTERVAL_WARN      => 1.0,
 };
 
 $| = 1;
@@ -73,7 +75,6 @@ my %C : shared;
     displaytxt     => 1,
     displaytxtoff  => 0,
     displaytxthost => 0,
-    inter          => 0.1,
     samples        => 500,
     sshopts        => '',
     barwidth       => 35,
@@ -129,6 +130,7 @@ sub thread_get_stats ($;$) {
     my $loadavgexp = qr/(\d+\.\d{2}) (\d+\.\d{2}) (\d+\.\d{2})/;
     my $cpustatsregexp = qr/CPUSTATS/;
     my $memstatsregexp = qr/MEMSTATS/;
+    my $inter = INTERVAL;
 
     for ( ; ; ) {
         my $bash = <<"BASH";
@@ -142,7 +144,7 @@ sub thread_get_stats ($;$) {
                     cat \$loadavg \$stat 
                     echo MEMSTATS
                     cat \$meminfo 
-                    sleep $C{inter}
+                    sleep $inter
                 done
             else 
                 loadavg=/compat/linux/proc/loadavg
@@ -150,7 +152,7 @@ sub thread_get_stats ($;$) {
 
                 for i in \$(jot $C{samples}); do 
                     cat \$loadavg \$stat
-                    sleep $C{inter}
+                    sleep $inter
                 done
             fi
 BASH
@@ -412,17 +414,6 @@ sub main_loop ($@) {
             display_info "Set scale factor to $C{factor}";
         
         }
-        elsif ( $key_name eq 'd' ) {
-            $C{inter} += 0.1;
-            display_info "Set graph update interval to $C{inter}";
-        }
-        elsif ( $key_name eq 'c' or $key_name eq 'z' ) {
-            my $int = $C{inter};
-            $int -= 0.1;
-            $C{inter} = $int > 0 ? $int : 0.1;
-            display_info "Set graph update interval to $C{inter}";
-        }
-        
         elsif ( $key_name eq 'left') {
             $newsize{width} = $C{width} - 100;
             $newsize{height} = $C{height};
@@ -737,14 +728,17 @@ sub main_loop ($@) {
 
       TIMEKEEPER:
         $t2 = Time::HiRes::time();
+        my $t_diff = $t2 - $t1;
 
-        if ( $C{inter} > $t2 - $t1 ) {
+        if ( INTERVAL > $t_diff ) {
             usleep 10000;
 
             # Goto is OK if you don't produce spaghetti code
             goto TIMEKEEPER;
-        }
 
+        } elsif ( INTERVAL_WARN < $t_diff ) {
+            display_info  "WARN: Loop is behind $t_diff seconds, your computer may be too slow";
+        }
         $t1 = $t2;
 
         my $new_num_stats = keys %CPUSTATS;
@@ -943,25 +937,6 @@ END
             var  => \$hosts,
             mode => 6,
             type => 's'
-        },
-
-        inter => {
-            menupos => 13,
-            help    => 'Set update interval in seconds (default 0.1)',
-            mode    => 7,
-            type    => 's'
-        },
-        inter_hot_up => {
-            menupos => 14,
-            cmd     => 'd',
-            help    => 'Increases update interval in seconds by 0.1',
-            mode    => 1
-        },
-        inter_hot_dn => {
-            menupos => 15,
-            cmd     => 'c',
-            help    => 'Decreases update interval in seconds by 0.1',
-            mode    => 1
         },
 
         maxwidth => {

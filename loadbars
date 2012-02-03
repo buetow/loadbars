@@ -47,7 +47,6 @@ use constant {
     SYSTEM_BLUE0       => 30,
     USER_ORANGE        => 70,
     USER_YELLOW0       => 50,
-    NULL               => 0,
     INTERVAL           => 0.1,
     INTERVAL_WARN      => 1.0,
 };

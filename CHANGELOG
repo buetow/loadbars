@@ -1,4 +1,5 @@
 * Add config file support (~/.loadbarsrc)
+* Remove --title option (no need anyway)
 * Some bugfixes
 
 Sat Feb  4 10:56:27 CET 2012

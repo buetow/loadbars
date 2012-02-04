@@ -310,29 +310,27 @@ sub draw_background ($$) {
 }
 
 sub create_threads (@) {
-    return map {
-        $_->detach();
-        $_;
-
-      } map {
-        threads->create( 'thread_get_stats', split /:/ );
-
-      } @_;
+    return 
+        map { $_->detach(); $_ } 
+        map { threads->create( 'thread_get_stats', split ':' ) } @_;
 }
 
 sub auto_off_text ($) {
     my ($barwidth) = @_;
 
     if ($barwidth < $C{barwidth} - 1 && $I{showtextoff} == 0) {
+        return if $C{showtext} == 0;
         display_warn 'Disabling text display, text does not fit into window. Use \'t\' to re-enable.';
         $I{showtextoff} = 1;
         $C{showtext} = 0;
 
-    } elsif ($I{showtextoff} && $barwidth >= $C{barwidth} - 1) {
+    } elsif ($I{showtextoff} == 1 && $barwidth >= $C{barwidth} - 1) {
         display_info 'Re-enabling text display, text fits into window now.';
         $C{showtext} = 1;
         $I{showtextoff} = 0;
     }
+
+    return undef;
 }
 
 sub set_dimensions ($$) {

@@ -1,1 +1,2 @@
-* After quit ssh processes dont shut down instantly but later
+* After quit ssh processes don't shut down instantly. But this is not an issue
+  since whey will quit automatically after 'samples' times. 

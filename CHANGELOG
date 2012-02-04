@@ -1,9 +1,19 @@
-Sun Jan 29 12:30:00 CET 2012
-* Releases v0.4.0.1
-* Fixed some docu typos
-* Code cleanup: Replaced tabs by 4 whitespaces
+Sat Feb  4 10:56:27 CET 2012
+* Release v0.5.0
+* Add stats for rudimentary memory and swap usage (--showmem option or m hotkey)
+* Remove --width and --inter options
+* Add --barwidth option, each bar is barwidth pixels now
+* Add --maxwidth option, which represents the max total window width
+* Auto disable text display if text does not fit into window (maxwidth) pixels
+* Auto re-enable text display if text does fit again into window 
+* Key right increases window width by 100px and left decreases by 100px
+* Key down increases window height by 100px and up decreases by 100px
+* Set 'samples' default values from 1000 down to 500.
+* No sporadic crashes on shutdown anymore
+* Some internal tweaks, no separate event thread needed anymore. This fixes
+  some sporadic bugs.
 
-Sat Jan 21 18:32:45 CET 2012
+Sun Jan 21 14:16:37 CET 2012
 * Released v0.4.0
 * Also show stats for idle, iowait, irq, softirq, steal and guest cpu time
 * Some parameters have been renamed (see --help)

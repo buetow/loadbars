@@ -83,7 +83,7 @@ my %I : shared;
 );
 
 %I = (
-    cpuregexp => 'cpu ',
+    cpuregexp => 'cpu',
     showtextoff => 0,
 );
 
@@ -94,7 +94,7 @@ sub debugsay (@) { say "Loadbars::DEBUG: $_" for @_; return undef }
 sub sum (@) { my $sum = 0; $sum += $_ for @_; return $sum }
 sub null ($) { defined $_[0] ? $_[0] : 0 }
 sub notnull ($) {  $_[0] != 0 ? $_[0] : 1 }
-sub set_showcores_regexp () { $I{cpuregexp} = $I{showcores} ? 'cpu' : 'cpu ' }
+sub set_showcores_regexp () { $I{cpuregexp} = $C{showcores} ? 'cpu' : 'cpu ' }
 sub error ($) { die shift, "\n" }
 sub display_info ($) { say "==> " . shift }
 sub display_warn ($) { say "!!! " . shift }

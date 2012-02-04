@@ -1,4 +1,8 @@
-* Add config file support (~/.loadbarsrc)
+* Add config file support (~/.loadbarsrc) and it's possible to configure 
+  any option you find in --help but without leading '--'. For comments 
+  just use the '#' sign. Sample config:
+    showcores=1 # Always show cores on startup
+    showtext=0 # Always don't display text on startup
 * Remove --title option (no need anyway)
 * Some bugfixes
 

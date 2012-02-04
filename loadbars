@@ -26,30 +26,30 @@ use threads;
 use threads::shared;
 
 use constant {
-    VERSION            => 'loadbars v0.5.1-devel',
-    Copyright          => '2010-2012 (c) Paul Buetow <loadbars@mx.buetow.org>',
-    CONFFILE           => $ENV{HOME} . '/.loadbarsrc',
-    CSSH_CONFFILE      => '/etc/clusters',
+    VERSION => 'loadbars v0.5.1-devel',
+    COPYRIGHT => '2010-2012 (c) Paul Buetow <loadbars@mx.buetow.org>',
+    CONFFILE => $ENV{HOME} . '/.loadbarsrc',
+    CSSH_CONFFILE => '/etc/clusters',
     CSSH_MAX_RECURSION => 10,
-    COLOR_DEPTH        => 8,
-    BLACK              => SDL::Color->new( -r => 0x00, -g => 0x00, -b => 0x00 ),
-    BLUE0              => SDL::Color->new( -r => 0x00, -g => 0x00, -b => 0xff ),
-    BLUE               => SDL::Color->new( -r => 0x00, -g => 0x00, -b => 0x88 ),
-    GREEN              => SDL::Color->new( -r => 0x00, -g => 0x90, -b => 0x00 ),
-    ORANGE             => SDL::Color->new( -r => 0xff, -g => 0x70, -b => 0x00 ),
-    PURPLE             => SDL::Color->new( -r => 0xa0, -g => 0x20, -b => 0xf0 ),
-    RED                => SDL::Color->new( -r => 0xff, -g => 0x00, -b => 0x00 ),
-    WHITE              => SDL::Color->new( -r => 0xff, -g => 0xff, -b => 0xff ),
-    GREY0              => SDL::Color->new( -r => 0x11, -g => 0x11, -b => 0x11 ),
-    GREY               => SDL::Color->new( -r => 0xaa, -g => 0xaa, -b => 0xaa ),
-    DARK_GREY          => SDL::Color->new( -r => 0x15, -g => 0x15, -b => 0x15 ),
-    YELLOW0            => SDL::Color->new( -r => 0xff, -g => 0xa0, -b => 0x00 ),
-    YELLOW             => SDL::Color->new( -r => 0xff, -g => 0xc0, -b => 0x00 ),
-    SYSTEM_BLUE0       => 30,
-    USER_ORANGE        => 70,
-    USER_YELLOW0       => 50,
-    INTERVAL           => 0.1,
-    INTERVAL_WARN      => 1.0,
+    COLOR_DEPTH => 8,
+    BLACK => SDL::Color->new( -r => 0x00, -g => 0x00, -b => 0x00 ),
+    BLUE0 => SDL::Color->new( -r => 0x00, -g => 0x00, -b => 0xff ),
+    BLUE => SDL::Color->new( -r => 0x00, -g => 0x00, -b => 0x88 ),
+    GREEN => SDL::Color->new( -r => 0x00, -g => 0x90, -b => 0x00 ),
+    ORANGE => SDL::Color->new( -r => 0xff, -g => 0x70, -b => 0x00 ),
+    PURPLE => SDL::Color->new( -r => 0xa0, -g => 0x20, -b => 0xf0 ),
+    RED => SDL::Color->new( -r => 0xff, -g => 0x00, -b => 0x00 ),
+    WHITE => SDL::Color->new( -r => 0xff, -g => 0xff, -b => 0xff ),
+    GREY0 => SDL::Color->new( -r => 0x11, -g => 0x11, -b => 0x11 ),
+    GREY => SDL::Color->new( -r => 0xaa, -g => 0xaa, -b => 0xaa ),
+    DARK_GREY => SDL::Color->new( -r => 0x15, -g => 0x15, -b => 0x15 ),
+    YELLOW0 => SDL::Color->new( -r => 0xff, -g => 0xa0, -b => 0x00 ),
+    YELLOW => SDL::Color->new( -r => 0xff, -g => 0xc0, -b => 0x00 ),
+    SYSTEM_BLUE0 => 30,
+    USER_ORANGE => 70,
+    USER_YELLOW0 => 50,
+    INTERVAL => 0.1,
+    INTERVAL_WARN => 1.0,
 };
 
 $| = 1;
@@ -111,7 +111,7 @@ sub trim (\$) {
 sub percentage ($$) {
     my ($total, $part) = @_;
 
-    return int (null($part) / notnull ( null($total) / 100 ));
+    return int (null($part) / notnull ( null($total) / 100));
 }
 
 sub norm ($) {
@@ -123,7 +123,7 @@ sub norm ($) {
 
 sub parse_cpu_line ($) {
     my $line = shift;
-    my ( $name, %load );
+    my ($name, %load);
 
     ( $name, @load{qw(user nice system idle iowait irq softirq steal guest)} ) =
       split ' ', $line;
@@ -135,7 +135,7 @@ sub parse_cpu_line ($) {
     $load{TOTAL} =
       sum @load{qw(user nice system idle iowait irq softirq steal guest)};
 
-    return ( $name, \%load );
+    return ($name, \%load);
 }
 
 sub read_config () {
@@ -175,11 +175,11 @@ sub stats_thread ($;$) {
     my ( $host, $user ) = @_;
     $user = defined $user ? "-l $user" : '';
 
-    my ( $sigusr1, $quit ) = ( 0, 0 );
+    my ($sigusr1, $quit) = (0,0);
     my $loadavgexp = qr/(\d+\.\d{2}) (\d+\.\d{2}) (\d+\.\d{2})/;
     my $inter = INTERVAL;
 
-    for ( ; ; ) {
+    for (;;) {
         my $bash = <<"BASH";
             if [ -e /proc/stat ]; then 
                 loadavg=/proc/loadavg
@@ -243,6 +243,7 @@ BASH
 
                 } else {
                     for my $meminfo (qw(MemTotal MemFree Buffers Cached SwapTotal SwapFree)) {
+                        # TODO: Precompile regexp
                         if (/^$meminfo: *(\d+)/) {
                             $MEMSTATS_HAS{$host} = 1;
                             $MEMSTATS{"$host;$meminfo"} = $1;
@@ -252,6 +253,7 @@ BASH
             }
 
             if ($sigusr1) {
+                # TODO: Use index instead of regexp for cpuregexp
                 $cpuregexp = qr/$I{cpuregexp}/;
                 $sigusr1   = 0;
             }
@@ -274,15 +276,15 @@ sub normalize_loads (%) {
     return %loads unless exists $loads{TOTAL};
 
     my $total = $loads{TOTAL} == 0 ? 1 : $loads{TOTAL};
-    return map { $_ => $loads{$_} / ( $total / 100 ) } keys %loads;
+    return map { $_ => $loads{$_} / ($total / 100)  } keys %loads;
 }
 
 sub get_cpuaverage ($@) {
-    my ( $factor, @loads ) = @_;
-    my ( %cpumax, %cpuaverage );
+    my ($factor, @loads) = @_;
+    my (%cpumax, %cpuaverage);
 
     for my $l (@loads) {
-        for ( keys %$l ) {
+        for (keys %$l) {
             $cpuaverage{$_} += $l->{$_};
 
             $cpumax{$_} = $l->{$_}
@@ -293,21 +295,21 @@ sub get_cpuaverage ($@) {
 
     my $div = @loads / $factor;
 
-    for ( keys %cpuaverage ) {
+    for (keys %cpuaverage) {
         $cpuaverage{$_} /= $div;
-        $cpumax{$_}     /= $factor;
+        $cpumax{$_} /= $factor;
     }
 
-    return ( \%cpumax, \%cpuaverage );
+    return (\%cpumax, \%cpuaverage);
 }
 
 sub draw_background ($$) {
-    my ( $app, $rects ) = @_;
+    my ($app, $rects) = @_;
     my $rect = get_rect $rects, 'background';
 
-    $rect->width( $C{width} );
-    $rect->height( $C{height} );
-    $app->fill( $rect, Loadbars::BLACK );
+    $rect->width($C{width});
+    $rect->height($C{height});
+    $app->fill($rect, Loadbars::BLACK);
     $app->update($rect);
 
     return undef;
@@ -1178,6 +1180,8 @@ sub get_cluster_hosts ($;$) {
 sub main () {
     my ( $hosts, $dispatch ) = dispatch_table;
     my $usage;
+
+    say VERSION . ' ' . COPYRIGHT;
 
     read_config;
 

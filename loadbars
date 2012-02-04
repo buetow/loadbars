@@ -363,7 +363,7 @@ sub main_loop ($@) {
 
     my $app = SDL::App->new(
         -title      => Loadbars::VERSION . ' (press h for help on stdout)',
-        -icon_title => $C{title},
+        -icon_title => Loadbars::VERSION,
         -width      => $C{width},
         -height     => $C{height},
         -depth      => Loadbars::COLOR_DEPTH,
@@ -1040,14 +1040,6 @@ END
 
         sshopts =>
           { menupos => 20, help => 'Set SSH options', mode => 6, type => 's' },
-        title => {
-            menupos => 21,
-            help    => 'Set the window title',
-            var     => \$C{title},
-            mode    => 6,
-            type    => 's'
-        },
-
     );
 
     my %d_by_short = map {

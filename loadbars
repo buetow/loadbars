@@ -391,7 +391,9 @@ sub main_loop ($@) {
 
     my ( $t1, $t2 ) = ( Time::HiRes::time(), undef );
 
+    # Closure for event handling
     my $event_handler = sub {
+        # While there are events to poll, poll them all!
         while ($event->poll() == 1) {
             next if $event->type() != 2;
             my $key_name = $event->key_name();
@@ -404,74 +406,61 @@ sub main_loop ($@) {
                 %CPUSTATS    = ();
                 display_info 'Toggled CPUs';
             
-            }
-            elsif ( $key_name eq 'e' ) {
+            } elsif ( $key_name eq 'e' ) {
                 $C{extended} = !$C{extended};
                 display_info 'Toggled extended display';
             
-            }
-            elsif ( $key_name eq 'h' ) {
+            } elsif ( $key_name eq 'h' ) {
                 say '=> Hotkeys to use in the SDL interface';
                 say $dispatch->('hotkeys');
                 display_info 'Hotkeys help printed on terminal stdout';
             
-            }
-            elsif ( $key_name eq 'm' ) {
+            } elsif ( $key_name eq 'm' ) {
                 $C{showmem} = !$C{showmem};
                 display_info 'Toggled show mem';
             
-            }
-            elsif ( $key_name eq 't' ) {
+            } elsif ( $key_name eq 't' ) {
                 $C{showtext} = !$C{showtext};
                 display_info 'Toggled text display';
             
-            }
-            elsif ( $key_name eq 'u' ) {
+            } elsif ( $key_name eq 'u' ) {
                 $C{showtexthost} = !$C{showtexthost};
                 display_info 'Toggled number/hostname display';
             
-            }
-            elsif ( $key_name eq 'q' ) {
+            } elsif ( $key_name eq 'q' ) {
                 $quit = 1;
                 return;
             
-            }
-            elsif ( $key_name eq 'a' ) {
+            } elsif ( $key_name eq 'a' ) {
                 ++$C{average};
                 display_info "Set sample average to $C{average}";
-            }
-            elsif ( $key_name eq 'y' or $key_name eq 'z' ) {
+            } elsif ( $key_name eq 'y' or $key_name eq 'z' ) {
                 my $avg = $C{average};
                 --$avg;
                 $C{average} = $avg > 1 ? $avg : 2;
                 display_info "Set sample average to $C{average}";
             
-            }
-            elsif ( $key_name eq 's' ) {
+            } elsif ( $key_name eq 's' ) {
                 $C{factor} += 0.1;
                 display_info "Set scale factor to $C{factor}";
-            }
-            elsif ( $key_name eq 'x' or $key_name eq 'z' ) {
+            } elsif ( $key_name eq 'x' or $key_name eq 'z' ) {
                 $C{factor} -= 0.1;
                 display_info "Set scale factor to $C{factor}";
             
-            }
-            elsif ( $key_name eq 'left') {
+            } elsif ( $key_name eq 'left') {
                 $newsize{width} = $C{width} - 100;
                 $newsize{height} = $C{height};
                 $resize_window = 1;
-            }
-            elsif ( $key_name eq 'right' ) {
+            } elsif ( $key_name eq 'right' ) {
                 $newsize{width} = $C{width} + 100;
                 $newsize{height} = $C{height};
                 $resize_window = 1;
-            }
-            elsif ( $key_name eq 'up' ) {
+
+            } elsif ( $key_name eq 'up' ) {
                 $newsize{width} = $C{width};
                 $newsize{height} = $C{height} - 100;
                 $resize_window = 1;
-            }
-            elsif ( $key_name eq 'down' ) {
+            } elsif ( $key_name eq 'down' ) {
                 $newsize{width} = $C{width};
                 $newsize{height} = $C{height} + 100;
                 $resize_window = 1;

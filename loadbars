@@ -26,8 +26,9 @@ use threads;
 use threads::shared;
 
 use constant {
-    VERSION            => 'loadbars v0.5.0',
+    VERSION            => 'loadbars v0.5.1-devel',
     Copyright          => '2010-2012 (c) Paul Buetow <loadbars@mx.buetow.org>',
+    CONFFILE           => $ENV{HOME} . '/.loadbarsrc',
     CSSH_CONFFILE      => '/etc/clusters',
     CSSH_MAX_RECURSION => 10,
     COLOR_DEPTH        => 8,
@@ -62,24 +63,28 @@ my %MEMSTATS_HAS : shared;
 
 # Global configuration hash
 my %C : shared;
+# Global configuration hash for internal settings (not configurable)
+my %I : shared;
 
 # Setting defaults
 %C = (
-    title          => Loadbars::VERSION . ' (press h for help on stdout)',
-    average        => 15,
-    showcores      => 0,
-    showmem        => 0,
-    cpuregexp      => 'cpu',
-    factor         => 1,
-    extended       => 0,
-    displaytxt     => 1,
-    displaytxtoff  => 0,
-    displaytxthost => 0,
-    samples        => 500,
-    sshopts        => '',
-    barwidth       => 35,
-    maxwidth       => 1280, 
-    height         => 230,
+    average => 15,
+    showcores => 0,
+    showmem => 0,
+    factor => 1,
+    extended => 0,
+    showtext => 1,
+    showtexthost => 0,
+    samples => 500,
+    sshopts => '',
+    barwidth => 35,
+    maxwidth => 1280, 
+    height => 230,
+);
+
+%I = (
+    cpuregexp => 'cpu ',
+    showtextoff => 0,
 );
 
 # Quick n dirty helpers
@@ -89,9 +94,19 @@ sub debugsay (@) { say "Loadbars::DEBUG: $_" for @_; return undef }
 sub sum (@) { my $sum = 0; $sum += $_ for @_; return $sum }
 sub null ($) { defined $_[0] ? $_[0] : 0 }
 sub notnull ($) {  $_[0] != 0 ? $_[0] : 1 }
-sub set_showcores_regexp () { $C{cpuregexp} = $C{showcores} ? 'cpu' : 'cpu ' }
+sub set_showcores_regexp () { $I{cpuregexp} = $I{showcores} ? 'cpu' : 'cpu ' }
 sub error ($) { die shift, "\n" }
 sub display_info ($) { say "==> " . shift }
+sub display_warn ($) { say "!!! " . shift }
+
+sub trim (\$) { 
+    my $str = shift; 
+
+    $$str =~ s/^[\s\t]+//;
+    $$str =~ s/[\s\t]+$//;
+
+    return undef;
+}
 
 sub percentage ($$) {
     my ($total, $part) = @_;
@@ -113,6 +128,7 @@ sub parse_cpu_line ($) {
     ( $name, @load{qw(user nice system idle iowait irq softirq steal guest)} ) =
       split ' ', $line;
 
+    # Not all kernels support this
     $load{steal} = 0 unless defined $load{steal};
     $load{guest} = 0 unless defined $load{guest};
 
@@ -120,6 +136,35 @@ sub parse_cpu_line ($) {
       sum @load{qw(user nice system idle iowait irq softirq steal guest)};
 
     return ( $name, \%load );
+}
+
+sub read_config () {
+    return unless -f CONFFILE;
+
+    display_info "Reading configuration from " . CONFFILE;
+    open my $conffile, CONFFILE or die "$!: " . CONFFILE . "\n";
+
+    while (<$conffile>) {
+        chomp;
+        next if /^[\t\s]*#/;
+        s/[\t\s]*#.*//;
+
+        my ($key, $val) = split /=/, $_;
+        trim $key; trim $val;
+
+        unless (defined $val) {
+            display_warn "Could not parse config line: $_";
+
+        } elsif (not exists $C{$key}) {
+            display_warn "There is no such config key: $key, ignoring";
+
+        } else {
+            display_info "Setting $key=$val, it might be overwritten by command line params.";
+            $C{$key} = $val;
+        }
+    }
+
+    close $conffile;
 }
 
 sub thread_get_stats ($;$) {
@@ -168,7 +213,7 @@ BASH
 
         # Toggle CPUs
         $SIG{USR1} = sub { $sigusr1 = 1 };
-        my $cpuregexp = qr/$C{cpuregexp}/;
+        my $cpuregexp = qr/$I{cpuregexp}/;
         # 1=cpu, 2=mem, 3=net
         my $mode = 0;
 
@@ -203,7 +248,7 @@ BASH
             }
 
             if ($sigusr1) {
-                $cpuregexp = qr/$C{cpuregexp}/;
+                $cpuregexp = qr/$I{cpuregexp}/;
                 $sigusr1   = 0;
             }
         }
@@ -278,15 +323,15 @@ sub create_threads (@) {
 sub auto_off_text ($) {
     my ($barwidth) = @_;
 
-    if ($barwidth < $C{barwidth} - 1 && $C{displaytxtoff} == 0) {
-        display_info 'Disabling text display, text does not fit into window. Use \'t\' to re-enable.';
-        $C{displaytxtoff} = 1;
-        $C{displaytxt} = 0;
+    if ($barwidth < $C{barwidth} - 1 && $I{showtextoff} == 0) {
+        display_warn 'Disabling text display, text does not fit into window. Use \'t\' to re-enable.';
+        $I{showtextoff} = 1;
+        $C{showtext} = 0;
 
-    } elsif ($C{displaytxtoff} && $barwidth >= $C{barwidth} - 1) {
+    } elsif ($I{showtextoff} && $barwidth >= $C{barwidth} - 1) {
         display_info 'Re-enabling text display, text fits into window now.';
-        $C{displaytxt} = 1;
-        $C{displaytxtoff} = 0;
+        $C{showtext} = 1;
+        $I{showtextoff} = 0;
     }
 }
 
@@ -319,7 +364,7 @@ sub main_loop ($@) {
     $C{width} = $C{barwidth};
 
     my $app = SDL::App->new(
-        -title      => $C{title},
+        -title      => Loadbars::VERSION . ' (press h for help on stdout)',
         -icon_title => $C{title},
         -width      => $C{width},
         -height     => $C{height},
@@ -375,12 +420,12 @@ sub main_loop ($@) {
             
             }
             elsif ( $key_name eq 't' ) {
-                $C{displaytxt} = !$C{displaytxt};
+                $C{showtext} = !$C{showtext};
                 display_info 'Toggled text display';
             
             }
             elsif ( $key_name eq 'u' ) {
-                $C{displaytxthost} = !$C{displaytxthost};
+                $C{showtexthost} = !$C{showtexthost};
                 display_info 'Toggled number/hostname display';
             
             }
@@ -660,7 +705,7 @@ sub main_loop ($@) {
 
             my @loadavg = split ';', $AVGSTATS{$host};
 
-            if ( $C{displaytxt} ) {
+            if ( $C{showtext} ) {
                 if ( $C{showmem} && $is_host_summary ) {
                     my $y_ = $y;
                     $app->print( $x+$add_x, $y_, 'Ram:');
@@ -668,7 +713,7 @@ sub main_loop ($@) {
                     $app->print( $x+$add_x, $y_ += $space, 'Swp:');
                     $app->print( $x+$add_x, $y_ += $space, sprintf '%02d', (100-$meminfo{swap_per}));
                 }
-                if ( $C{displaytxthost} && $is_host_summary ) {
+                if ( $C{showtexthost} && $is_host_summary ) {
                     # If hostname is printed don't use FQDN
                     # because of its length.
                     $host =~ /([^\.]*)/;
@@ -731,7 +776,7 @@ sub main_loop ($@) {
             goto TIMEKEEPER;
 
         } elsif ( INTERVAL_WARN < $t_diff ) {
-            display_info  "WARN: Loop is behind $t_diff seconds, your computer may be too slow";
+            display_warn  "WARN: Loop is behind $t_diff seconds, your computer may be too slow";
         }
         $t1 = $t2;
 
@@ -1142,6 +1187,8 @@ sub get_cluster_hosts ($;$) {
 sub main () {
     my ( $hosts, $dispatch ) = dispatch_table;
     my $usage;
+
+    read_config;
 
     GetOptions( 'help|?' => \$usage, $dispatch->('options') );
 

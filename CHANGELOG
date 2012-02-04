@@ -1,4 +1,6 @@
-* Add stats for memory (--showmem option or m hotkey)
+Sat Feb  4 10:56:27 CET 2012
+* Release v0.5.0
+* Add stats for rudimentary memory and swap usage (--showmem option or m hotkey)
 * Remove --width and --inter options
 * Add --barwidth option, each bar is barwidth pixels now
 * Add --maxwidth option, which represents the max total window width

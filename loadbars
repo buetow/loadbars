@@ -146,18 +146,20 @@ sub read_config () {
 
     while (<$conffile>) {
         chomp;
-        next if /^[\t\s]*#/;
-        s/[\t\s]*#.*//;
+        s/[\t\s]*?#.*//;
 
         next unless length;
 
-        my ($key, $val) = split /=/, $_;
-        trim $key; trim $val;
+        my ($key, $val) = split '=';
 
         unless (defined $val) {
             display_warn "Could not parse config line: $_";
+            next;
+        }
 
-        } elsif (not exists $C{$key}) {
+        trim $key; trim $val;
+
+        if (not exists $C{$key}) {
             display_warn "There is no such config key: $key, ignoring";
 
         } else {

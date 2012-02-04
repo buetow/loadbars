@@ -171,7 +171,7 @@ sub read_config () {
     close $conffile;
 }
 
-sub thread_get_stats ($;$) {
+sub stats_thread ($;$) {
     my ( $host, $user ) = @_;
     $user = defined $user ? "-l $user" : '';
 
@@ -316,7 +316,7 @@ sub draw_background ($$) {
 sub create_threads (@) {
     return 
         map { $_->detach(); $_ } 
-        map { threads->create( 'thread_get_stats', split ':' ) } @_;
+        map { threads->create( 'stats_thread', split ':' ) } @_;
 }
 
 sub auto_off_text ($) {

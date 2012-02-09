@@ -4,6 +4,7 @@
     showcores=1 # Always show cores on startup
     showtext=0 # Always don't display text on startup
 * Remove --title option (no need anyway)
+* Some code cleanups
 * Some bugfixes
 
 Sat Feb  4 10:56:27 CET 2012

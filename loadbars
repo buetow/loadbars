@@ -50,6 +50,9 @@ use constant {
     USER_YELLOW0 => 50,
     INTERVAL => 0.1,
     INTERVAL_WARN => 1.0,
+    E_OK => 0,
+    E_UNKNOWN => 1,
+    E_NOHOST => 2,
 };
 
 $| = 1;
@@ -806,7 +809,7 @@ sub main_loop ($@) {
 
     say "Good bye";
 
-    exit 0;
+    exit E_OK;
 }
 
 sub dispatch_table () {
@@ -1147,7 +1150,7 @@ sub get_cluster_hosts ($;$) {
         $recursion = 1;
 
     }
-    elsif ( $recursion > CSSH_MAX_RECURSION ) {
+        elsif ( $recursion > CSSH_MAX_RECURSION ) {
         error "CSSH_MAX_RECURSION reached. Infinite circle loop in "
           . CSSH_CONFFILE . "?";
     }
@@ -1174,6 +1177,7 @@ sub get_cluster_hosts ($;$) {
     my @hosts;
     push @hosts, get_cluster_hosts $_, ( $recursion + 1 )
       for ( split /\s+/, $hosts );
+
     return @hosts;
 }
 
@@ -1189,7 +1193,7 @@ sub main () {
 
     if ( defined $usage ) {
         say $dispatch->('usage');
-        exit 1;
+        exit E_OK;
     }
 
     set_showcores_regexp;
@@ -1206,11 +1210,13 @@ sub main () {
     }
     else {
         say $dispatch->('usage');
-        exit 1;
+        exit E_NOHOST;
     }
 
     my @threads = create_threads @hosts;
     main_loop $dispatch, @threads;
+
+    exit E_OK;
 }
 
 main;

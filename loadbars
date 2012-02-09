@@ -522,15 +522,15 @@ sub main_loop ($@) {
 
             my $rect_separator = undef;
 
-            my $rect_idle    = get_rect $rects, "$key;idle";
-            my $rect_steal   = get_rect $rects, "$key;steal";
-            my $rect_guest   = get_rect $rects, "$key;guest";
-            my $rect_irq     = get_rect $rects, "$key;irq";
+            my $rect_idle = get_rect $rects, "$key;idle";
+            my $rect_steal = get_rect $rects, "$key;steal";
+            my $rect_guest = get_rect $rects, "$key;guest";
+            my $rect_irq = get_rect $rects, "$key;irq";
             my $rect_softirq = get_rect $rects, "$key;softirq";
-            my $rect_nice    = get_rect $rects, "$key;nice";
-            my $rect_iowait  = get_rect $rects, "$key;iowait";
-            my $rect_user    = get_rect $rects, "$key;user";
-            my $rect_system  = get_rect $rects, "$key;system";
+            my $rect_nice = get_rect $rects, "$key;nice";
+            my $rect_iowait = get_rect $rects, "$key;iowait";
+            my $rect_user = get_rect $rects, "$key;user";
+            my $rect_system = get_rect $rects, "$key;system";
 
             my $rect_peak;
 
@@ -765,14 +765,14 @@ sub main_loop ($@) {
         if ( INTERVAL > $t_diff ) {
             usleep 10000;
 
-            # Goto is OK if you don't produce spaghetti code
+            # Goto is OK as long you don't produce spaghetti code
             goto TIMEKEEPER;
 
         } elsif ( INTERVAL_WARN < $t_diff ) {
             display_warn  "WARN: Loop is behind $t_diff seconds, your computer may be too slow";
         }
-        $t1 = $t2;
 
+        $t1 = $t2;
         $event_handler->();
 
         my $new_num_stats = keys %CPUSTATS;
@@ -856,10 +856,10 @@ Examples:
     loadbars --cluster foocluster (foocluster is in /etc/clusters [ClusterSSH])
 END
 
- # mode 1: Option is shown in the online help menu (stdout not sdl)
- # mode 2: Option is shown in the 'usage' screen from the command line
- # mode 4: Option is used to generate the GetOptions parameters for Getopt::Long
- # Combinations: Like chmod(1)
+    # mode 1: Option is shown in the online help menu (stdout not sdl)
+    # mode 2: Option is shown in the 'usage' screen from the command line
+    # mode 4: Option is used to generate the GetOptions parameters for Getopt::Long
+    # Combinations: Like chmod(1)
 
     my %d = (
         average => {

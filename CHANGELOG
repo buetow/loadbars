@@ -3,6 +3,7 @@
   just use the '#' sign. Sample config:
     showcores=1 # Always show cores on startup
     showtext=0 # Always don't display text on startup
+* Add hotkey 'w' which writes current settings to the configfile
 * Remove --title option (no need anyway)
 * Some code cleanups
 * Some bugfixes

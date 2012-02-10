@@ -50,7 +50,7 @@ use constant {
     USER_YELLOW0 => 50,
     INTERVAL => 0.1,
     INTERVAL_WARN => 1.0,
-    E_OK => 0,
+    SUCCESS => 0,
     E_UNKNOWN => 1,
     E_NOHOST => 2,
 };
@@ -823,7 +823,7 @@ sub main_loop ($@) {
 
     say "Good bye";
 
-    exit E_OK;
+    exit SUCCESS;
 }
 
 sub dispatch_table () {
@@ -1208,7 +1208,7 @@ sub main () {
 
     if ( defined $usage ) {
         say $dispatch->('usage');
-        exit E_OK;
+        exit SUCCESS;
     }
 
     set_showcores_regexp;
@@ -1231,7 +1231,7 @@ sub main () {
     my @threads = create_threads @hosts;
     main_loop $dispatch, @threads;
 
-    exit E_OK;
+    exit SUCCESS;
 }
 
 main;

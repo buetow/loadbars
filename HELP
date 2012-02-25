@@ -1,8 +1,3 @@
-==> Reading configuration from /home/pb/.loadbarsrc
-==> Setting showcores=1, it might be overwritten by command line params.
-==> Setting showtext=0, it might be overwritten by command line params.
-==> Setting extended=1, it might be overwritten by command line params.
-==> Setting showmem=1, it might be overwritten by command line params.
 CPU stuff:
     st = Steal in % [see man proc] (extended)
         Color: Red

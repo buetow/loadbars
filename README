@@ -11,7 +11,7 @@ For a changelog see CHANGELOG
 
 For a list of all known bugs see BUGS
 
-Supported platforms are: Linux and FreeBSD (the latter with linprocfs mounted).
+Supported platforms are: Linux and FreeBSD (the latter with linprocfs mounted, the latter may not have full functionality).
 
 For Linux at least a 2.6 Kernel is required.
 
@@ -21,7 +21,10 @@ Versioning schema: a.b.c[.d], where
 	b = Major release (new features or major code refactoring)
 	a = Don't know yet. Maybe will stay forever 0.
 
+	It's not a release if there is a -master suffix. It's a stable 
+	version (master branch) then.
+
 	It's not a release if there is a -devel suffix. It's a development 
-	version (in the trunk) then.
+	version (devel branch) then.
 
 For some help/usage please consult the HELP file.

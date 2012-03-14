@@ -22,6 +22,8 @@ use SDL::Font;
 
 use Time::HiRes qw(usleep gettimeofday);
 
+use Proc::ProcessTable;
+
 use threads;
 use threads::shared;
 
@@ -77,7 +79,7 @@ my %I : shared;
     factor => 1,
     height => 230,
     maxwidth => 1280, 
-    samples => 500,
+    samples => 1000,
     showcores => 0,
     showmem => 0,
     showtext => 1,
@@ -189,11 +191,12 @@ sub stats_thread ($;$) {
     my ( $host, $user ) = @_;
     $user = defined $user ? "-l $user" : '';
 
-    my ($sigusr1, $quit) = (0,0);
+    my ($sigusr1, $sigterm) = (0,0);
     my $loadavgexp = qr/(\d+\.\d{2}) (\d+\.\d{2}) (\d+\.\d{2})/;
     my $inter = INTERVAL;
+    my $pid;
 
-    for (;;) {
+    until ($sigterm) {
         my $bash = <<"BASH";
             loadavg=/proc/loadavg
             stat=/proc/stat
@@ -213,7 +216,7 @@ BASH
           ? $bash
           : "ssh $user -o StrictHostKeyChecking=no $C{sshopts} $host '$bash'";
 
-        my $pid = open my $pipe, "$cmd |" or do {
+        $pid = open my $pipe, "$cmd |" or do {
             say "Warning: $!";
             sleep 3;
             next;
@@ -221,6 +224,8 @@ BASH
 
         # Toggle CPUs
         $SIG{USR1} = sub { $sigusr1 = 1 };
+        $SIG{TERM} = sub { $sigterm = 1 };
+
         my $cpuregexp = qr/$I{cpuregexp}/;
         # 1=cpu, 2=mem, 3=net
         my $mode = 0;
@@ -260,9 +265,22 @@ BASH
                 # TODO: Use index instead of regexp for cpuregexp
                 $cpuregexp = qr/$I{cpuregexp}/;
                 $sigusr1   = 0;
+            } elsif ($sigterm) {
+                last;
             }
         }
     }
+
+    my $proc_table = Proc::ProcessTable->new();
+    for my $proc (@{$proc_table->table()}) {
+        if ($proc->ppid == $pid) {
+            display_info "Terminating PID $proc->ppid";
+            kill 'TERM', $proc->pid if $proc->ppid == $pid;
+        }
+    }
+
+    display_info "Terminating PID $pid";
+    kill 'TERM', $pid;
 
     return undef;
 }
@@ -434,6 +452,10 @@ sub main_loop ($@) {
                 display_info 'Toggled number/hostname display';
             
             } elsif ( $key_name eq 'q' ) {
+                display_info 'Shutting down sub-processes';
+                $_->kill('TERM') for @threads;
+                sleep 1;
+                display_info 'Shutting down done';
                 $quit = 1;
                 return;
             

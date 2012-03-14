@@ -195,27 +195,17 @@ sub stats_thread ($;$) {
 
     for (;;) {
         my $bash = <<"BASH";
-            if [ -e /proc/stat ]; then 
-                loadavg=/proc/loadavg
-                stat=/proc/stat
-                meminfo=/proc/meminfo
-
-                for i in \$(seq $C{samples}); do 
-                    echo CPUSTATS
-                    cat \$loadavg \$stat 
-                    echo MEMSTATS
-                    cat \$meminfo 
-                    sleep $inter
-                done
-            else 
-                loadavg=/compat/linux/proc/loadavg
-                stat=/compat/linux/proc/stat
-
-                for i in \$(jot $C{samples}); do 
-                    cat \$loadavg \$stat
-                    sleep $inter
-                done
-            fi
+            loadavg=/proc/loadavg
+            stat=/proc/stat
+            meminfo=/proc/meminfo
+            
+            for i in \$(seq $C{samples}); do 
+                echo CPUSTATS
+                cat \$loadavg \$stat 
+                echo MEMSTATS
+                cat \$meminfo 
+                sleep $inter
+            done
 BASH
 
         my $cmd =

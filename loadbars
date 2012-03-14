@@ -191,7 +191,7 @@ sub write_config () {
 sub terminate_pids (@) {
     my @threads = @_;
 
-    display_info 'Terminating sub-processes';
+    display_info 'Terminating sub-processes, hasta la vista!';
     $_->kill('TERM') for @threads;
     for my $pid (@PIDS) {
         my $proc_table = Proc::ProcessTable->new();
@@ -206,7 +206,7 @@ sub terminate_pids (@) {
         kill 'TERM', $pid;
     }
 
-    display_info 'Terminating down. I\'ll be back!';
+    display_info 'Terminating done. I\'ll be back!';
 }
 
 sub stats_thread ($;$) {

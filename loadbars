@@ -59,6 +59,7 @@ use constant {
 
 $| = 1;
 
+my @PIDS : shared;
 my %AVGSTATS : shared;
 my %CPUSTATS : shared;
 my %MEMSTATS : shared;
@@ -187,6 +188,27 @@ sub write_config () {
     close $conffile;
 }
 
+sub terminate_pids (@) {
+    my @threads = @_;
+
+    display_info 'Terminating sub-processes';
+    $_->kill('TERM') for @threads;
+    for my $pid (@PIDS) {
+        my $proc_table = Proc::ProcessTable->new();
+        for my $proc (@{$proc_table->table()}) {
+            if ($proc->ppid == $pid) {
+                display_info "Terminating PID ".$proc->pid;
+                kill 'TERM', $proc->pid if $proc->ppid == $pid;
+            }
+        }
+        
+        display_info "Terminating PID $pid";
+        kill 'TERM', $pid;
+    }
+
+    display_info 'Terminating down. I\'ll be back!';
+}
+
 sub stats_thread ($;$) {
     my ( $host, $user ) = @_;
     $user = defined $user ? "-l $user" : '';
@@ -194,7 +216,6 @@ sub stats_thread ($;$) {
     my ($sigusr1, $sigterm) = (0,0);
     my $loadavgexp = qr/(\d+\.\d{2}) (\d+\.\d{2}) (\d+\.\d{2})/;
     my $inter = INTERVAL;
-    my $pid;
 
     until ($sigterm) {
         my $bash = <<"BASH";
@@ -216,11 +237,13 @@ BASH
           ? $bash
           : "ssh $user -o StrictHostKeyChecking=no $C{sshopts} $host '$bash'";
 
-        $pid = open my $pipe, "$cmd |" or do {
+        my $pid = open my $pipe, "$cmd |" or do {
             say "Warning: $!";
             sleep 3;
             next;
         };
+
+        push @PIDS, $pid;
 
         # Toggle CPUs
         $SIG{USR1} = sub { $sigusr1 = 1 };
@@ -230,7 +253,7 @@ BASH
         # 1=cpu, 2=mem, 3=net
         my $mode = 0;
 
-        while (<$pipe>) {
+    while (<$pipe>) {
             chomp;
 
             if ($mode == 0) {
@@ -265,22 +288,13 @@ BASH
                 # TODO: Use index instead of regexp for cpuregexp
                 $cpuregexp = qr/$I{cpuregexp}/;
                 $sigusr1   = 0;
+
             } elsif ($sigterm) {
+                close $pipe;
                 last;
             }
         }
     }
-
-    my $proc_table = Proc::ProcessTable->new();
-    for my $proc (@{$proc_table->table()}) {
-        if ($proc->ppid == $pid) {
-            display_info "Terminating PID $proc->ppid";
-            kill 'TERM', $proc->pid if $proc->ppid == $pid;
-        }
-    }
-
-    display_info "Terminating PID $pid";
-    kill 'TERM', $pid;
 
     return undef;
 }
@@ -452,10 +466,7 @@ sub main_loop ($@) {
                 display_info 'Toggled number/hostname display';
             
             } elsif ( $key_name eq 'q' ) {
-                display_info 'Shutting down sub-processes';
-                $_->kill('TERM') for @threads;
-                sleep 1;
-                display_info 'Shutting down done';
+                terminate_pids @threads;
                 $quit = 1;
                 return;
             

@@ -102,6 +102,7 @@ sub null ($) { defined $_[0] ? $_[0] : 0 }
 sub notnull ($) {  $_[0] != 0 ? $_[0] : 1 }
 sub set_showcores_regexp () { $I{cpuregexp} = $C{showcores} ? 'cpu' : 'cpu ' }
 sub error ($) { die shift, "\n" }
+sub display_info_no_nl ($) { print "==> " . shift . ' ' }
 sub display_info ($) { say "==> " . shift }
 sub display_warn ($) { say "!!! " . shift }
 
@@ -198,18 +199,21 @@ sub terminate_pids (@) {
 
     display_info 'Terminating sub-processes, hasta la vista!';
     $_->kill('TERM') for @threads;
+    display_info_no_nl 'Terminating PIDs';
     for my $pid (@PIDS) {
         my $proc_table = Proc::ProcessTable->new();
         for my $proc (@{$proc_table->table()}) {
             if ($proc->ppid == $pid) {
-                display_info "Terminating PID ".$proc->pid;
+                print $proc->pid . ' ';
                 kill 'TERM', $proc->pid if $proc->ppid == $pid;
             }
         }
         
-        display_info "Terminating PID $pid";
+        print $pid . ' ';
         kill 'TERM', $pid;
     }
+
+    say '';
 
     display_info 'Terminating done. I\'ll be back!';
 }

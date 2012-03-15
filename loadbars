@@ -179,7 +179,12 @@ sub read_config () {
 
 sub write_config () {
     display_warn "Overwriting config file " . CONFFILE if -f CONFFILE;
-    open my $conffile, '>', CONFFILE or die "$!: " . CONFFILE . "\n";
+
+    open my $conffile, '>', CONFFILE or do {
+        display_warn "$!: " . CONFFILE;
+
+        return undef;
+    };
 
     for (keys %C) {
         print $conffile "$_=$C{$_}\n";

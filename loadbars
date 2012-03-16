@@ -59,7 +59,7 @@ use constant {
 
 $| = 1;
 
-my @PIDS : shared;
+my %PIDS : shared;
 my %AVGSTATS : shared;
 my %CPUSTATS : shared;
 my %MEMSTATS : shared;
@@ -200,7 +200,7 @@ sub terminate_pids (@) {
     display_info 'Terminating sub-processes, hasta la vista!';
     $_->kill('TERM') for @threads;
     display_info_no_nl 'Terminating PIDs';
-    for my $pid (@PIDS) {
+    for my $pid (keys %PIDS) {
         my $proc_table = Proc::ProcessTable->new();
         for my $proc (@{$proc_table->table()}) {
             if ($proc->ppid == $pid) {
@@ -252,7 +252,7 @@ BASH
             next;
         };
 
-        push @PIDS, $pid;
+        $PIDS{$pid} = 1;
 
         # Toggle CPUs
         $SIG{USR1} = sub { $sigusr1 = 1 };

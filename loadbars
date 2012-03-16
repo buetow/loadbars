@@ -22,11 +22,13 @@ use SDL::Font;
 
 use Time::HiRes qw(usleep gettimeofday);
 
+use Proc::ProcessTable;
+
 use threads;
 use threads::shared;
 
 use constant {
-    VERSION => 'loadbars v0.5.1-master',
+    VERSION => 'loadbars v0.5.1.1',
     COPYRIGHT => '2010-2012 (c) Paul Buetow <loadbars@mx.buetow.org>',
     CONFFILE => $ENV{HOME} . '/.loadbarsrc',
     CSSH_CONFFILE => '/etc/clusters',
@@ -57,6 +59,7 @@ use constant {
 
 $| = 1;
 
+my @PIDS : shared;
 my %AVGSTATS : shared;
 my %CPUSTATS : shared;
 my %MEMSTATS : shared;
@@ -77,7 +80,7 @@ my %I : shared;
     factor => 1,
     height => 230,
     maxwidth => 1280, 
-    samples => 500,
+    samples => 1000,
     showcores => 0,
     showmem => 0,
     showtext => 1,
@@ -99,6 +102,7 @@ sub null ($) { defined $_[0] ? $_[0] : 0 }
 sub notnull ($) {  $_[0] != 0 ? $_[0] : 1 }
 sub set_showcores_regexp () { $I{cpuregexp} = $C{showcores} ? 'cpu' : 'cpu ' }
 sub error ($) { die shift, "\n" }
+sub display_info_no_nl ($) { print "==> " . shift . ' ' }
 sub display_info ($) { say "==> " . shift }
 sub display_warn ($) { say "!!! " . shift }
 
@@ -176,7 +180,12 @@ sub read_config () {
 
 sub write_config () {
     display_warn "Overwriting config file " . CONFFILE if -f CONFFILE;
-    open my $conffile, '>', CONFFILE or die "$!: " . CONFFILE . "\n";
+
+    open my $conffile, '>', CONFFILE or do {
+        display_warn "$!: " . CONFFILE;
+
+        return undef;
+    };
 
     for (keys %C) {
         print $conffile "$_=$C{$_}\n";
@@ -185,37 +194,51 @@ sub write_config () {
     close $conffile;
 }
 
+sub terminate_pids (@) {
+    my @threads = @_;
+
+    display_info 'Terminating sub-processes, hasta la vista!';
+    $_->kill('TERM') for @threads;
+    display_info_no_nl 'Terminating PIDs';
+    for my $pid (@PIDS) {
+        my $proc_table = Proc::ProcessTable->new();
+        for my $proc (@{$proc_table->table()}) {
+            if ($proc->ppid == $pid) {
+                print $proc->pid . ' ';
+                kill 'TERM', $proc->pid if $proc->ppid == $pid;
+            }
+        }
+        
+        print $pid . ' ';
+        kill 'TERM', $pid;
+    }
+
+    say '';
+
+    display_info 'Terminating done. I\'ll be back!';
+}
+
 sub stats_thread ($;$) {
     my ( $host, $user ) = @_;
     $user = defined $user ? "-l $user" : '';
 
-    my ($sigusr1, $quit) = (0,0);
+    my ($sigusr1, $sigterm) = (0,0);
     my $loadavgexp = qr/(\d+\.\d{2}) (\d+\.\d{2}) (\d+\.\d{2})/;
     my $inter = INTERVAL;
 
-    for (;;) {
+    until ($sigterm) {
         my $bash = <<"BASH";
-            if [ -e /proc/stat ]; then 
-                loadavg=/proc/loadavg
-                stat=/proc/stat
-                meminfo=/proc/meminfo
-
-                for i in \$(seq $C{samples}); do 
-                    echo CPUSTATS
-                    cat \$loadavg \$stat 
-                    echo MEMSTATS
-                    cat \$meminfo 
-                    sleep $inter
-                done
-            else 
-                loadavg=/compat/linux/proc/loadavg
-                stat=/compat/linux/proc/stat
-
-                for i in \$(jot $C{samples}); do 
-                    cat \$loadavg \$stat
-                    sleep $inter
-                done
-            fi
+            loadavg=/proc/loadavg
+            stat=/proc/stat
+            meminfo=/proc/meminfo
+            
+            for i in \$(seq $C{samples}); do 
+                echo CPUSTATS
+                cat \$loadavg \$stat 
+                echo MEMSTATS
+                cat \$meminfo 
+                sleep $inter
+            done
 BASH
 
         my $cmd =
@@ -229,13 +252,17 @@ BASH
             next;
         };
 
+        push @PIDS, $pid;
+
         # Toggle CPUs
         $SIG{USR1} = sub { $sigusr1 = 1 };
+        $SIG{TERM} = sub { $sigterm = 1 };
+
         my $cpuregexp = qr/$I{cpuregexp}/;
         # 1=cpu, 2=mem, 3=net
         my $mode = 0;
 
-        while (<$pipe>) {
+    while (<$pipe>) {
             chomp;
 
             if ($mode == 0) {
@@ -270,6 +297,10 @@ BASH
                 # TODO: Use index instead of regexp for cpuregexp
                 $cpuregexp = qr/$I{cpuregexp}/;
                 $sigusr1   = 0;
+
+            } elsif ($sigterm) {
+                close $pipe;
+                last;
             }
         }
     }
@@ -444,6 +475,7 @@ sub main_loop ($@) {
                 display_info 'Toggled number/hostname display';
             
             } elsif ( $key_name eq 'q' ) {
+                terminate_pids @threads;
                 $quit = 1;
                 return;
             

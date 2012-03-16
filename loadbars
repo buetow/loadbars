@@ -4,31 +4,15 @@
 # E-Mail: loadbars@mx.buetow.org WWW: http://loadbars.buetow.org
 # For legal informations see COPYING and COPYING.FONT
 
-package Loadbars;
+package Loadbars::Constants;
 
 use strict;
 use warnings;
 
-use Getopt::Long;
-
-use SDL;
-use SDL::App;
-use SDL::Rect;
 use SDL::Color;
-use SDL::Event;
-
-use SDL::Surface;
-use SDL::Font;
-
-use Time::HiRes qw(usleep gettimeofday);
-
-use Proc::ProcessTable;
-
-use threads;
-use threads::shared;
 
 use constant {
-    VERSION => 'loadbars v0.5.1.2-devel',
+    VERSION => 'loadbars v0.5.2-devel',
     COPYRIGHT => '2010-2012 (c) Paul Buetow <loadbars@mx.buetow.org>',
     CONFFILE => $ENV{HOME} . '/.loadbarsrc',
     CSSH_CONFFILE => '/etc/clusters',
@@ -56,6 +40,29 @@ use constant {
     E_UNKNOWN => 1,
     E_NOHOST => 2,
 };
+
+1;
+
+package Loadbars;
+
+use strict;
+use warnings;
+
+use SDL;
+use SDL::App;
+use SDL::Rect;
+#use SDL::Color;
+use SDL::Event;
+
+use SDL::Surface;
+use SDL::Font;
+
+use Time::HiRes qw(usleep gettimeofday);
+
+use Proc::ProcessTable;
+
+use threads;
+use threads::shared;
 
 $| = 1;
 
@@ -146,10 +153,10 @@ sub parse_cpu_line ($) {
 }
 
 sub read_config () {
-    return unless -f CONFFILE;
+    return unless -f Loadbars::Constants->CONFFILE;
 
-    display_info "Reading configuration from " . CONFFILE;
-    open my $conffile, CONFFILE or die "$!: " . CONFFILE . "\n";
+    display_info "Reading configuration from " . Loadbars::Constants->CONFFILE;
+    open my $conffile, Loadbars::Constants->CONFFILE or die "$!: " . Loadbars::Constants->CONFFILE . "\n";
 
     while (<$conffile>) {
         chomp;
@@ -179,10 +186,10 @@ sub read_config () {
 }
 
 sub write_config () {
-    display_warn "Overwriting config file " . CONFFILE if -f CONFFILE;
+    display_warn "Overwriting config file " . Loadbars::Constants->CONFFILE if -f Loadbars::Constants->CONFFILE;
 
-    open my $conffile, '>', CONFFILE or do {
-        display_warn "$!: " . CONFFILE;
+    open my $conffile, '>', Loadbars::Constants->CONFFILE or do {
+        display_warn "$!: " . Loadbars::Constants->CONFFILE;
 
         return undef;
     };
@@ -224,7 +231,7 @@ sub stats_thread ($;$) {
 
     my ($sigusr1, $sigterm) = (0,0);
     my $loadavgexp = qr/(\d+\.\d{2}) (\d+\.\d{2}) (\d+\.\d{2})/;
-    my $inter = INTERVAL;
+    my $inter = Loadbars::Constants->INTERVAL;
 
     until ($sigterm) {
         my $bash = <<"BASH";
@@ -354,7 +361,7 @@ sub draw_background ($$) {
 
     $rect->width($C{width});
     $rect->height($C{height});
-    $app->fill($rect, Loadbars::BLACK);
+    $app->fill($rect, Loadbars::Constants->BLACK);
     $app->update($rect);
 
     return undef;
@@ -413,11 +420,11 @@ sub main_loop ($@) {
     $C{width} = $C{barwidth};
 
     my $app = SDL::App->new(
-        -title      => Loadbars::VERSION . ' (press h for help on stdout)',
-        -icon_title => Loadbars::VERSION,
+        -title      => Loadbars::Constants->VERSION . ' (press h for help on stdout)',
+        -icon_title => Loadbars::Constants->VERSION,
         -width      => $C{width},
         -height     => $C{height},
-        -depth      => Loadbars::COLOR_DEPTH,
+        -depth      => Loadbars::Constants->COLOR_DEPTH,
         -resizeable => 1,
     );
 
@@ -640,13 +647,13 @@ sub main_loop ($@) {
                 my $all     = 100 - $cpuaverage->{idle};
                 my $max_all = 0;
 
-                $app->fill( $rect_idle,    Loadbars::BLACK );
-                $app->fill( $rect_steal,   Loadbars::RED );
-                $app->fill( $rect_guest,   Loadbars::RED );
-                $app->fill( $rect_irq,     Loadbars::WHITE );
-                $app->fill( $rect_softirq, Loadbars::WHITE );
-                $app->fill( $rect_nice,    Loadbars::GREEN );
-                $app->fill( $rect_iowait,  Loadbars::PURPLE );
+                $app->fill( $rect_idle,    Loadbars::Constants->BLACK );
+                $app->fill( $rect_steal,   Loadbars::Constants->RED );
+                $app->fill( $rect_guest,   Loadbars::Constants->RED );
+                $app->fill( $rect_irq,     Loadbars::Constants->WHITE );
+                $app->fill( $rect_softirq, Loadbars::Constants->WHITE );
+                $app->fill( $rect_nice,    Loadbars::Constants->GREEN );
+                $app->fill( $rect_iowait,  Loadbars::Constants->PURPLE );
 
                 my $add_x = 0;
                 my $rect_memused = get_rect $rects, "$host;memused";
@@ -701,11 +708,11 @@ sub main_loop ($@) {
                         $rect_swapfree->x($x+$add_x+$half_width);
                         $rect_swapfree->y($y);
                         
-                        $app->fill( $rect_memused,   Loadbars::DARK_GREY );
-                        $app->fill( $rect_memfree,    Loadbars::BLACK );
+                        $app->fill( $rect_memused,   Loadbars::Constants->DARK_GREY );
+                        $app->fill( $rect_memfree,    Loadbars::Constants->BLACK );
 
-                        $app->fill( $rect_swapused,   Loadbars::GREY );
-                        $app->fill( $rect_swapfree,    Loadbars::BLACK );
+                        $app->fill( $rect_swapused,   Loadbars::Constants->GREY );
+                        $app->fill( $rect_swapfree,    Loadbars::Constants->BLACK );
                     }
 
                     if ( $C{showcores} ) {
@@ -715,7 +722,7 @@ sub main_loop ($@) {
                         $rect_separator->height( $C{height} );
                         $rect_separator->x( $x - 1 );
                         $rect_separator->y(0);
-                        $app->fill( $rect_separator, Loadbars::GREY );
+                        $app->fill( $rect_separator, Loadbars::Constants->GREY );
                     }
                 }
 
@@ -734,14 +741,14 @@ sub main_loop ($@) {
 
                     $max_all = sum @{$cpumax} {qw(user system iowait irq softirq steal guest)};
 
-                    $app->fill( $rect_peak, $max_all > Loadbars::USER_ORANGE ? Loadbars::ORANGE
-                        : ( $max_all > Loadbars::USER_YELLOW0 ? Loadbars::YELLOW0 : (Loadbars::YELLOW)));
+                    $app->fill( $rect_peak, $max_all > Loadbars::Constants->USER_ORANGE ? Loadbars::Constants->ORANGE
+                        : ( $max_all > Loadbars::Constants->USER_YELLOW0 ? Loadbars::Constants->YELLOW0 : (Loadbars::Constants->YELLOW)));
                 }
 
-                $app->fill( $rect_user, $all > Loadbars::USER_ORANGE ? Loadbars::ORANGE
-                    : ( $all > Loadbars::USER_YELLOW0 ? Loadbars::YELLOW0 : (Loadbars::YELLOW)));
-                $app->fill( $rect_system, $cpuaverage->{system} > Loadbars::SYSTEM_BLUE0
-                    ? Loadbars::BLUE0 : Loadbars::BLUE );
+                $app->fill( $rect_user, $all > Loadbars::Constants->USER_ORANGE ? Loadbars::Constants->ORANGE
+                    : ( $all > Loadbars::Constants->USER_YELLOW0 ? Loadbars::Constants->YELLOW0 : (Loadbars::Constants->YELLOW)));
+                $app->fill( $rect_system, $cpuaverage->{system} > Loadbars::Constants->SYSTEM_BLUE0
+                    ? Loadbars::Constants->BLUE0 : Loadbars::Constants->BLUE );
 
                 my ( $y, $space ) = ( 5, $font_height );
 
@@ -811,13 +818,13 @@ sub main_loop ($@) {
         $t2 = Time::HiRes::time();
         my $t_diff = $t2 - $t1;
 
-        if ( INTERVAL > $t_diff ) {
+        if ( Loadbars::Constants->INTERVAL > $t_diff ) {
             usleep 10000;
 
             # Goto is OK as long you don't produce spaghetti code
             goto TIMEKEEPER;
 
-        } elsif ( INTERVAL_WARN < $t_diff ) {
+        } elsif ( Loadbars::Constants->INTERVAL_WARN < $t_diff ) {
             display_warn  "WARN: Loop is behind $t_diff seconds, your computer may be too slow";
         }
 
@@ -855,7 +862,7 @@ sub main_loop ($@) {
 
     say "Good bye";
 
-    exit SUCCESS;
+    exit Loadbars::Constants->SUCCESS;
 }
 
 sub dispatch_table () {
@@ -1197,12 +1204,12 @@ sub get_cluster_hosts ($;$) {
         $recursion = 1;
 
     }
-        elsif ( $recursion > CSSH_MAX_RECURSION ) {
+        elsif ( $recursion > Loadbars::Constants->CSSH_MAX_RECURSION ) {
         error "CSSH_MAX_RECURSION reached. Infinite circle loop in "
-          . CSSH_CONFFILE . "?";
+          . Loadbars::Constants->CSSH_CONFFILE . "?";
     }
 
-    open my $fh, CSSH_CONFFILE or error "$!: " . CSSH_CONFFILE;
+    open my $fh, Loadbars::Constants->CSSH_CONFFILE or error "$!: " . Loadbars::Constants->CSSH_CONFFILE;
     my $hosts;
 
     while (<$fh>) {
@@ -1215,7 +1222,7 @@ sub get_cluster_hosts ($;$) {
     close $fh;
 
     unless ( defined $hosts ) {
-        error "No such cluster in " . CSSH_CONFFILE . ": $cluster"
+        error "No such cluster in " . Loadbars::Constants->CSSH_CONFFILE . ": $cluster"
           unless defined $recursion;
 
         return ($cluster);
@@ -1228,22 +1235,29 @@ sub get_cluster_hosts ($;$) {
     return @hosts;
 }
 
+package Loadbars::Main;
+
+use strict;
+use warnings;
+
+use Getopt::Long;
+
 sub main () {
-    my ( $hosts, $dispatch ) = dispatch_table;
+    my ( $hosts, $dispatch ) = Loadbars::dispatch_table;
     my $usage;
 
-    say VERSION . ' ' . COPYRIGHT;
+    Loadbars::say(Loadbars::Constants->VERSION . ' ' . Loadbars::Constants->COPYRIGHT);
 
-    read_config;
+    Loadbars::read_config;
 
     GetOptions( 'help|?' => \$usage, $dispatch->('options') );
 
     if ( defined $usage ) {
         say $dispatch->('usage');
-        exit SUCCESS;
+        exit Loadbars::Constants->SUCCESS;
     }
 
-    set_showcores_regexp;
+    Loadbars::set_showcores_regexp;
 
     my @hosts = map {
         my ( $a, $b ) = split /\@/, $_;
@@ -1251,19 +1265,20 @@ sub main () {
     } split ',', $$hosts;
 
     if ( @hosts || defined $C{cluster} ) {
-        push @hosts, get_cluster_hosts $C{cluster} if defined $C{cluster};
+        push @hosts, Loadbars::get_cluster_hosts $C{cluster} 
+            if defined $C{cluster};
         system 'ssh-add';
 
     }
     else {
-        say $dispatch->('usage');
-        exit E_NOHOST;
+        Loadbars::say $dispatch->('usage');
+        exit Loadbars::Constants->E_NOHOST;
     }
 
-    my @threads = create_threads @hosts;
-    main_loop $dispatch, @threads;
+    my @threads = Loadbars::create_threads @hosts;
+    Loadbars::main_loop $dispatch, @threads;
 
-    exit SUCCESS;
+    exit Loadbars::Constants->SUCCESS;
 }
 
 main;

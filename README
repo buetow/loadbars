@@ -11,7 +11,8 @@ For a changelog see CHANGELOG
 
 For a list of all known bugs see BUGS
 
-Supported platforms are: Linux and FreeBSD (the latter with linprocfs mounted, 
+Supported platforms are: Linux
+
 the latter may not have full functionality).
 
 For Linux at least a 2.6 Kernel is required.

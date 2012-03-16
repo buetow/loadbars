@@ -28,7 +28,7 @@ use threads;
 use threads::shared;
 
 use constant {
-    VERSION => 'loadbars v0.5.1.1',
+    VERSION => 'loadbars v0.5.1.1-master',
     COPYRIGHT => '2010-2012 (c) Paul Buetow <loadbars@mx.buetow.org>',
     CONFFILE => $ENV{HOME} . '/.loadbarsrc',
     CSSH_CONFFILE => '/etc/clusters',

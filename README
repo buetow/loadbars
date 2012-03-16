@@ -17,11 +17,12 @@ the latter may not have full functionality).
 
 For Linux at least a 2.6 Kernel is required.
 
-Versioning schema: a.b.c[.d], where 
-	d = Optional, bugfixes only release
-	c = Minor release (new minor features or code refactoring)
-	b = Major release (new major features)
+Versioning schema: a.b.c[.d][.e], where 
 	a = Don't know yet. Maybe will stay forever 0.
+	b = Major release (new major features)
+	c = Minor release (new minor features or code refactoring)
+	d = Optional, bugfixes only release
+	e = Optional, cosmetic fixes only release
 
 	It's not a release if there is a -master suffix. It's a stable 
 	version (master branch) then.

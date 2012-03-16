@@ -12,7 +12,6 @@ use warnings;
 use SDL;
 use SDL::App;
 use SDL::Rect;
-#use SDL::Color;
 use SDL::Event;
 
 use SDL::Surface;

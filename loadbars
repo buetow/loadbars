@@ -272,6 +272,8 @@ BASH
                 last;
             }
         }
+
+        delete $PIDS{$pid};
     }
 
     return undef;

@@ -19,8 +19,8 @@ For Linux at least a 2.6 Kernel is required.
 
 Versioning schema: a.b.c[.d], where 
 	d = Optional, bugfixes only release
-	c = Minor release (new features or minor code refactoring)
-	b = Major release (new features or major code refactoring)
+	c = Minor release (new minor features or code refactoring)
+	b = Major release (new major features)
 	a = Don't know yet. Maybe will stay forever 0.
 
 	It's not a release if there is a -master suffix. It's a stable 

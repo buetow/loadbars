@@ -226,6 +226,10 @@ sub stats_thread ($;$) {
     my $loadavgexp = qr/(\d+\.\d{2}) (\d+\.\d{2}) (\d+\.\d{2})/;
     my $inter = INTERVAL;
 
+    # Toggle CPUs
+    $SIG{USR1} = sub { $sigusr1 = 1 };
+    $SIG{TERM} = sub { $sigterm = 1 };
+
     until ($sigterm) {
         my $bash = <<"BASH";
             loadavg=/proc/loadavg
@@ -254,17 +258,12 @@ BASH
 
         $PIDS{$pid} = 1;
 
-        # Toggle CPUs
-        $SIG{USR1} = sub { $sigusr1 = 1 };
-        $SIG{TERM} = sub { $sigterm = 1 };
-
         my $cpuregexp = qr/$I{cpuregexp}/;
         # 1=cpu, 2=mem, 3=net
         my $mode = 0;
 
     while (<$pipe>) {
             chomp;
-
             if ($mode == 0) {
                 if ($_ eq 'MEMSTATS') {
                     $mode = 1;

@@ -1,3 +1,7 @@
+Fri Apr  6 10:17:30 CEST 2012
+* Minor fixes such as redraw background on toggle text display which 
+  should fix some weird display bugs.
+
 Fri Mar 16 07:20:50 CET 2012
 * Release v0.5.1.1
 * Dropped FreeBSD support / focus is Linux

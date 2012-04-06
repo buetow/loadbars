@@ -28,7 +28,7 @@ use threads;
 use threads::shared;
 
 use constant {
-    VERSION => 'loadbars v0.5.1.2',
+    VERSION => 'loadbars v0.5.1.2-master',
     COPYRIGHT => '2010-2012 (c) Paul Buetow <loadbars@mx.buetow.org>',
     CONFFILE => $ENV{HOME} . '/.loadbarsrc',
     CSSH_CONFFILE => '/etc/clusters',
@@ -456,6 +456,7 @@ sub main_loop ($@) {
             
             } elsif ( $key_name eq 'e' ) {
                 $C{extended} = !$C{extended};
+                $redraw_background = 1;
                 display_info 'Toggled extended display';
             
             } elsif ( $key_name eq 'h' ) {
@@ -469,10 +470,12 @@ sub main_loop ($@) {
             
             } elsif ( $key_name eq 't' ) {
                 $C{showtext} = !$C{showtext};
+                $redraw_background = 1;
                 display_info 'Toggled text display';
             
             } elsif ( $key_name eq 'u' ) {
                 $C{showtexthost} = !$C{showtexthost};
+                $redraw_background = 1;
                 display_info 'Toggled number/hostname display';
             
             } elsif ( $key_name eq 'q' ) {

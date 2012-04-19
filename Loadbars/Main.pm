@@ -4,6 +4,8 @@ package Loadbars::Main;
 use strict;
 use warnings;
 
+use Loadbars::Config;
+
 use SDL;
 use SDL::App;
 use SDL::Rect;
@@ -20,65 +22,13 @@ use threads;
 use threads::shared;
 
 use Loadbars::Constants;
+use Loadbars::Utils;
+use Loadbars::Shared;
 
 $| = 1;
 
-my %PIDS : shared;
-my %AVGSTATS : shared;
-my %CPUSTATS : shared;
-my %MEMSTATS : shared;
-my %MEMSTATS_HAS : shared;
-
-#my %NETSTATS : shared;
-#my %NETSTATS_HAS : shared;
-
-# Global configuration hash
-my %C : shared;
-
-# Global configuration hash for internal settings (not configurable)
-my %I : shared;
-
-# Setting defaults
-%C = (
-    average      => 15,
-    barwidth     => 35,
-    extended     => 0,
-    factor       => 1,
-    height       => 230,
-    maxwidth     => 1280,
-    samples      => 1000,
-    showcores    => 0,
-    showmem      => 0,
-    showtext     => 1,
-    showtexthost => 0,
-    sshopts      => '',
-);
-
-%I = (
-    cpuregexp   => 'cpu',
-    showtextoff => 0,
-);
-
-# Quick n dirty helpers
-sub say (@) { print "$_\n" for @_; return undef }
-sub newline () { say ''; return undef }
-sub debugsay (@) { say "Loadbars::DEBUG: $_" for @_; return undef }
-sub sum (@) { my $sum = 0; $sum += $_ for @_; return $sum }
-sub null ($)    { defined $_[0] ? $_[0] : 0 }
-sub notnull ($) { $_[0] != 0    ? $_[0] : 1 }
-sub set_showcores_regexp () { $I{cpuregexp} = $C{showcores} ? 'cpu' : 'cpu ' }
-sub error ($) { die shift, "\n" }
-sub display_info_no_nl ($) { print "==> " . (shift) . ' ' }
-sub display_info ($)       { say "==> " . shift }
-sub display_warn ($)       { say "!!! " . shift }
-
-sub trim (\$) {
-    my $str = shift;
-
-    $$str =~ s/^[\s\t]+//;
-    $$str =~ s/[\s\t]+$//;
-
-    return undef;
+sub set_showcores_regexp () {
+    $I{cpuregexp} = $C{showcores} ? 'cpu' : 'cpu ';
 }
 
 sub percentage ($$) {
@@ -106,63 +56,9 @@ sub parse_cpu_line ($) {
     $load{guest} = 0 unless defined $load{guest};
 
     $load{TOTAL} =
-      sum @load{qw(user nice system idle iowait irq softirq steal guest)};
+      sum( @load{qw(user nice system idle iowait irq softirq steal guest)} );
 
     return ( $name, \%load );
-}
-
-sub read_config () {
-    return unless -f Loadbars::Constants->CONFFILE;
-
-    display_info "Reading configuration from " . Loadbars::Constants->CONFFILE;
-    open my $conffile, Loadbars::Constants->CONFFILE
-      or die "$!: " . Loadbars::Constants->CONFFILE . "\n";
-
-    while (<$conffile>) {
-        chomp;
-        s/[\t\s]*?#.*//;
-
-        next unless length;
-
-        my ( $key, $val ) = split '=';
-
-        unless ( defined $val ) {
-            display_warn "Could not parse config line: $_";
-            next;
-        }
-
-        trim $key;
-        trim $val;
-
-        if ( not exists $C{$key} ) {
-            display_warn "There is no such config key: $key, ignoring";
-
-        }
-        else {
-            display_info
-"Setting $key=$val, it might be overwritten by command line params.";
-            $C{$key} = $val;
-        }
-    }
-
-    close $conffile;
-}
-
-sub write_config () {
-    display_warn "Overwriting config file " . Loadbars::Constants->CONFFILE
-      if -f Loadbars::Constants->CONFFILE;
-
-    open my $conffile, '>', Loadbars::Constants->CONFFILE or do {
-        display_warn "$!: " . Loadbars::Constants->CONFFILE;
-
-        return undef;
-    };
-
-    for ( keys %C ) {
-        print $conffile "$_=$C{$_}\n";
-    }
-
-    close $conffile;
 }
 
 sub terminate_pids (@) {
@@ -480,7 +376,7 @@ sub main_loop ($@) {
 
             }
             elsif ( $key_name eq 'w' ) {
-                write_config;
+                Loadbars::Config::write;
 
             }
             elsif ( $key_name eq 'a' ) {
@@ -751,9 +647,11 @@ sub main_loop ($@) {
                     $rect_peak,
                     $max_all > Loadbars::Constants->USER_ORANGE
                     ? Loadbars::Constants->ORANGE
-                    : ( $max_all > Loadbars::Constants->USER_YELLOW0
+                    : (
+                        $max_all > Loadbars::Constants->USER_YELLOW0
                         ? Loadbars::Constants->YELLOW0
-                        : ( Loadbars::Constants->YELLOW ) )
+                        : ( Loadbars::Constants->YELLOW )
+                    )
                 );
             }
 
@@ -761,9 +659,11 @@ sub main_loop ($@) {
                 $rect_user,
                 $all > Loadbars::Constants->USER_ORANGE
                 ? Loadbars::Constants->ORANGE
-                : ( $all > Loadbars::Constants->USER_YELLOW0
+                : (
+                    $all > Loadbars::Constants->USER_YELLOW0
                     ? Loadbars::Constants->YELLOW0
-                    : ( Loadbars::Constants->YELLOW ) )
+                    : ( Loadbars::Constants->YELLOW )
+                )
             );
             $app->fill( $rect_system,
                 $cpuaverage->{system} > Loadbars::Constants->SYSTEM_BLUE0
@@ -985,12 +885,13 @@ sub get_cluster_hosts ($;$) {
 
     }
     elsif ( $recursion > Loadbars::Constants->CSSH_MAX_RECURSION ) {
-        error "CSSH_MAX_RECURSION reached. Infinite circle loop in "
-          . Loadbars::Constants->CSSH_CONFFILE . "?";
+        error(  "CSSH_MAX_RECURSION reached. Infinite circle loop in "
+              . Loadbars::Constants->CSSH_CONFFILE
+              . "?" );
     }
 
     open my $fh, Loadbars::Constants->CSSH_CONFFILE
-      or error "$!: " . Loadbars::Constants->CSSH_CONFFILE;
+      or error( "$!: " . Loadbars::Constants->CSSH_CONFFILE );
     my $hosts;
 
     while (<$fh>) {
@@ -1003,9 +904,9 @@ sub get_cluster_hosts ($;$) {
     close $fh;
 
     unless ( defined $hosts ) {
-        error "No such cluster in "
-          . Loadbars::Constants->CSSH_CONFFILE
-          . ": $cluster"
+        error(  "No such cluster in "
+              . Loadbars::Constants->CSSH_CONFFILE
+              . ": $cluster" )
           unless defined $recursion;
 
         return ($cluster);

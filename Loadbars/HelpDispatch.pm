@@ -4,6 +4,7 @@ use strict;
 use warnings;
 
 use Loadbars::Constants;
+use Loadbars::Shared;
 
 sub create () {
     my $hosts = '';
@@ -111,7 +112,7 @@ END
         cluster => {
             menupos => 6,
             help    => 'Cluster name from /etc/clusters',
-            var     => \$Loadbars::Main::C{cluster},
+            var     => \$C{cluster},
             mode    => 6,
             type    => 's'
         },
@@ -316,7 +317,8 @@ END
                   . $d{$_}{type} => (
                     defined $d{$_}{var}
                     ? $d{$_}{var}
-                    : \$Loadbars::Main::C{$_} );
+                    : \$C{$_}
+                  );
 
               } grep {
                 $d{$_}{mode} & 4 and exists $d{$_}{type};
@@ -333,9 +335,11 @@ END
             defined $_->[1]
 
           } map {
-            [ $_ => exists $d{$_}{var}
+            [
+                $_ => exists $d{$_}{var}
                 ? ${ $d{$_}{var} }
-                : $Loadbars::Main::C{$_} ]
+                : $C{$_}
+            ]
 
           } keys %d;
     };

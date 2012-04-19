@@ -1,19 +1,33 @@
 package Loadbars::Shared;
 
-my %PIDS : shared;
-my %AVGSTATS : shared;
-my %CPUSTATS : shared;
-my %MEMSTATS : shared;
-my %MEMSTATS_HAS : shared;
+use Exporter;
+
+use base 'Exporter';
+
+our @EXPORT = qw(
+  %PIDS
+  %AVGSTATS
+  %CPUSTATS
+  %MEMSTATS
+  %MEMSTATS_HAS
+  %C
+  %I
+);
+
+our %PIDS : shared;
+our %AVGSTATS : shared;
+our %CPUSTATS : shared;
+our %MEMSTATS : shared;
+our %MEMSTATS_HAS : shared;
 
 #my %NETSTATS : shared;
 #my %NETSTATS_HAS : shared;
 
 # Global configuration hash
-my %C : shared;
+our %C : shared;
 
 # Global configuration hash for internal settings (not configurable)
-my %I : shared;
+our %I : shared;
 
 # Setting defaults
 %C = (

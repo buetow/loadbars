@@ -1,3 +1,6 @@
+Thu Apr 19 21:41:52 CEST 2012
+* Minor change, sleep 0.5s instead of 3s if ssh command fails
+
 Fri Apr  6 10:17:30 CEST 2012
 * Minor fixes such as redraw background on toggle text display which 
   should fix some weird display bugs.

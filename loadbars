@@ -11,9 +11,10 @@ use Getopt::Long;
 
 use Loadbars::Main;
 use Loadbars::Constants;
+use Loadbars::HelpDispatch;
 
 sub main () {
-    my ( $hosts, $dispatch ) = Loadbars::Main::dispatch_table;
+    my ( $hosts, $dispatch ) = Loadbars::HelpDispatch::create;
     my $usage;
 
     Loadbars::Main::say(Loadbars::Constants->VERSION . ' ' . Loadbars::Constants->COPYRIGHT);

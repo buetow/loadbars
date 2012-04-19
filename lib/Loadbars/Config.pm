@@ -41,7 +41,7 @@ our %I : shared;
 sub read () {
     return unless -f Loadbars::Constants->CONFFILE;
 
-    display_info "Reading configuration from " . Loadbars::Constants->CONFFILE;
+    display_info("Reading configuration from " . Loadbars::Constants->CONFFILE);
     open my $conffile, Loadbars::Constants->CONFFILE
       or die "$!: " . Loadbars::Constants->CONFFILE . "\n";
 
@@ -54,7 +54,7 @@ sub read () {
         my ( $key, $val ) = split '=';
 
         unless ( defined $val ) {
-            display_warn "Could not parse config line: $_";
+            display_warn("Could not parse config line: $_");
             next;
         }
 
@@ -62,12 +62,12 @@ sub read () {
         trim($val);
 
         if ( not exists $C{$key} ) {
-            display_warn "There is no such config key: $key, ignoring";
+            display_warn("There is no such config key: $key, ignoring");
 
         }
         else {
-            display_info
-"Setting $key=$val, it might be overwritten by command line params.";
+            display_info(
+"Setting $key=$val, it might be overwritten by command line params.");
             $C{$key} = $val;
         }
     }
@@ -76,11 +76,11 @@ sub read () {
 }
 
 sub write () {
-    display_warn "Overwriting config file " . Loadbars::Constants->CONFFILE
+    display_warn("Overwriting config file " . Loadbars::Constants->CONFFILE)
       if -f Loadbars::Constants->CONFFILE;
 
     open my $conffile, '>', Loadbars::Constants->CONFFILE or do {
-        display_warn "$!: " . Loadbars::Constants->CONFFILE;
+        display_warn("$!: " . Loadbars::Constants->CONFFILE);
 
         return undef;
     };

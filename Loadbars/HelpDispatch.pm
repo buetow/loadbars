@@ -52,10 +52,10 @@ Examples:
     loadbars --cluster foocluster (foocluster is in /etc/clusters [ClusterSSH])
 END
 
-    # mode 1: Option is shown in the online help menu (stdout not sdl)
-    # mode 2: Option is shown in the 'usage' screen from the command line
-    # mode 4: Option is used to generate the GetOptions parameters for Getopt::Long
-    # Combinations: Like chmod(1)
+ # mode 1: Option is shown in the online help menu (stdout not sdl)
+ # mode 2: Option is shown in the 'usage' screen from the command line
+ # mode 4: Option is used to generate the GetOptions parameters for Getopt::Long
+ # Combinations: Like chmod(1)
 
     my %d = (
         average => {
@@ -185,7 +185,12 @@ END
         },
 
         quit_hot => { menupos => 16, cmd => 'q', help => 'Quits', mode => 1 },
-        writeconfig_hot => { menupos => 16, cmd => 'w', help => 'Write config to config file', mode => 1 },
+        writeconfig_hot => {
+            menupos => 16,
+            cmd     => 'w',
+            help    => 'Write config to config file',
+            mode    => 1
+        },
 
         samples => {
             menupos => 17,
@@ -308,8 +313,10 @@ END
         elsif ( $arg eq 'options' ) {
             map {
                 "$_="
-                  . $d{$_}{type} =>
-                  ( defined $d{$_}{var} ? $d{$_}{var} : \$Loadbars::Main::C{$_} );
+                  . $d{$_}{type} => (
+                    defined $d{$_}{var}
+                    ? $d{$_}{var}
+                    : \$Loadbars::Main::C{$_} );
 
               } grep {
                 $d{$_}{mode} & 4 and exists $d{$_}{type};
@@ -326,7 +333,9 @@ END
             defined $_->[1]
 
           } map {
-            [ $_ => exists $d{$_}{var} ? ${ $d{$_}{var} } : $Loadbars::Main::C{$_} ]
+            [ $_ => exists $d{$_}{var}
+                ? ${ $d{$_}{var} }
+                : $Loadbars::Main::C{$_} ]
 
           } keys %d;
     };

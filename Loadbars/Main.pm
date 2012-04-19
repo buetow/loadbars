@@ -28,32 +28,34 @@ my %AVGSTATS : shared;
 my %CPUSTATS : shared;
 my %MEMSTATS : shared;
 my %MEMSTATS_HAS : shared;
+
 #my %NETSTATS : shared;
 #my %NETSTATS_HAS : shared;
 
 # Global configuration hash
 my %C : shared;
+
 # Global configuration hash for internal settings (not configurable)
 my %I : shared;
 
 # Setting defaults
 %C = (
-    average => 15,
-    barwidth => 35,
-    extended => 0,
-    factor => 1,
-    height => 230,
-    maxwidth => 1280, 
-    samples => 1000,
-    showcores => 0,
-    showmem => 0,
-    showtext => 1,
+    average      => 15,
+    barwidth     => 35,
+    extended     => 0,
+    factor       => 1,
+    height       => 230,
+    maxwidth     => 1280,
+    samples      => 1000,
+    showcores    => 0,
+    showmem      => 0,
+    showtext     => 1,
     showtexthost => 0,
-    sshopts => '',
+    sshopts      => '',
 );
 
 %I = (
-    cpuregexp => 'cpu',
+    cpuregexp   => 'cpu',
     showtextoff => 0,
 );
 
@@ -62,16 +64,16 @@ sub say (@) { print "$_\n" for @_; return undef }
 sub newline () { say ''; return undef }
 sub debugsay (@) { say "Loadbars::DEBUG: $_" for @_; return undef }
 sub sum (@) { my $sum = 0; $sum += $_ for @_; return $sum }
-sub null ($) { defined $_[0] ? $_[0] : 0 }
-sub notnull ($) {  $_[0] != 0 ? $_[0] : 1 }
+sub null ($)    { defined $_[0] ? $_[0] : 0 }
+sub notnull ($) { $_[0] != 0    ? $_[0] : 1 }
 sub set_showcores_regexp () { $I{cpuregexp} = $C{showcores} ? 'cpu' : 'cpu ' }
 sub error ($) { die shift, "\n" }
 sub display_info_no_nl ($) { print "==> " . (shift) . ' ' }
-sub display_info ($) { say "==> " . shift }
-sub display_warn ($) { say "!!! " . shift }
+sub display_info ($)       { say "==> " . shift }
+sub display_warn ($)       { say "!!! " . shift }
 
-sub trim (\$) { 
-    my $str = shift; 
+sub trim (\$) {
+    my $str = shift;
 
     $$str =~ s/^[\s\t]+//;
     $$str =~ s/[\s\t]+$//;
@@ -80,9 +82,9 @@ sub trim (\$) {
 }
 
 sub percentage ($$) {
-    my ($total, $part) = @_;
+    my ( $total, $part ) = @_;
 
-    return int (null($part) / notnull ( null($total) / 100));
+    return int( null($part) / notnull( null($total) / 100 ) );
 }
 
 sub norm ($) {
@@ -94,7 +96,7 @@ sub norm ($) {
 
 sub parse_cpu_line ($) {
     my $line = shift;
-    my ($name, %load);
+    my ( $name, %load );
 
     ( $name, @load{qw(user nice system idle iowait irq softirq steal guest)} ) =
       split ' ', $line;
@@ -106,14 +108,15 @@ sub parse_cpu_line ($) {
     $load{TOTAL} =
       sum @load{qw(user nice system idle iowait irq softirq steal guest)};
 
-    return ($name, \%load);
+    return ( $name, \%load );
 }
 
 sub read_config () {
     return unless -f Loadbars::Constants->CONFFILE;
 
     display_info "Reading configuration from " . Loadbars::Constants->CONFFILE;
-    open my $conffile, Loadbars::Constants->CONFFILE or die "$!: " . Loadbars::Constants->CONFFILE . "\n";
+    open my $conffile, Loadbars::Constants->CONFFILE
+      or die "$!: " . Loadbars::Constants->CONFFILE . "\n";
 
     while (<$conffile>) {
         chomp;
@@ -121,20 +124,23 @@ sub read_config () {
 
         next unless length;
 
-        my ($key, $val) = split '=';
+        my ( $key, $val ) = split '=';
 
-        unless (defined $val) {
+        unless ( defined $val ) {
             display_warn "Could not parse config line: $_";
             next;
         }
 
-        trim $key; trim $val;
+        trim $key;
+        trim $val;
 
-        if (not exists $C{$key}) {
+        if ( not exists $C{$key} ) {
             display_warn "There is no such config key: $key, ignoring";
 
-        } else {
-            display_info "Setting $key=$val, it might be overwritten by command line params.";
+        }
+        else {
+            display_info
+"Setting $key=$val, it might be overwritten by command line params.";
             $C{$key} = $val;
         }
     }
@@ -143,7 +149,8 @@ sub read_config () {
 }
 
 sub write_config () {
-    display_warn "Overwriting config file " . Loadbars::Constants->CONFFILE if -f Loadbars::Constants->CONFFILE;
+    display_warn "Overwriting config file " . Loadbars::Constants->CONFFILE
+      if -f Loadbars::Constants->CONFFILE;
 
     open my $conffile, '>', Loadbars::Constants->CONFFILE or do {
         display_warn "$!: " . Loadbars::Constants->CONFFILE;
@@ -151,7 +158,7 @@ sub write_config () {
         return undef;
     };
 
-    for (keys %C) {
+    for ( keys %C ) {
         print $conffile "$_=$C{$_}\n";
     }
 
@@ -164,15 +171,15 @@ sub terminate_pids (@) {
     display_info 'Terminating sub-processes, hasta la vista!';
     $_->kill('TERM') for @threads;
     display_info_no_nl 'Terminating PIDs';
-    for my $pid (keys %PIDS) {
+    for my $pid ( keys %PIDS ) {
         my $proc_table = Proc::ProcessTable->new();
-        for my $proc (@{$proc_table->table()}) {
-            if ($proc->ppid == $pid) {
+        for my $proc ( @{ $proc_table->table() } ) {
+            if ( $proc->ppid == $pid ) {
                 print $proc->pid . ' ';
                 kill 'TERM', $proc->pid if $proc->ppid == $pid;
             }
         }
-        
+
         print $pid . ' ';
         kill 'TERM', $pid;
     }
@@ -186,9 +193,9 @@ sub stats_thread ($;$) {
     my ( $host, $user ) = @_;
     $user = defined $user ? "-l $user" : '';
 
-    my ($sigusr1, $sigterm) = (0,0);
+    my ( $sigusr1, $sigterm ) = ( 0, 0 );
     my $loadavgexp = qr/(\d+\.\d{2}) (\d+\.\d{2}) (\d+\.\d{2})/;
-    my $inter = Loadbars::Constants->INTERVAL;
+    my $inter      = Loadbars::Constants->INTERVAL;
 
     until ($sigterm) {
         my $bash = <<"BASH";
@@ -206,7 +213,7 @@ sub stats_thread ($;$) {
 BASH
 
         my $cmd =
-            ($host eq 'localhost' || $host eq '127.0.0.1')
+          ( $host eq 'localhost' || $host eq '127.0.0.1' )
           ? $bash
           : "ssh $user -o StrictHostKeyChecking=no $C{sshopts} $host '$bash'";
 
@@ -223,31 +230,39 @@ BASH
         $SIG{TERM} = sub { $sigterm = 1 };
 
         my $cpuregexp = qr/$I{cpuregexp}/;
+
         # 1=cpu, 2=mem, 3=net
         my $mode = 0;
 
-    while (<$pipe>) {
+        while (<$pipe>) {
             chomp;
 
-            if ($mode == 0) {
-                if ($_ eq 'MEMSTATS') {
+            if ( $mode == 0 ) {
+                if ( $_ eq 'MEMSTATS' ) {
                     $mode = 1;
 
-                } elsif (/^$loadavgexp/) {
+                }
+                elsif (/^$loadavgexp/) {
                     $AVGSTATS{$host} = "$1;$2;$3";
-    
-                } elsif (/$cpuregexp/) {
-                   my ( $name, $load ) = parse_cpu_line $_;
-                   $CPUSTATS{"$host;$name"} = join ';',
-                     map  { $_ . '=' . $load->{$_} }
-                     grep { defined $load->{$_} } keys %$load;
-               }
-            } elsif ($mode == 1) {
-                if ($_ eq 'CPUSTATS') {
+
+                }
+                elsif (/$cpuregexp/) {
+                    my ( $name, $load ) = parse_cpu_line $_;
+                    $CPUSTATS{"$host;$name"} = join ';',
+                      map  { $_ . '=' . $load->{$_} }
+                      grep { defined $load->{$_} } keys %$load;
+                }
+            }
+            elsif ( $mode == 1 ) {
+                if ( $_ eq 'CPUSTATS' ) {
                     $mode = 0;
 
-                } else {
-                    for my $meminfo (qw(MemTotal MemFree Buffers Cached SwapTotal SwapFree)) {
+                }
+                else {
+                    for my $meminfo (
+                        qw(MemTotal MemFree Buffers Cached SwapTotal SwapFree))
+                    {
+
                         # TODO: Precompile regexp
                         if (/^$meminfo: *(\d+)/) {
                             $MEMSTATS_HAS{$host} = 1;
@@ -258,11 +273,13 @@ BASH
             }
 
             if ($sigusr1) {
+
                 # TODO: Use index instead of regexp for cpuregexp
                 $cpuregexp = qr/$I{cpuregexp}/;
                 $sigusr1   = 0;
 
-            } elsif ($sigterm) {
+            }
+            elsif ($sigterm) {
                 close $pipe;
                 last;
             }
@@ -287,15 +304,15 @@ sub normalize_loads (%) {
     return %loads unless exists $loads{TOTAL};
 
     my $total = $loads{TOTAL} == 0 ? 1 : $loads{TOTAL};
-    return map { $_ => $loads{$_} / ($total / 100)  } keys %loads;
+    return map { $_ => $loads{$_} / ( $total / 100 ) } keys %loads;
 }
 
 sub get_cpuaverage ($@) {
-    my ($factor, @loads) = @_;
-    my (%cpumax, %cpuaverage);
+    my ( $factor, @loads ) = @_;
+    my ( %cpumax, %cpuaverage );
 
     for my $l (@loads) {
-        for (keys %$l) {
+        for ( keys %$l ) {
             $cpuaverage{$_} += $l->{$_};
 
             $cpumax{$_} = $l->{$_}
@@ -306,44 +323,45 @@ sub get_cpuaverage ($@) {
 
     my $div = @loads / $factor;
 
-    for (keys %cpuaverage) {
+    for ( keys %cpuaverage ) {
         $cpuaverage{$_} /= $div;
-        $cpumax{$_} /= $factor;
+        $cpumax{$_}     /= $factor;
     }
 
-    return (\%cpumax, \%cpuaverage);
+    return ( \%cpumax, \%cpuaverage );
 }
 
 sub draw_background ($$) {
-    my ($app, $rects) = @_;
+    my ( $app, $rects ) = @_;
     my $rect = get_rect $rects, 'background';
 
-    $rect->width($C{width});
-    $rect->height($C{height});
-    $app->fill($rect, Loadbars::Constants->BLACK);
+    $rect->width( $C{width} );
+    $rect->height( $C{height} );
+    $app->fill( $rect, Loadbars::Constants->BLACK );
     $app->update($rect);
 
     return undef;
 }
 
 sub create_threads (@) {
-    return 
-        map { $_->detach(); $_ } 
-        map { threads->create( 'stats_thread', split ':' ) } @_;
+    return map { $_->detach(); $_ }
+      map { threads->create( 'stats_thread', split ':' ) } @_;
 }
 
 sub auto_off_text ($) {
     my ($barwidth) = @_;
 
-    if ($barwidth < $C{barwidth} - 1 && $I{showtextoff} == 0) {
+    if ( $barwidth < $C{barwidth} - 1 && $I{showtextoff} == 0 ) {
         return unless $C{showtext};
-        display_warn 'Disabling text display, text does not fit into window. Use \'t\' to re-enable.';
+        display_warn
+'Disabling text display, text does not fit into window. Use \'t\' to re-enable.';
         $I{showtextoff} = 1;
-        $C{showtext} = 0;
+        $C{showtext}    = 0;
 
-    } elsif ($I{showtextoff} == 1 && $barwidth >= $C{barwidth} - 1) {
+    }
+    elsif ( $I{showtextoff} == 1 && $barwidth >= $C{barwidth} - 1 ) {
         display_info 'Re-enabling text display, text fits into window now.';
-        $C{showtext} = 1;
+        $C{showtext}    = 1;
         $I{showtextoff} = 0;
     }
 
@@ -351,23 +369,26 @@ sub auto_off_text ($) {
 }
 
 sub set_dimensions ($$) {
-    my ($width, $height) = @_;
+    my ( $width, $height ) = @_;
     my $display_info = 0;
 
-    if ($width < 1) {
+    if ( $width < 1 ) {
         $C{width} = 1 if $C{width} != 1;
 
-    } elsif ($width > $C{maxwidth}) {
+    }
+    elsif ( $width > $C{maxwidth} ) {
         $C{width} = $C{maxwidth} if $C{width} != $C{maxwidth};
 
-    } elsif ($C{width} != $width) {
+    }
+    elsif ( $C{width} != $width ) {
         $C{width} = $width;
     }
 
-    if ($height < 1) {
+    if ( $height < 1 ) {
         $C{height} = 1 if $C{height} != 1;
 
-    } elsif ($C{height} != $height) {
+    }
+    elsif ( $C{height} != $height ) {
         $C{height} = $height;
     }
 }
@@ -379,7 +400,8 @@ sub main_loop ($@) {
     $C{width} = $C{barwidth};
 
     my $app = SDL::App->new(
-        -title      => Loadbars::Constants->VERSION . ' (press h for help on stdout)',
+        -title => Loadbars::Constants->VERSION
+          . ' (press h for help on stdout)',
         -icon_title => Loadbars::Constants->VERSION,
         -width      => $C{width},
         -height     => $C{height},
@@ -396,8 +418,8 @@ sub main_loop ($@) {
     my $redraw_background = 0;
     my $font_height       = 14;
 
-    my $infotxt : shared = '';
-    my $quit : shared = 0;
+    my $infotxt : shared       = '';
+    my $quit : shared          = 0;
     my $resize_window : shared = 0;
     my %newsize : shared;
     my $event = SDL::Event->new();
@@ -406,360 +428,479 @@ sub main_loop ($@) {
 
     # Closure for event handling
     my $event_handler = sub {
+
         # While there are events to poll, poll them all!
-        while ($event->poll() == 1) {
+        while ( $event->poll() == 1 ) {
             next if $event->type() != 2;
             my $key_name = $event->key_name();
-            
+
             if ( $key_name eq '1' ) {
                 $C{showcores} = !$C{showcores};
                 set_showcores_regexp;
                 $_->kill('USR1') for @threads;
-                %AVGSTATS    = ();
-                %CPUSTATS    = ();
+                %AVGSTATS          = ();
+                %CPUSTATS          = ();
                 $redraw_background = 1;
                 display_info 'Toggled CPUs';
-            
-            } elsif ( $key_name eq 'e' ) {
+
+            }
+            elsif ( $key_name eq 'e' ) {
                 $C{extended} = !$C{extended};
                 $redraw_background = 1;
                 display_info 'Toggled extended display';
-            
-            } elsif ( $key_name eq 'h' ) {
+
+            }
+            elsif ( $key_name eq 'h' ) {
                 say '=> Hotkeys to use in the SDL interface';
                 say $dispatch->('hotkeys');
                 display_info 'Hotkeys help printed on terminal stdout';
-            
-            } elsif ( $key_name eq 'm' ) {
+
+            }
+            elsif ( $key_name eq 'm' ) {
                 $C{showmem} = !$C{showmem};
                 display_info 'Toggled show mem';
-            
-            } elsif ( $key_name eq 't' ) {
+
+            }
+            elsif ( $key_name eq 't' ) {
                 $C{showtext} = !$C{showtext};
                 $redraw_background = 1;
                 display_info 'Toggled text display';
-            
-            } elsif ( $key_name eq 'u' ) {
+
+            }
+            elsif ( $key_name eq 'u' ) {
                 $C{showtexthost} = !$C{showtexthost};
                 $redraw_background = 1;
                 display_info 'Toggled number/hostname display';
-            
-            } elsif ( $key_name eq 'q' ) {
+
+            }
+            elsif ( $key_name eq 'q' ) {
                 terminate_pids @threads;
                 $quit = 1;
                 return;
-            
-            } elsif ( $key_name eq 'w' ) {
-                    write_config;
-                
-                } elsif ( $key_name eq 'a' ) {
-                    ++$C{average};
-                    display_info "Set sample average to $C{average}";
-                } elsif ( $key_name eq 'y' or $key_name eq 'z' ) {
-                    my $avg = $C{average};
-                    --$avg;
-                    $C{average} = $avg > 1 ? $avg : 2;
-                    display_info "Set sample average to $C{average}";
-                
-                } elsif ( $key_name eq 's' ) {
-                    $C{factor} += 0.1;
-                    display_info "Set scale factor to $C{factor}";
-                } elsif ( $key_name eq 'x' or $key_name eq 'z' ) {
-                    $C{factor} -= 0.1;
-                    display_info "Set scale factor to $C{factor}";
-                
-                } elsif ( $key_name eq 'left') {
-                    $newsize{width} = $C{width} - 100;
-                    $newsize{height} = $C{height};
-                    $resize_window = 1;
-                } elsif ( $key_name eq 'right' ) {
-                    $newsize{width} = $C{width} + 100;
-                    $newsize{height} = $C{height};
-                    $resize_window = 1;
 
-                } elsif ( $key_name eq 'up' ) {
-                    $newsize{width} = $C{width};
-                    $newsize{height} = $C{height} - 100;
-                    $resize_window = 1;
-                } elsif ( $key_name eq 'down' ) {
-                    $newsize{width} = $C{width};
-                    $newsize{height} = $C{height} + 100;
-                    $resize_window = 1;
+            }
+            elsif ( $key_name eq 'w' ) {
+                write_config;
+
+            }
+            elsif ( $key_name eq 'a' ) {
+                ++$C{average};
+                display_info "Set sample average to $C{average}";
+            }
+            elsif ( $key_name eq 'y' or $key_name eq 'z' ) {
+                my $avg = $C{average};
+                --$avg;
+                $C{average} = $avg > 1 ? $avg : 2;
+                display_info "Set sample average to $C{average}";
+
+            }
+            elsif ( $key_name eq 's' ) {
+                $C{factor} += 0.1;
+                display_info "Set scale factor to $C{factor}";
+            }
+            elsif ( $key_name eq 'x' or $key_name eq 'z' ) {
+                $C{factor} -= 0.1;
+                display_info "Set scale factor to $C{factor}";
+
+            }
+            elsif ( $key_name eq 'left' ) {
+                $newsize{width}  = $C{width} - 100;
+                $newsize{height} = $C{height};
+                $resize_window   = 1;
+            }
+            elsif ( $key_name eq 'right' ) {
+                $newsize{width}  = $C{width} + 100;
+                $newsize{height} = $C{height};
+                $resize_window   = 1;
+
+            }
+            elsif ( $key_name eq 'up' ) {
+                $newsize{width}  = $C{width};
+                $newsize{height} = $C{height} - 100;
+                $resize_window   = 1;
+            }
+            elsif ( $key_name eq 'down' ) {
+                $newsize{width}  = $C{width};
+                $newsize{height} = $C{height} + 100;
+                $resize_window   = 1;
+            }
+        }
+    };
+
+    do {
+        my ( $x, $y ) = ( 0, 0 );
+
+        # Also substract 1 (each bar is followed by an 1px separator bar)
+        my $width = $C{width} / notnull($num_stats) - 1;
+
+        my ( $current_barnum, $current_corenum ) = ( -1, -1 );
+
+        for my $key ( sort keys %CPUSTATS ) {
+            last if ( ++$current_barnum > $num_stats );
+            ++$current_corenum;
+            my ( $host, $name ) = split ';', $key;
+
+            next unless defined $CPUSTATS{$key};
+
+            my %stat = map {
+                my ( $k, $v ) = split '=';
+                $k => $v
+
+            } split ';', $CPUSTATS{$key};
+
+            unless ( exists $prev_stats{$key} ) {
+                $prev_stats{$key} = \%stat;
+                next;
+            }
+
+            my $prev_stat = $prev_stats{$key};
+            my %loads =
+              null $stat{TOTAL} == null $prev_stat->{TOTAL}
+              ? %stat
+              : map { $_ => $stat{$_} - $prev_stat->{$_} } keys %stat;
+
+            $prev_stats{$key} = \%stat;
+
+            %loads = normalize_loads %loads;
+            push @{ $last_loads{$key} }, \%loads;
+            shift @{ $last_loads{$key} }
+              while @{ $last_loads{$key} } >= $C{average};
+
+            my ( $cpumax, $cpuaverage ) = get_cpuaverage $C{factor},
+              @{ $last_loads{$key} };
+
+            my %heights = map {
+                    $_ => defined $cpuaverage->{$_}
+                  ? $cpuaverage->{$_} * ( $C{height} / 100 )
+                  : 1
+            } keys %$cpuaverage;
+
+            my $is_host_summary = $name eq 'cpu' ? 1 : 0;
+
+            my $rect_separator = undef;
+
+            my $rect_idle    = get_rect $rects, "$key;idle";
+            my $rect_steal   = get_rect $rects, "$key;steal";
+            my $rect_guest   = get_rect $rects, "$key;guest";
+            my $rect_irq     = get_rect $rects, "$key;irq";
+            my $rect_softirq = get_rect $rects, "$key;softirq";
+            my $rect_nice    = get_rect $rects, "$key;nice";
+            my $rect_iowait  = get_rect $rects, "$key;iowait";
+            my $rect_user    = get_rect $rects, "$key;user";
+            my $rect_system  = get_rect $rects, "$key;system";
+
+            my $rect_peak;
+
+            $y = $C{height} - $heights{system};
+            $rect_system->width($width);
+            $rect_system->height( $heights{system} );
+            $rect_system->x($x);
+            $rect_system->y($y);
+
+            $y -= $heights{user};
+            $rect_user->width($width);
+            $rect_user->height( $heights{user} );
+            $rect_user->x($x);
+            $rect_user->y($y);
+
+            $y -= $heights{nice};
+            $rect_nice->width($width);
+            $rect_nice->height( $heights{nice} );
+            $rect_nice->x($x);
+            $rect_nice->y($y);
+
+            $y -= $heights{idle};
+            $rect_idle->width($width);
+            $rect_idle->height( $heights{idle} );
+            $rect_idle->x($x);
+            $rect_idle->y($y);
+
+            $y -= $heights{iowait};
+            $rect_iowait->width($width);
+            $rect_iowait->height( $heights{iowait} );
+            $rect_iowait->x($x);
+            $rect_iowait->y($y);
+
+            $y -= $heights{irq};
+            $rect_irq->width($width);
+            $rect_irq->height( $heights{irq} );
+            $rect_irq->x($x);
+            $rect_irq->y($y);
+
+            $y -= $heights{softirq};
+            $rect_softirq->width($width);
+            $rect_softirq->height( $heights{softirq} );
+            $rect_softirq->x($x);
+            $rect_softirq->y($y);
+
+            $y -= $heights{guest};
+            $rect_guest->width($width);
+            $rect_guest->height( $heights{guest} );
+            $rect_guest->x($x);
+            $rect_guest->y($y);
+
+            $y -= $heights{steal};
+            $rect_steal->width($width);
+            $rect_steal->height( $heights{steal} );
+            $rect_steal->x($x);
+            $rect_steal->y($y);
+
+            my $all     = 100 - $cpuaverage->{idle};
+            my $max_all = 0;
+
+            $app->fill( $rect_idle,    Loadbars::Constants->BLACK );
+            $app->fill( $rect_steal,   Loadbars::Constants->RED );
+            $app->fill( $rect_guest,   Loadbars::Constants->RED );
+            $app->fill( $rect_irq,     Loadbars::Constants->WHITE );
+            $app->fill( $rect_softirq, Loadbars::Constants->WHITE );
+            $app->fill( $rect_nice,    Loadbars::Constants->GREEN );
+            $app->fill( $rect_iowait,  Loadbars::Constants->PURPLE );
+
+            my $add_x         = 0;
+            my $rect_memused  = get_rect $rects, "$host;memused";
+            my $rect_memfree  = get_rect $rects, "$host;memfree";
+            my $rect_buffers  = get_rect $rects, "$host;buffers";
+            my $rect_cached   = get_rect $rects, "$host;cached";
+            my $rect_swapused = get_rect $rects, "$host;swapused";
+            my $rect_swapfree = get_rect $rects, "$host;swapfree";
+
+            my %meminfo;
+            if ($is_host_summary) {
+                if ( $C{showmem} ) {
+                    $add_x = $width + 1;
+
+                    my $ram_per = percentage $MEMSTATS{"$host;MemTotal"},
+                      $MEMSTATS{"$host;MemFree"};
+                    my $swap_per = percentage $MEMSTATS{"$host;SwapTotal"},
+                      $MEMSTATS{"$host;SwapFree"};
+
+                    %meminfo = (
+                        ram_per  => $ram_per,
+                        swap_per => $swap_per,
+                    );
+
+                    my %heights = (
+                        MemFree => $ram_per * ( $C{height} / 100 ),
+                        MemUsed => ( 100 - $ram_per ) * ( $C{height} / 100 ),
+                        SwapFree => $swap_per * ( $C{height} / 100 ),
+                        SwapUsed => ( 100 - $swap_per ) * ( $C{height} / 100 ),
+                    );
+
+                    my $half_width = $width / 2;
+                    $y = $C{height} - $heights{MemUsed};
+                    $rect_memused->width($half_width);
+                    $rect_memused->height( $heights{MemUsed} );
+                    $rect_memused->x( $x + $add_x );
+                    $rect_memused->y($y);
+
+                    $y -= $heights{MemFree};
+                    $rect_memfree->width($half_width);
+                    $rect_memfree->height( $heights{MemFree} );
+                    $rect_memfree->x( $x + $add_x );
+                    $rect_memfree->y($y);
+
+                    $y = $C{height} - $heights{SwapUsed};
+                    $rect_swapused->width($half_width);
+                    $rect_swapused->height( $heights{SwapUsed} );
+                    $rect_swapused->x( $x + $add_x + $half_width );
+                    $rect_swapused->y($y);
+
+                    $y -= $heights{SwapFree};
+                    $rect_swapfree->width($half_width);
+                    $rect_swapfree->height( $heights{SwapFree} );
+                    $rect_swapfree->x( $x + $add_x + $half_width );
+                    $rect_swapfree->y($y);
+
+                    $app->fill( $rect_memused, Loadbars::Constants->DARK_GREY );
+                    $app->fill( $rect_memfree, Loadbars::Constants->BLACK );
+
+                    $app->fill( $rect_swapused, Loadbars::Constants->GREY );
+                    $app->fill( $rect_swapfree, Loadbars::Constants->BLACK );
+                }
+
+                if ( $C{showcores} ) {
+                    $current_corenum = 0;
+                    $rect_separator = get_rect $rects, "$key;separator";
+                    $rect_separator->width(1);
+                    $rect_separator->height( $C{height} );
+                    $rect_separator->x( $x - 1 );
+                    $rect_separator->y(0);
+                    $app->fill( $rect_separator, Loadbars::Constants->GREY );
                 }
             }
-        };
 
-        do {
-            my ( $x, $y ) = ( 0, 0 );
-
-            # Also substract 1 (each bar is followed by an 1px separator bar)
-            my $width = $C{width} / notnull($num_stats) - 1;
-
-            my ( $current_barnum, $current_corenum ) = ( -1, -1 );
-
-            for my $key ( sort keys %CPUSTATS ) {
-                last if (++$current_barnum > $num_stats);
-                ++$current_corenum;
-                my ( $host, $name ) = split ';', $key;
-
-                next unless defined $CPUSTATS{$key};
-
-                my %stat = map {
-                    my ( $k, $v ) = split '=';
-                    $k => $v
-
-                } split ';', $CPUSTATS{$key};
-
-                unless ( exists $prev_stats{$key} ) {
-                    $prev_stats{$key} = \%stat;
-                    next;
-                }
-
-                my $prev_stat = $prev_stats{$key};
-                my %loads =
-                  null $stat{TOTAL} == null $prev_stat->{TOTAL}
-                  ? %stat
-                  : map { $_ => $stat{$_} - $prev_stat->{$_} } keys %stat;
-
-                $prev_stats{$key} = \%stat;
-
-                %loads = normalize_loads %loads;
-                push @{ $last_loads{$key} }, \%loads;
-                shift @{ $last_loads{$key} }
-                  while @{ $last_loads{$key} } >= $C{average};
-
-                my ( $cpumax, $cpuaverage ) = get_cpuaverage $C{factor},
-                  @{ $last_loads{$key} };
-
-                my %heights = map {
-                        $_ => defined $cpuaverage->{$_}
-                      ? $cpuaverage->{$_} * ( $C{height} / 100 )
+            if ( $C{extended} ) {
+                my %maxheights = map {
+                        $_ => defined $cpumax->{$_}
+                      ? $cpumax->{$_} * ( $C{height} / 100 )
                       : 1
-                } keys %$cpuaverage;
+                } keys %$cpumax;
 
-                my $is_host_summary = $name eq 'cpu' ? 1 : 0;
+                $rect_peak = get_rect $rects, "$key;max";
+                $rect_peak->width($width);
+                $rect_peak->height(1);
+                $rect_peak->x($x);
+                $rect_peak->y(
+                    $C{height} - $maxheights{system} - $maxheights{user} );
 
-                my $rect_separator = undef;
+                $max_all =
+                  sum @{$cpumax}
+                  {qw(user system iowait irq softirq steal guest)};
 
-                my $rect_idle = get_rect $rects, "$key;idle";
-                my $rect_steal = get_rect $rects, "$key;steal";
-                my $rect_guest = get_rect $rects, "$key;guest";
-                my $rect_irq = get_rect $rects, "$key;irq";
-                my $rect_softirq = get_rect $rects, "$key;softirq";
-                my $rect_nice = get_rect $rects, "$key;nice";
-                my $rect_iowait = get_rect $rects, "$key;iowait";
-                my $rect_user = get_rect $rects, "$key;user";
-                my $rect_system = get_rect $rects, "$key;system";
+                $app->fill(
+                    $rect_peak,
+                    $max_all > Loadbars::Constants->USER_ORANGE
+                    ? Loadbars::Constants->ORANGE
+                    : ( $max_all > Loadbars::Constants->USER_YELLOW0
+                        ? Loadbars::Constants->YELLOW0
+                        : ( Loadbars::Constants->YELLOW ) )
+                );
+            }
 
-                my $rect_peak;
+            $app->fill(
+                $rect_user,
+                $all > Loadbars::Constants->USER_ORANGE
+                ? Loadbars::Constants->ORANGE
+                : ( $all > Loadbars::Constants->USER_YELLOW0
+                    ? Loadbars::Constants->YELLOW0
+                    : ( Loadbars::Constants->YELLOW ) )
+            );
+            $app->fill( $rect_system,
+                $cpuaverage->{system} > Loadbars::Constants->SYSTEM_BLUE0
+                ? Loadbars::Constants->BLUE0
+                : Loadbars::Constants->BLUE );
 
-                $y = $C{height} - $heights{system};
-                $rect_system->width($width);
-                $rect_system->height( $heights{system} );
-                $rect_system->x($x);
-                $rect_system->y($y);
+            my ( $y, $space ) = ( 5, $font_height );
 
-                $y -= $heights{user};
-                $rect_user->width($width);
-                $rect_user->height( $heights{user} );
-                $rect_user->x($x);
-                $rect_user->y($y);
+            my @loadavg = split ';', $AVGSTATS{$host};
 
-                $y -= $heights{nice};
-                $rect_nice->width($width);
-                $rect_nice->height( $heights{nice} );
-                $rect_nice->x($x);
-                $rect_nice->y($y);
+            if ( $C{showtext} ) {
+                if ( $C{showmem} && $is_host_summary ) {
+                    my $y_ = $y;
+                    $app->print( $x + $add_x, $y_, 'Ram:' );
+                    $app->print(
+                        $x + $add_x,
+                        $y_ += $space,
+                        sprintf '%02d',
+                        ( 100 - $meminfo{ram_per} )
+                    );
+                    $app->print( $x + $add_x, $y_ += $space, 'Swp:' );
+                    $app->print(
+                        $x + $add_x,
+                        $y_ += $space,
+                        sprintf '%02d',
+                        ( 100 - $meminfo{swap_per} )
+                    );
+                }
+                if ( $C{showtexthost} && $is_host_summary ) {
 
-                $y -= $heights{idle};
-                $rect_idle->width($width);
-                $rect_idle->height( $heights{idle} );
-                $rect_idle->x($x);
-                $rect_idle->y($y);
+                    # If hostname is printed don't use FQDN
+                    # because of its length.
+                    $host =~ /([^\.]*)/;
+                    $app->print( $x, $y, sprintf '%s:', $1 );
 
-                $y -= $heights{iowait};
-                $rect_iowait->width($width);
-                $rect_iowait->height( $heights{iowait} );
-                $rect_iowait->x($x);
-                $rect_iowait->y($y);
-
-                $y -= $heights{irq};
-                $rect_irq->width($width);
-                $rect_irq->height( $heights{irq} );
-                $rect_irq->x($x);
-                $rect_irq->y($y);
-
-                $y -= $heights{softirq};
-                $rect_softirq->width($width);
-                $rect_softirq->height( $heights{softirq} );
-                $rect_softirq->x($x);
-                $rect_softirq->y($y);
-
-                $y -= $heights{guest};
-                $rect_guest->width($width);
-                $rect_guest->height( $heights{guest} );
-                $rect_guest->x($x);
-                $rect_guest->y($y);
-
-                $y -= $heights{steal};
-                $rect_steal->width($width);
-                $rect_steal->height( $heights{steal} );
-                $rect_steal->x($x);
-                $rect_steal->y($y);
-
-                my $all     = 100 - $cpuaverage->{idle};
-                my $max_all = 0;
-
-                $app->fill( $rect_idle,    Loadbars::Constants->BLACK );
-                $app->fill( $rect_steal,   Loadbars::Constants->RED );
-                $app->fill( $rect_guest,   Loadbars::Constants->RED );
-                $app->fill( $rect_irq,     Loadbars::Constants->WHITE );
-                $app->fill( $rect_softirq, Loadbars::Constants->WHITE );
-                $app->fill( $rect_nice,    Loadbars::Constants->GREEN );
-                $app->fill( $rect_iowait,  Loadbars::Constants->PURPLE );
-
-                my $add_x = 0;
-                my $rect_memused = get_rect $rects, "$host;memused";
-                my $rect_memfree = get_rect $rects, "$host;memfree";
-                my $rect_buffers = get_rect $rects, "$host;buffers";
-                my $rect_cached = get_rect $rects, "$host;cached";
-                my $rect_swapused = get_rect $rects, "$host;swapused";
-                my $rect_swapfree = get_rect $rects, "$host;swapfree";
-
-                my %meminfo;
-                if ( $is_host_summary ) {
-                    if ( $C{showmem} ) {
-                        $add_x = $width + 1;
-
-                        my $ram_per = percentage $MEMSTATS{"$host;MemTotal"}, $MEMSTATS{"$host;MemFree"};
-                        my $swap_per = percentage $MEMSTATS{"$host;SwapTotal"}, $MEMSTATS{"$host;SwapFree"};
-
-                        %meminfo = (
-                            ram_per => $ram_per,
-                            swap_per => $swap_per,
-                        );
-
-                        my %heights = (
-                                MemFree => $ram_per * ( $C{height} / 100 ),
-                                MemUsed => (100 - $ram_per) * ( $C{height} / 100 ),
-                                SwapFree => $swap_per * ( $C{height} / 100 ),
-                                SwapUsed => (100 - $swap_per) * ( $C{height} / 100 ),
-                        );
-
-                        my $half_width = $width / 2;
-                        $y = $C{height} - $heights{MemUsed};
-                        $rect_memused->width($half_width);
-                        $rect_memused->height( $heights{MemUsed} );
-                        $rect_memused->x($x+$add_x);
-                        $rect_memused->y($y);
-
-                        $y -= $heights{MemFree};
-                        $rect_memfree->width($half_width);
-                        $rect_memfree->height( $heights{MemFree} );
-                        $rect_memfree->x($x+$add_x);
-                        $rect_memfree->y($y);
-
-                        $y = $C{height} - $heights{SwapUsed};
-                        $rect_swapused->width($half_width);
-                        $rect_swapused->height( $heights{SwapUsed} );
-                        $rect_swapused->x($x+$add_x+$half_width);
-                        $rect_swapused->y($y);
-
-                        $y -= $heights{SwapFree};
-                        $rect_swapfree->width($half_width);
-                        $rect_swapfree->height( $heights{SwapFree} );
-                        $rect_swapfree->x($x+$add_x+$half_width);
-                        $rect_swapfree->y($y);
-                        
-                        $app->fill( $rect_memused,   Loadbars::Constants->DARK_GREY );
-                        $app->fill( $rect_memfree,    Loadbars::Constants->BLACK );
-
-                        $app->fill( $rect_swapused,   Loadbars::Constants->GREY );
-                        $app->fill( $rect_swapfree,    Loadbars::Constants->BLACK );
-                    }
-
-                    if ( $C{showcores} ) {
-                        $current_corenum = 0;
-                        $rect_separator = get_rect $rects, "$key;separator";
-                        $rect_separator->width(1);
-                        $rect_separator->height( $C{height} );
-                        $rect_separator->x( $x - 1 );
-                        $rect_separator->y(0);
-                        $app->fill( $rect_separator, Loadbars::Constants->GREY );
-                    }
+                }
+                else {
+                    $app->print( $x, $y, sprintf '%i:',
+                          $C{showcores}
+                        ? $current_corenum
+                        : $current_barnum + 1 );
                 }
 
                 if ( $C{extended} ) {
-                    my %maxheights = map {
-                            $_ => defined $cpumax->{$_}
-                          ? $cpumax->{$_} * ( $C{height} / 100 )
-                          : 1
-                    } keys %$cpumax;
-
-                    $rect_peak = get_rect $rects, "$key;max";
-                    $rect_peak->width($width);
-                    $rect_peak->height(1);
-                    $rect_peak->x($x);
-                    $rect_peak->y( $C{height} - $maxheights{system} - $maxheights{user} );
-
-                    $max_all = sum @{$cpumax} {qw(user system iowait irq softirq steal guest)};
-
-                    $app->fill( $rect_peak, $max_all > Loadbars::Constants->USER_ORANGE ? Loadbars::Constants->ORANGE
-                        : ( $max_all > Loadbars::Constants->USER_YELLOW0 ? Loadbars::Constants->YELLOW0 : (Loadbars::Constants->YELLOW)));
+                    $app->print(
+                        $x,
+                        $y += $space,
+                        sprintf '%02d%s',
+                        norm $cpuaverage->{steal}, 'st'
+                    );
+                    $app->print(
+                        $x,
+                        $y += $space,
+                        sprintf '%02d%s',
+                        norm $cpuaverage->{guest}, 'gt'
+                    );
+                    $app->print(
+                        $x,
+                        $y += $space,
+                        sprintf '%02d%s',
+                        norm $cpuaverage->{softirq}, 'sr'
+                    );
+                    $app->print(
+                        $x,
+                        $y += $space,
+                        sprintf '%02d%s',
+                        norm $cpuaverage->{irq}, 'ir'
+                    );
                 }
 
-                $app->fill( $rect_user, $all > Loadbars::Constants->USER_ORANGE ? Loadbars::Constants->ORANGE
-                    : ( $all > Loadbars::Constants->USER_YELLOW0 ? Loadbars::Constants->YELLOW0 : (Loadbars::Constants->YELLOW)));
-                $app->fill( $rect_system, $cpuaverage->{system} > Loadbars::Constants->SYSTEM_BLUE0
-                    ? Loadbars::Constants->BLUE0 : Loadbars::Constants->BLUE );
+                $app->print(
+                    $x,
+                    $y += $space,
+                    sprintf '%02d%s',
+                    norm $cpuaverage->{iowait}, 'io'
+                );
 
-                my ( $y, $space ) = ( 5, $font_height );
+                $app->print(
+                    $x,
+                    $y += $space,
+                    sprintf '%02d%s',
+                    norm $cpuaverage->{idle}, 'id'
+                ) if $C{extended};
 
-                my @loadavg = split ';', $AVGSTATS{$host};
+                $app->print(
+                    $x,
+                    $y += $space,
+                    sprintf '%02d%s',
+                    norm $cpuaverage->{nice}, 'ni'
+                );
+                $app->print(
+                    $x,
+                    $y += $space,
+                    sprintf '%02d%s',
+                    norm $cpuaverage->{user}, 'us'
+                );
+                $app->print(
+                    $x,
+                    $y += $space,
+                    sprintf '%02d%s',
+                    norm $cpuaverage->{system}, 'sy'
+                );
+                $app->print(
+                    $x,
+                    $y += $space,
+                    sprintf '%02d%s',
+                    norm $all, 'to'
+                );
 
-                if ( $C{showtext} ) {
-                    if ( $C{showmem} && $is_host_summary ) {
-                        my $y_ = $y;
-                        $app->print( $x+$add_x, $y_, 'Ram:');
-                        $app->print( $x+$add_x, $y_ += $space, sprintf '%02d', (100-$meminfo{ram_per}));
-                        $app->print( $x+$add_x, $y_ += $space, 'Swp:');
-                        $app->print( $x+$add_x, $y_ += $space, sprintf '%02d', (100-$meminfo{swap_per}));
-                    }
-                    if ( $C{showtexthost} && $is_host_summary ) {
-                        # If hostname is printed don't use FQDN
-                        # because of its length.
-                        $host =~ /([^\.]*)/;
-                        $app->print( $x, $y, sprintf '%s:', $1 );
+                $app->print(
+                    $x,
+                    $y += $space,
+                    sprintf '%02d%s',
+                    norm $max_all, 'pk'
+                ) if $C{extended};
 
-                    }
-                    else {
-                        $app->print( $x, $y, sprintf '%i:', $C{showcores} ? $current_corenum : $current_barnum + 1 );
-                    }
-
-                    if ( $C{extended} ) {
-                        $app->print( $x, $y += $space, sprintf '%02d%s', norm $cpuaverage->{steal}, 'st');
-                        $app->print( $x, $y += $space, sprintf '%02d%s', norm $cpuaverage->{guest}, 'gt');
-                        $app->print( $x, $y += $space, sprintf '%02d%s', norm $cpuaverage->{softirq}, 'sr');
-                        $app->print( $x, $y += $space, sprintf '%02d%s', norm $cpuaverage->{irq}, 'ir');
-                    }
-
-                    $app->print( $x, $y += $space, sprintf '%02d%s', norm $cpuaverage->{iowait}, 'io');
-
-                    $app->print( $x, $y += $space, sprintf '%02d%s', norm $cpuaverage->{idle}, 'id') if $C{extended};
-
-                    $app->print( $x, $y += $space, sprintf '%02d%s', norm $cpuaverage->{nice}, 'ni');
-                    $app->print( $x, $y += $space, sprintf '%02d%s', norm $cpuaverage->{user}, 'us');
-                    $app->print( $x, $y += $space, sprintf '%02d%s', norm $cpuaverage->{system}, 'sy');
-                    $app->print( $x, $y += $space, sprintf '%02d%s', norm $all, 'to');
-
-                    $app->print( $x, $y += $space, sprintf '%02d%s', norm $max_all, 'pk') if $C{extended};
-
-                    if ($is_host_summary) {
+                if ($is_host_summary) {
                     if ( defined $loadavg[0] ) {
                         $app->print( $x, $y += $space, 'Avg:' );
-                        $app->print( $x, $y += $space, sprintf "%.2f", $loadavg[0]);
-                        $app->print( $x, $y += $space, sprintf "%.2f", $loadavg[1]);
-                        $app->print( $x, $y += $space, sprintf "%.2f", $loadavg[2]);
+                        $app->print(
+                            $x,
+                            $y += $space,
+                            sprintf "%.2f",
+                            $loadavg[0]
+                        );
+                        $app->print(
+                            $x,
+                            $y += $space,
+                            sprintf "%.2f",
+                            $loadavg[1]
+                        );
+                        $app->print(
+                            $x,
+                            $y += $space,
+                            sprintf "%.2f",
+                            $loadavg[2]
+                        );
                     }
                 }
             }
@@ -770,7 +911,10 @@ sub main_loop ($@) {
                 $rect_guest, $rect_system,  $rect_user,
             );
 
-            $app->update( $rect_memfree, $rect_memused, $rect_swapused, $rect_swapfree ) if $C{showmem};
+            $app->update(
+                $rect_memfree,  $rect_memused,
+                $rect_swapused, $rect_swapfree
+            ) if $C{showmem};
             $app->update($rect_separator) if defined $rect_separator;
 
             $x += $width + 1 + $add_x;
@@ -787,8 +931,10 @@ sub main_loop ($@) {
             # Goto is OK as long you don't produce spaghetti code
             goto TIMEKEEPER;
 
-        } elsif ( Loadbars::Constants->INTERVAL_WARN < $t_diff ) {
-            display_warn  "WARN: Loop is behind $t_diff seconds, your computer may be too slow";
+        }
+        elsif ( Loadbars::Constants->INTERVAL_WARN < $t_diff ) {
+            display_warn
+"WARN: Loop is behind $t_diff seconds, your computer may be too slow";
         }
 
         $t1 = $t2;
@@ -801,18 +947,18 @@ sub main_loop ($@) {
             %prev_stats = ();
             %last_loads = ();
 
-            $num_stats = $new_num_stats;
-            $newsize{width} = $C{barwidth} * $num_stats;
+            $num_stats       = $new_num_stats;
+            $newsize{width}  = $C{barwidth} * $num_stats;
             $newsize{height} = $C{height};
-            $resize_window = 1;
+            $resize_window   = 1;
         }
 
         if ($resize_window) {
             set_dimensions $newsize{width}, $newsize{height};
             $app->resize( $C{width}, $C{height} );
-            $resize_window = 0;
+            $resize_window     = 0;
             $redraw_background = 1;
-        } 
+        }
 
         if ($redraw_background) {
             draw_background $app, $rects;
@@ -838,12 +984,13 @@ sub get_cluster_hosts ($;$) {
         $recursion = 1;
 
     }
-        elsif ( $recursion > Loadbars::Constants->CSSH_MAX_RECURSION ) {
+    elsif ( $recursion > Loadbars::Constants->CSSH_MAX_RECURSION ) {
         error "CSSH_MAX_RECURSION reached. Infinite circle loop in "
           . Loadbars::Constants->CSSH_CONFFILE . "?";
     }
 
-    open my $fh, Loadbars::Constants->CSSH_CONFFILE or error "$!: " . Loadbars::Constants->CSSH_CONFFILE;
+    open my $fh, Loadbars::Constants->CSSH_CONFFILE
+      or error "$!: " . Loadbars::Constants->CSSH_CONFFILE;
     my $hosts;
 
     while (<$fh>) {
@@ -856,7 +1003,9 @@ sub get_cluster_hosts ($;$) {
     close $fh;
 
     unless ( defined $hosts ) {
-        error "No such cluster in " . Loadbars::Constants->CSSH_CONFFILE . ": $cluster"
+        error "No such cluster in "
+          . Loadbars::Constants->CSSH_CONFFILE
+          . ": $cluster"
           unless defined $recursion;
 
         return ($cluster);

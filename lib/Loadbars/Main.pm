@@ -306,15 +306,16 @@ sub main_loop ($@) {
 
     my $fontbase = 'fonts/font.png';
 
-    if ( -f "./$fontbase") {
+    if ( -f "./$fontbase" ) {
         $C{font} = "./$fontbase";
 
-    } elsif (-f "/usr/share/loadbars/$fontbase") {
+    }
+    elsif ( -f "/usr/share/loadbars/$fontbase" ) {
         $C{font} = "/usr/share/loadbars/$fontbase";
     }
 
-    say("Foo:".$C{font});
-    SDL::Font->new($C{font})->use();
+    say( "Foo:" . $C{font} );
+    SDL::Font->new( $C{font} )->use();
 
     my $rects = {};
     my %prev_stats;

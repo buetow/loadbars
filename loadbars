@@ -9,15 +9,19 @@ use warnings;
 
 use Getopt::Long;
 
+use lib 'lib';
+
 use Loadbars::Main;
 use Loadbars::Constants;
 use Loadbars::HelpDispatch;
+use Loadbars::Shared;
+use Loadbars::Utils;
 
 sub main () {
     my ( $hosts, $dispatch ) = Loadbars::HelpDispatch::create;
     my $usage;
 
-    Loadbars::Main::say(Loadbars::Constants->VERSION . ' ' . Loadbars::Constants->COPYRIGHT);
+    say(Loadbars::Constants->VERSION . ' ' . Loadbars::Constants->COPYRIGHT);
 
     Loadbars::Config::read;
 
@@ -36,7 +40,7 @@ sub main () {
     } split ',', $$hosts;
 
     if ( @hosts || defined $Loadbars::Main::C{cluster} ) {
-        push @hosts, Loadbars::Main::get_cluster_hosts $Loadbars::Main::C{cluster} 
+        push @hosts, Loadbars::Main::get_cluster_hosts $C{cluster} 
             if defined $Loadbars::Main::C{cluster};
         system 'ssh-add';
 

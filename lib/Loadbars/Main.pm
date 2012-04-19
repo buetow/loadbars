@@ -4,8 +4,6 @@ package Loadbars::Main;
 use strict;
 use warnings;
 
-use Loadbars::Config;
-
 use SDL;
 use SDL::App;
 use SDL::Rect;
@@ -21,9 +19,10 @@ use Proc::ProcessTable;
 use threads;
 use threads::shared;
 
+use Loadbars::Config;
 use Loadbars::Constants;
-use Loadbars::Utils;
 use Loadbars::Shared;
+use Loadbars::Utils;
 
 $| = 1;
 
@@ -305,7 +304,17 @@ sub main_loop ($@) {
         -resizeable => 1,
     );
 
-    SDL::Font->new('font.png')->use();
+    my $fontbase = 'fonts/font.png';
+
+    if ( -f "./$fontbase") {
+        $C{font} = "./$fontbase";
+
+    } elsif (-f "/usr/share/loadbars/$fontbase") {
+        $C{font} = "/usr/share/loadbars/$fontbase";
+    }
+
+    say("Foo:".$C{font});
+    SDL::Font->new($C{font})->use();
 
     my $rects = {};
     my %prev_stats;

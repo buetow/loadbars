@@ -288,7 +288,7 @@ sub set_dimensions ($$) {
     }
 }
 
-sub main_loop ($@) {
+sub loop ($@) {
     my ( $dispatch, @threads ) = @_;
 
     my $num_stats = 1;
@@ -304,18 +304,18 @@ sub main_loop ($@) {
         -resizeable => 1,
     );
 
-    my $fontbase = 'fonts/font.png';
+    my $font = do {
+        my $fontbase = 'fonts/font.png';
 
-    if ( -f "./$fontbase" ) {
-        $C{font} = "./$fontbase";
+        if ( -f "./$fontbase" ) {
+            "./$fontbase";
+        }
+        elsif ( -f "/usr/share/loadbars/$fontbase" ) {
+            "/usr/share/loadbars/$fontbase";
+        }
+    };
 
-    }
-    elsif ( -f "/usr/share/loadbars/$fontbase" ) {
-        $C{font} = "/usr/share/loadbars/$fontbase";
-    }
-
-    say( "Foo:" . $C{font} );
-    SDL::Font->new( $C{font} )->use();
+    SDL::Font->new($font)->use();
 
     my $rects = {};
     my %prev_stats;
@@ -882,51 +882,6 @@ sub main_loop ($@) {
     say "Good bye";
 
     exit Loadbars::Constants->SUCCESS;
-}
-
-# Recursuve function
-sub get_cluster_hosts ($;$);
-
-sub get_cluster_hosts ($;$) {
-    my ( $cluster, $recursion ) = @_;
-
-    unless ( defined $recursion ) {
-        $recursion = 1;
-
-    }
-    elsif ( $recursion > Loadbars::Constants->CSSH_MAX_RECURSION ) {
-        error(  "CSSH_MAX_RECURSION reached. Infinite circle loop in "
-              . Loadbars::Constants->CSSH_CONFFILE
-              . "?" );
-    }
-
-    open my $fh, Loadbars::Constants->CSSH_CONFFILE
-      or error( "$!: " . Loadbars::Constants->CSSH_CONFFILE );
-    my $hosts;
-
-    while (<$fh>) {
-        if (/^$cluster\s*(.*)/) {
-            $hosts = $1;
-            last;
-        }
-    }
-
-    close $fh;
-
-    unless ( defined $hosts ) {
-        error(  "No such cluster in "
-              . Loadbars::Constants->CSSH_CONFFILE
-              . ": $cluster" )
-          unless defined $recursion;
-
-        return ($cluster);
-    }
-
-    my @hosts;
-    push @hosts, get_cluster_hosts $_, ( $recursion + 1 )
-      for ( split /\s+/, $hosts );
-
-    return @hosts;
 }
 
 1;

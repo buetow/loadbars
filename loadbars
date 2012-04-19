@@ -17,45 +17,40 @@ use Loadbars::HelpDispatch;
 use Loadbars::Shared;
 use Loadbars::Utils;
 
-sub main () {
-    my ( $hosts, $dispatch ) = Loadbars::HelpDispatch::create;
-    my $usage;
+my ( $hosts, $dispatch ) = Loadbars::HelpDispatch::create;
+my $usage;
 
-    say(Loadbars::Constants->VERSION . ' ' . Loadbars::Constants->COPYRIGHT);
+say( Loadbars::Constants->VERSION . ' ' . Loadbars::Constants->COPYRIGHT );
 
-    Loadbars::Config::read;
+Loadbars::Config::read;
 
-    GetOptions( 'help|?' => \$usage, $dispatch->('options') );
+GetOptions( 'help|?' => \$usage, $dispatch->('options') );
 
-    if ( defined $usage ) {
-        say $dispatch->('usage');
-        exit Loadbars::Constants->SUCCESS;
-    }
-
-    Loadbars::Main::set_showcores_regexp;
-
-    my @hosts = map {
-        my ( $a, $b ) = split /\@/, $_;
-        defined $b ? "$b:$a" : $a;
-    } split ',', $$hosts;
-
-    if ( @hosts || defined $Loadbars::Main::C{cluster} ) {
-        push @hosts, Loadbars::Main::get_cluster_hosts $C{cluster} 
-            if defined $Loadbars::Main::C{cluster};
-        system 'ssh-add';
-
-    }
-    else {
-        Loadbars::Main::say $dispatch->('usage');
-        exit Loadbars::Constants->E_NOHOST;
-    }
-
-    my @threads = Loadbars::Main::create_threads @hosts;
-    Loadbars::Main::main_loop $dispatch, @threads;
-
+if ( defined $usage ) {
+    say $dispatch->('usage');
     exit Loadbars::Constants->SUCCESS;
 }
 
-main;
+Loadbars::Main::set_showcores_regexp;
 
-1;
+my @hosts = map {
+    my ( $a, $b ) = split /\@/, $_;
+    defined $b ? "$b:$a" : $a;
+} split ',', $$hosts;
+
+if ( @hosts || defined $Loadbars::Main::C{cluster} ) {
+    push @hosts, Loadbars::Config::get_cluster_hosts $C{cluster}
+      if defined $C{cluster};
+    system 'ssh-add';
+
+}
+else {
+    Loadbars::Main::say $dispatch->('usage');
+    exit Loadbars::Constants->E_NOHOST;
+}
+
+my @threads = Loadbars::Main::create_threads @hosts;
+Loadbars::Main::loop $dispatch, @threads;
+
+exit Loadbars::Constants->SUCCESS;
+

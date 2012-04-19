@@ -252,7 +252,7 @@ BASH
 
         my $pid = open my $pipe, "$cmd |" or do {
             say "Warning: $!";
-            sleep 3;
+            sleep 0.5;
             next;
         };
 

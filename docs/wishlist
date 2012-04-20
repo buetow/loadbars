@@ -1,0 +1,6 @@
+* More stats for memory
+* Stats for network
+* .deb for Debian and Ubuntu
+* Auto detect single core boxes
+* Make code modular (script is growing...)
+* Optimize code (too much cpu usage if there are too many hosts involved)

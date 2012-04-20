@@ -1,0 +1,15 @@
+Source: loadbars
+Section: utils
+Priority: optional
+Maintainer: Paul Buetow <paul@buetow.org>
+Build-Depends: perl, perltidy
+Standards-Version: 3.9.2
+Homepage: http://loadbars.buetow.org
+Vcs-Git: git://git.bueto.org/loadbars
+Vcs-Browser: http://web.buetow.org/git/?p=loadbars.git;a=summary
+
+Package: loadbars
+Architecture: all
+Depends: ${perl:Depends}, libsdl-perl (>= 2.2.5-1), libproc-processtable-perl (>= 0.45-1)
+Description: Real time monitoring tool
+ Loadbars is a tool to observe loads of several remote servers at once.

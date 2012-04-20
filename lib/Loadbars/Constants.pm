@@ -6,7 +6,7 @@ use warnings;
 use SDL::Color;
 
 use constant {
-    VERSION            => 'loadbars v0.5.2-devel',
+    VERSION            => 'loadbars v0.5.2.1',
     COPYRIGHT          => '2010-2012 (c) Paul Buetow <loadbars@mx.buetow.org>',
     CONFFILE           => $ENV{HOME} . '/.loadbarsrc',
     CSSH_CONFFILE      => '/etc/clusters',

@@ -8,6 +8,8 @@ loadbars (0.5.2) stable; urgency=low
 
   * Initial .deb
 
+  * Heavy code refactoring (more modular code)
+
  -- Paul Buetow <paul@buetow.org>  Sun, 08 Apr 2012 15:23:53 +0200
 
 loadbars (0.0.0) stable; urgency=low

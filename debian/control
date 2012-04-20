@@ -1,0 +1,15 @@
+Source: loadbars
+Section: net
+Priority: optional
+Maintainer: Paul Buetow <paul@buetow.org>
+Build-Depends: 
+Standards-Version: 3.9.2
+Homepage: http://loadbars.buetow.org
+Vcs-Git: git://git.bueto.org/loadbars
+Vcs-Browser: http://web.buetow.org/git/?p=loadbars.git;a=summary
+
+Package: loadbars
+Architecture: any
+Depends: ${shlibs:Depends}
+Description: Real time monitoring tool
+ Loadbars is a small script that can be used to observe CPU loads of several remote servers at once in real time. 

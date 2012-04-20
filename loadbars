@@ -9,7 +9,19 @@ use warnings;
 
 use Getopt::Long;
 
-use lib 'lib';
+my $lib;
+
+BEGIN {
+    if ( -d './lib/Loadbars' ) {
+        $lib = 'lib';
+
+    }
+    else {
+        $lib = '/usr/share/loadbars/lib';
+    }
+}
+
+use lib $lib;
 
 use Loadbars::Main;
 use Loadbars::Constants;

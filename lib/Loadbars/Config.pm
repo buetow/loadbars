@@ -41,7 +41,8 @@ our %I : shared;
 sub read () {
     return unless -f Loadbars::Constants->CONFFILE;
 
-    display_info("Reading configuration from " . Loadbars::Constants->CONFFILE);
+    display_info(
+        "Reading configuration from " . Loadbars::Constants->CONFFILE );
     open my $conffile, Loadbars::Constants->CONFFILE
       or die "$!: " . Loadbars::Constants->CONFFILE . "\n";
 
@@ -67,7 +68,8 @@ sub read () {
         }
         else {
             display_info(
-"Setting $key=$val, it might be overwritten by command line params.");
+"Setting $key=$val, it might be overwritten by command line params."
+            );
             $C{$key} = $val;
         }
     }
@@ -76,11 +78,11 @@ sub read () {
 }
 
 sub write () {
-    display_warn("Overwriting config file " . Loadbars::Constants->CONFFILE)
+    display_warn( "Overwriting config file " . Loadbars::Constants->CONFFILE )
       if -f Loadbars::Constants->CONFFILE;
 
     open my $conffile, '>', Loadbars::Constants->CONFFILE or do {
-        display_warn("$!: " . Loadbars::Constants->CONFFILE);
+        display_warn( "$!: " . Loadbars::Constants->CONFFILE );
 
         return undef;
     };

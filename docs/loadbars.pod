@@ -1,66 +1,15 @@
 =head1 NAME
 
-httpbench - Simple HTTP benchmarking tool
+loadbars - Small tool to observe server loads
 
 =head1 SYNOPSIS
 
-httpbench -u <url or urllist.txt> -d sec -c concurrent -r rps [-t ms] [-e expected] 
+For any program help check out --help on command line or 'h' during program
+execution.
 
 =head1 DESCRIPTION
 
-HTTP Bench is a small program for Linux, UNIX and a like written in C which can be used to benchmark HTTP servers. For more infos please consult the project website.
-
-=head2 Arguments
-
-=head3 Mandatory 
-
-=over 12
-
-=item C<-u url or urllist.txt>
-
-An URL to benchmark if argument begins with http:// or https:// or a path to a text file containing a list of all HTTP-URLs to request during a benchmark. Each line should start with http:// or https://.
-
-=item C<-d seconds>
-
-Duration of the benchmark in seconds. E.g. 300 for a five minutes benchmark.
-
-=item C<-c concurrent>
-
-Number of cuncurrent threads used by the benchmark. 
-
-=item C<-r rps>
-
-Requests per second wanted for the benchmark. 
-
-=back
-
-=head3 Optional
-
-=over 12
-
-=item C<-t timeoutms>
-
-Timeout in milliseconds for each request. This timeout will actually not interrupt any requests. It's there just for statistical reasons. E.g. how many requests take longer than x milliseconds?
-
-=item C<-e expectedresponsestr>
-
-The expected response of a request. E.g. all requests should contain HTML in its reponse. All responses not matching are counted and reported.
-
-=back
-
-=head2 EXAMPLES
-
-=over 12
-
-=item C<httpbench -u mylist.txt -d 60 -c 10 -r 1000>
-
-Iterates over each url in mylist.txt with 10 cuncurrent threads for 60 seconds and tries to reach 1000 requests per second. Each curl failure will be reported at the end of the test (total count and total %).
-
-=item C<httpbench -u http://www.example.com -d 300 -c 1000 -r 10000 -t 20 -e "Hello World">
-
-Benchmarks the single URL http://www.example.com with 1000 cuncurrent threads for 5 minutes and tries to reach 10000 requests per second. Each request which takes longer than 20 milliseconds will be reported at the end of the test (total count and total %) and each request which does not contain "Hello World" in its response string will also be reported (total count and total %). The curl errors will also be reported.
-
-=back
+Loadbars is a small script that can be used to observe CPU loads of several remote servers at once in real time. It connects with SSH (using SSH public/private key auth) to several servers at once and vizualizes all server CPUs and memory statistics right next each other (either summarized or each core separately). Loadbars is not a tool for collecting CPU loads and drawing graphs for later analysis. However, since such tools require a significant amount of time before producing results, Loadbars lets you observe the current state immediately. Loadbars does not remember or record any load information. It just shows the current CPU usages like top or vmstat does.
 
 
 =head1 LICENSE
@@ -69,6 +18,6 @@ See package description or project website.
 
 =head1 AUTHOR
 
-Paul Buetow - <http://httpbench.buetow.org>
+Paul Buetow - <http://loadbars.buetow.org>
 
 =cut

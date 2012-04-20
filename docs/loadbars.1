@@ -124,63 +124,23 @@
 .\" ========================================================================
 .\"
 .IX Title "LOADBARS 1"
-.TH LOADBARS 1 "2012-04-20" "loadbars " "User Commands"
+.TH LOADBARS 1 "2012-04-20" "loadbars 0.5.2" "User Commands"
 .\" For nroff, turn off justification.  Always turn off hyphenation; it makes
 .\" way too many mistakes in technical documents.
 .if n .ad l
 .nh
 .SH "NAME"
-httpbench \- Simple HTTP benchmarking tool
+loadbars \- Small tool to observe server loads
 .SH "SYNOPSIS"
 .IX Header "SYNOPSIS"
-httpbench \-u <url or urllist.txt> \-d sec \-c concurrent \-r rps [\-t ms] [\-e expected]
+For any program help check out \-\-help on command line or 'h' during program
+execution.
 .SH "DESCRIPTION"
 .IX Header "DESCRIPTION"
-\&\s-1HTTP\s0 Bench is a small program for Linux, \s-1UNIX\s0 and a like written in C which can be used to benchmark \s-1HTTP\s0 servers. For more infos please consult the project website.
-.SS "Arguments"
-.IX Subsection "Arguments"
-\fIMandatory\fR
-.IX Subsection "Mandatory"
-.ie n .IP """\-u url or urllist.txt""" 12
-.el .IP "\f(CW\-u url or urllist.txt\fR" 12
-.IX Item "-u url or urllist.txt"
-An \s-1URL\s0 to benchmark if argument begins with http:// or https:// or a path to a text file containing a list of all HTTP-URLs to request during a benchmark. Each line should start with http:// or https://.
-.ie n .IP """\-d seconds""" 12
-.el .IP "\f(CW\-d seconds\fR" 12
-.IX Item "-d seconds"
-Duration of the benchmark in seconds. E.g. 300 for a five minutes benchmark.
-.ie n .IP """\-c concurrent""" 12
-.el .IP "\f(CW\-c concurrent\fR" 12
-.IX Item "-c concurrent"
-Number of cuncurrent threads used by the benchmark.
-.ie n .IP """\-r rps""" 12
-.el .IP "\f(CW\-r rps\fR" 12
-.IX Item "-r rps"
-Requests per second wanted for the benchmark.
-.PP
-\fIOptional\fR
-.IX Subsection "Optional"
-.ie n .IP """\-t timeoutms""" 12
-.el .IP "\f(CW\-t timeoutms\fR" 12
-.IX Item "-t timeoutms"
-Timeout in milliseconds for each request. This timeout will actually not interrupt any requests. It's there just for statistical reasons. E.g. how many requests take longer than x milliseconds?
-.ie n .IP """\-e expectedresponsestr""" 12
-.el .IP "\f(CW\-e expectedresponsestr\fR" 12
-.IX Item "-e expectedresponsestr"
-The expected response of a request. E.g. all requests should contain \s-1HTML\s0 in its reponse. All responses not matching are counted and reported.
-.SS "\s-1EXAMPLES\s0"
-.IX Subsection "EXAMPLES"
-.ie n .IP """httpbench \-u mylist.txt \-d 60 \-c 10 \-r 1000""" 12
-.el .IP "\f(CWhttpbench \-u mylist.txt \-d 60 \-c 10 \-r 1000\fR" 12
-.IX Item "httpbench -u mylist.txt -d 60 -c 10 -r 1000"
-Iterates over each url in mylist.txt with 10 cuncurrent threads for 60 seconds and tries to reach 1000 requests per second. Each curl failure will be reported at the end of the test (total count and total %).
-.ie n .IP """httpbench \-u http://www.example.com \-d 300 \-c 1000 \-r 10000 \-t 20 \-e ""Hello World""""" 12
-.el .IP "\f(CWhttpbench \-u http://www.example.com \-d 300 \-c 1000 \-r 10000 \-t 20 \-e ``Hello World''\fR" 12
-.IX Item "httpbench -u http://www.example.com -d 300 -c 1000 -r 10000 -t 20 -e ""Hello World"""
-Benchmarks the single \s-1URL\s0 http://www.example.com with 1000 cuncurrent threads for 5 minutes and tries to reach 10000 requests per second. Each request which takes longer than 20 milliseconds will be reported at the end of the test (total count and total %) and each request which does not contain \*(L"Hello World\*(R" in its response string will also be reported (total count and total %). The curl errors will also be reported.
+Loadbars is a small script that can be used to observe \s-1CPU\s0 loads of several remote servers at once in real time. It connects with \s-1SSH\s0 (using \s-1SSH\s0 public/private key auth) to several servers at once and vizualizes all server CPUs and memory statistics right next each other (either summarized or each core separately). Loadbars is not a tool for collecting \s-1CPU\s0 loads and drawing graphs for later analysis. However, since such tools require a significant amount of time before producing results, Loadbars lets you observe the current state immediately. Loadbars does not remember or record any load information. It just shows the current \s-1CPU\s0 usages like top or vmstat does.
 .SH "LICENSE"
 .IX Header "LICENSE"
 See package description or project website.
 .SH "AUTHOR"
 .IX Header "AUTHOR"
-Paul Buetow \- <http://httpbench.buetow.org>
+Paul Buetow \- <http://loadbars.buetow.org>

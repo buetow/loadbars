@@ -1,9 +1,9 @@
 NAME=loadbars
+all: documentation perltidy
 perltidy:
 	find . -name \*.pm | xargs perltidy -b
 	perltidy -b $(NAME)
 	find . -name \*.bak -delete
-all: documentation
 documentation:
 	pod2man --release="$(NAME) $$(cut -d' ' -f2 debian/changelog | head -n 1 | sed 's/(//;s/)//')" \
                        --center="User Commands" ./docs/$(NAME).pod > ./docs/$(NAME).1

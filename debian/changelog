@@ -1,3 +1,9 @@
+loadbars (0.5.2.1+nmu1) stable; urgency=low
+
+  * Version number is not hard coded anymore
+
+ -- Paul Buetow <paul@buetow.org>  Sun, 08 Apr 2012 15:23:53 +0200
+
 loadbars (0.5.2.1) stable; urgency=low
 
   * Hotfix release, contains only a corrected version string.

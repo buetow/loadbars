@@ -295,8 +295,7 @@ sub loop ($@) {
     $C{width} = $C{barwidth};
 
     my $app = SDL::App->new(
-        -title => Loadbars::Constants->VERSION
-          . ' (press h for help on stdout)',
+        -title => 'Loadbars ' . get_version . ' (press h for help on stdout)',
         -icon_title => Loadbars::Constants->VERSION,
         -width      => $C{width},
         -height     => $C{height},

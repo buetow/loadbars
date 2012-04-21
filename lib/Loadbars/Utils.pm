@@ -18,6 +18,7 @@ our @EXPORT = qw (
   say
   sum
   trim
+  get_version
 );
 
 sub say (@) { print "$_\n" for @_; return undef }
@@ -37,5 +38,22 @@ sub trim (\$) {
 sub display_info_no_nl ($) { print "==> " . (shift) . ' ' }
 sub display_info ($)       { say "==> " . shift }
 sub display_warn ($)       { say "!!! " . shift }
+
+sub get_version () {
+    my $versionfile = do {
+        if ( -f '.version' ) {
+            '.version';
+        }
+        else {
+            '/usr/share/loadbars/version';
+        }
+    };
+
+    open my $fh, $versionfile or error("$!: $versionfile");
+    my $version = <$fh>;
+    close $fh;
+
+    return $version;
+}
 
 1;

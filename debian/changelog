@@ -1,4 +1,4 @@
-loadbars (0.5.2.1+nmu1) stable; urgency=low
+loadbars (0.5.2.1+foo1) stable; urgency=low
 
   * Version number is not hard coded anymore
 

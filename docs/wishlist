@@ -1,5 +1,5 @@
 * More stats for memory
 * Stats for network
 * Auto detect single core boxes
-* Allow bash expansion/wildcards (e.g. loadbars --hosts server{01..30}.example.xom)
+* Allow bash expansion/wildcards (e.g. loadbars --hosts server{01..30}
 * Optimize code (too much cpu usage if there are too many hosts involved)

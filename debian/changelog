@@ -7,6 +7,8 @@ loadbars (0.5.3) stable; urgency=low
 
   * Add openssh-client dependency to the .deb package.
 
+  * Some code bugfixing.
+
  -- Paul Buetow <paul@buetow.org>  Tue, 01 May 2012 11:57:27 +0200
 
 loadbars (0.5.2.2) stable; urgency=low

@@ -1,3 +1,9 @@
+loadbars (0.5.2.2+nmu1) stable; urgency=low
+
+  * Add openssh-client dependency.
+
+ -- Paul Buetow <paul@buetow.org>  Tue, 01 May 2012 11:57:27 +0200
+
 loadbars (0.5.2.2) stable; urgency=low
 
   * Test release, to test the deb.buetow.org repo key sign stuff.

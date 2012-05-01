@@ -24,3 +24,10 @@ clean:
 	test -f .version && rm .version
 deb: 
 	dpkg-buildpackage
+clean-top:
+	rm ../$(NAME)_*.tar.gz
+	rm ../$(NAME)_*.dsc
+	rm ../$(NAME)_*.changes
+	rm ../$(NAME)_*.deb
+
+

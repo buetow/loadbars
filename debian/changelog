@@ -1,6 +1,11 @@
-loadbars (0.5.2.2+nmu1) stable; urgency=low
+loadbars (0.5.3) stable; urgency=low
 
-  * Add openssh-client dependency.
+  * Introduce new paranm --hasagent. With --hasagent 1 loadbars will not
+    run 'ssh-add' which would ask for your SSH key password to add it to 
+    the ssh agent. With --hasagent 0 (default value) loadbars will run
+    'ssh-add' on startup in order to add your SSH key to the SSH agent.
+
+  * Add openssh-client dependency to the .deb package.
 
  -- Paul Buetow <paul@buetow.org>  Tue, 01 May 2012 11:57:27 +0200
 

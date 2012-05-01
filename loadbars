@@ -54,8 +54,6 @@ if ( @hosts || defined $Loadbars::Main::C{cluster} ) {
     push @hosts, Loadbars::Config::get_cluster_hosts $C{cluster}
       if defined $C{cluster};
 
-    print "SSH_ADD\n"
-      if $C{hasagent} == 0;
     system 'ssh-add'
       if $C{hasagent} == 0;
 }

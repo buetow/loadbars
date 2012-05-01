@@ -10,6 +10,6 @@ Vcs-Browser: http://web.buetow.org/git/?p=loadbars.git;a=summary
 
 Package: loadbars
 Architecture: all
-Depends: ${perl:Depends}, libsdl-perl (>= 2.2.5-1), libproc-processtable-perl (>= 0.45-1)
+Depends: ${perl:Depends}, libsdl-perl (>= 2.2.5-1), libproc-processtable-perl (>= 0.45-1), openssh-client
 Description: Real time monitoring tool
  Loadbars is a tool to observe loads of several remote servers at once.

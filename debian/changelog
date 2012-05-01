@@ -1,6 +1,6 @@
 loadbars (0.5.3) stable; urgency=low
 
-  * Introduce new paranm --hasagent. With --hasagent 1 loadbars will not
+  * Introduce new param --hasagent. With --hasagent 1 loadbars will not
     run 'ssh-add' which would ask for your SSH key password to add it to 
     the ssh agent. With --hasagent 0 (default value) loadbars will run
     'ssh-add' on startup in order to add your SSH key to the SSH agent.

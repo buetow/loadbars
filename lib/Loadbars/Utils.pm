@@ -53,6 +53,7 @@ sub get_version () {
     my $version = <$fh>;
     close $fh;
 
+    chomp $version;
     return $version;
 }
 

@@ -155,6 +155,12 @@ END
             mode    => 1
         },
 
+        hasagent => {
+            menupos => 10,
+            help    => 'SSH key is already known by the SSH agent (0 or 1)',
+            mode    => 6,
+            type    => 'i'
+        },
         height => {
             menupos => 10,
             help    => 'Set windows height',

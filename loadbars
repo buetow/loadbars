@@ -32,7 +32,7 @@ use Loadbars::Utils;
 my ( $hosts, $dispatch ) = Loadbars::HelpDispatch::create;
 my $usage;
 
-say( Loadbars::Constants->VERSION . ' ' . Loadbars::Constants->COPYRIGHT );
+say( 'Loadbars ' . get_version . ' ' . Loadbars::Constants->COPYRIGHT );
 
 Loadbars::Config::read;
 
@@ -53,8 +53,11 @@ my @hosts = map {
 if ( @hosts || defined $Loadbars::Main::C{cluster} ) {
     push @hosts, Loadbars::Config::get_cluster_hosts $C{cluster}
       if defined $C{cluster};
-    system 'ssh-add';
 
+    print "SSH_ADD\n"
+        if $C{hasagent} == 0;
+    system 'ssh-add'
+        if $C{hasagent} == 0
 }
 else {
     Loadbars::Main::say $dispatch->('usage');

@@ -29,5 +29,8 @@ clean-top:
 	rm ../$(NAME)_*.dsc
 	rm ../$(NAME)_*.changes
 	rm ../$(NAME)_*.deb
-
-
+tmp-top:
+	mv ../$(NAME)_*.tar.gz /tmp
+	mv ../$(NAME)_*.dsc /tmp
+	mv ../$(NAME)_*.changes /tmp
+	mv ../$(NAME)_*.deb /tmp

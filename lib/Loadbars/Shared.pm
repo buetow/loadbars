@@ -35,7 +35,7 @@ our %I : shared;
     barwidth     => 35,
     extended     => 0,
     factor       => 1,
-    hasagent => 0,
+    hasagent     => 0,
     height       => 230,
     maxwidth     => 1280,
     samples      => 1000,

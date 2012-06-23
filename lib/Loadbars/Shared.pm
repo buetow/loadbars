@@ -49,7 +49,7 @@ our %I : shared;
 );
 
 %I = (
-    cpuregexp   => 'cpu',
+    cpustring   => 'cpu',
     showtextoff => 0,
 );
 

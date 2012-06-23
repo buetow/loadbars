@@ -27,7 +27,7 @@ use Loadbars::Utils;
 $| = 1;
 
 sub set_showcores_regexp () {
-    $I{cpuregexp} = $C{showcores} ? 'cpu' : 'cpu ';
+    $I{cpustring} = $C{showcores} ? 'cpu' : 'cpu ';
 }
 
 sub percentage ($$) {
@@ -91,9 +91,10 @@ sub stats_thread ($;$) {
     my ( $sigusr1, $sigterm ) = ( 0, 0 );
     my $inter      = Loadbars::Constants->INTERVAL;
 
+    my $cpustring = $I{cpustring};
+
     # Precompile some regexp
     my $loadavg_re = qr/^(\d+\.\d{2}) (\d+\.\d{2}) (\d+\.\d{2})/;
-    my $cpu_re = qr/$I{cpuregexp}/;
     my @meminfo = 
         map { [$_, qr/^$_: *(\d+)/] } 
         (qw(MemTotal MemFree Buffers Cached SwapTotal SwapFree));
@@ -149,7 +150,7 @@ BASH
                     $AVGSTATS{$host} = "$1;$2;$3";
 
                 }
-                elsif ($_ =~ $cpu_re) {
+                elsif (0 == index $_, $cpustring) {
                     my ( $name, $load ) = parse_cpu_line $_;
                     $CPUSTATS{"$host;$name"} = join ';',
                       map  { $_ . '=' . $load->{$_} }
@@ -185,8 +186,7 @@ BASH
             }
 
             if ($sigusr1) {
-                # TODO: Use index instead of regexp for cpuregexp
-                $cpu_re = qr/$I{cpuregexp}/;
+                $cpustring = $I{cpustring};
                 $sigusr1   = 0;
 
             }

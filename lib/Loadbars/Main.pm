@@ -197,7 +197,8 @@ REMOTECODE
                     $mode = 3;
                 } elsif ( $_ eq 'M LOADAVG' ) {
                     $mode = 0;
-                }
+                } 
+                next;
             }
 
             if ( $mode == 0 ) {
@@ -221,8 +222,9 @@ REMOTECODE
                 }
             }
             elsif ( $mode == 3 ) {
-                    $NETSTATS{$host} = $_;
-                    print "$_\n";
+                    my ($int, @stats) = split ':', $_;
+                    printf "$host;$int = @stats\n";
+                    $NETSTATS{"$host;$int"} = "@stats";
                     $NETSTATS_HAS{$host} = 1 unless defined $NETSTATS_HAS{$host};
             }
 

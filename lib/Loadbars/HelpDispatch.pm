@@ -250,8 +250,9 @@ END
             mode    => 1
         },
 
-        sshopts =>
-          { menupos => 20, help => 'Set SSH options', mode => 6, type => 's' },
+        sshopts => { menupos => 20, help => 'Set SSH options', mode => 6, type => 's' },
+
+        title => { menupos => 21, help => 'Set title bar text', mode => 6, type => 's' },
     );
 
     my %d_by_short = map {

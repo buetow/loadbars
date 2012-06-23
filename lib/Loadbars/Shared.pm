@@ -31,6 +31,7 @@ our %I : shared;
 
 # Setting defaults
 %C = (
+    title        => undef,
     average      => 15,
     barwidth     => 35,
     extended     => 0,

@@ -294,8 +294,16 @@ sub loop ($@) {
     my $num_stats = 1;
     $C{width} = $C{barwidth};
 
+    my $title = do {
+        if (defined $C{title}) {
+            $C{title};
+        } else {
+            'Loadbars ' . get_version . ' (press h for help on stdout)';
+        }
+    };
+
     my $app = SDL::App->new(
-        -title => 'Loadbars ' . get_version . ' (press h for help on stdout)',
+        -title => $title,
         -icon_title => Loadbars::Constants->VERSION,
         -width      => $C{width},
         -height     => $C{height},

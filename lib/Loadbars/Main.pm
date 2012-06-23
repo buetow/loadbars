@@ -639,11 +639,7 @@ sub loop ($@) {
             $app->fill( $rect_nice,    Loadbars::Constants->GREEN );
             $app->fill( $rect_iowait,  Loadbars::Constants->PURPLE );
 
-            $app->update(
-                $rect_idle,  $rect_iowait,  $rect_irq,
-                $rect_nice,  $rect_softirq, $rect_steal,
-                $rect_guest, $rect_system,  $rect_user,
-            );
+
 
             my $rect_memused  = get_rect $rects, "$host;memused";
             my $rect_memfree  = get_rect $rects, "$host;memfree";
@@ -713,11 +709,6 @@ sub loop ($@) {
                     $app->fill( $rect_swapused, Loadbars::Constants->GREY );
                     $app->fill( $rect_swapfree, Loadbars::Constants->BLACK );
 
-            $app->update(
-                $rect_memfree,  $rect_memused,
-                $rect_swapused, $rect_swapfree
-            ) if $C{showmem};
-
                     if ( $C{showtext} ) {
                         my $y_ = 5;
                         $app->print( $x + $add_x, $y_, 'Ram:' );
@@ -779,11 +770,6 @@ sub loop ($@) {
 
                     $app->fill( $rect_tnetused, Loadbars::Constants->LIGHT_BLUE0 );
                     $app->fill( $rect_tnetfree, Loadbars::Constants->BLACK );
-
-            $app->update(
-                $rect_netfree,  $rect_netused,
-                $rect_tnetfree,  $rect_tnetused
-            ) if $C{shownet};
 
                     if ( $C{showtext} ) {
                         my $y_ = 5;
@@ -983,6 +969,22 @@ sub loop ($@) {
                     }
                 }
             }
+
+            $app->update(
+                $rect_idle,  $rect_iowait,  $rect_irq,
+                $rect_nice,  $rect_softirq, $rect_steal,
+                $rect_guest, $rect_system,  $rect_user,
+            );
+
+            $app->update(
+                $rect_memfree,  $rect_memused,
+                $rect_swapused, $rect_swapfree
+            ) if $C{showmem};
+
+            $app->update(
+                $rect_netfree,  $rect_netused,
+                $rect_tnetfree,  $rect_tnetused
+            ) if $C{shownet};
 
             $app->update($rect_separator) if defined $rect_separator;
 

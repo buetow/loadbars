@@ -10,6 +10,8 @@ our @EXPORT = qw(
   %CPUSTATS
   %MEMSTATS
   %MEMSTATS_HAS
+  %NETSTATS
+  %NETSTATS_HAS
   %C
   %I
 );

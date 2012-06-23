@@ -91,6 +91,14 @@ sub stats_thread ($;$) {
     my ( $sigusr1, $sigterm ) = ( 0, 0 );
     my $inter      = Loadbars::Constants->INTERVAL;
 
+    # Precompile some regexp
+    my $loadavg_re = qr/^(\d+\.\d{2}) (\d+\.\d{2}) (\d+\.\d{2})/;
+    my $cpu_re = qr/$I{cpuregexp}/;
+    my @meminfo = 
+        map { [$_, qr/^$_: *(\d+)/] } 
+        (qw(MemTotal MemFree Buffers Cached SwapTotal SwapFree));
+    my $whitespace_re = qr/ +/;
+
     until ($sigterm) {
         my $bash = <<"BASH";
             loadavg=/proc/loadavg
@@ -126,13 +134,6 @@ BASH
         $SIG{USR1} = sub { $sigusr1 = 1 };
         $SIG{TERM} = sub { $sigterm = 1 };
 
-        # Precompile some regexp
-        my $loadavg_re = qr/^(\d+\.\d{2}) (\d+\.\d{2}) (\d+\.\d{2})/;
-        my $cpu_re = qr/$I{cpuregexp}/;
-        my @meminfo = 
-            map { [$_, qr/^$_: *(\d+)/] } 
-            (qw(MemTotal MemFree Buffers Cached SwapTotal SwapFree));
-
         # 0=cpu, 1=mem, 2=net
         my $mode = 0;
 
@@ -164,8 +165,8 @@ BASH
                     for my $meminfo (@meminfo)
                     {
                         if ($_ =~ $meminfo->[1]) {
-                            $MEMSTATS_HAS{$host} = 1;
                             $MEMSTATS{"$host;$meminfo->[0]"} = $1;
+                            $MEMSTATS_HAS{$host} = 1 unless defined $MEMSTATS_HAS{$host};
                         }
                     }
                 }
@@ -176,6 +177,10 @@ BASH
 
                 }
                 else {
+                    my @split = split $whitespace_re, $_;
+                    for (@split) {
+                    }
+                    $NETSTATS_HAS{$host} = 1 unless defined $NETSTATS_HAS{$host};
                 }
             }
 

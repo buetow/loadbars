@@ -132,9 +132,9 @@ sub stats_thread ($;$) {
                     open FH, qq(/proc/net/dev);
                     <FH>; <FH>;
                     while (<FH>) {
-                        s/://;
+                        next unless s/:/ /;
                         my (\\\$foo, \\\$int, \\\$bytes, \\\$packets, \\\$errs, \\\$drop, \\\$fifo, \\\$frame, \\\$compressed, \\\$multicast, \\\$tbytes, \\\$tpackets, \\\$terrs, \\\$tdrop, \\\$tfifo, \\\$tcolls, \\\$tcarrier, \\\$tcompressed) = split \\\$whitespace_re, \\\$_;
-                        printf qq(%s;int=%s;b=%d;tb=%d;p=%d;tp=%d\n), 
+                        printf qq(%s:b=%d;tb=%d;p=%d;tp=%d\n), 
                                \\\$int, \\\$bytes,
                                 \\\$tbytes, \\\$packets, \\\$tpackets; 
                     }
@@ -221,8 +221,9 @@ REMOTECODE
                 }
             }
             elsif ( $mode == 3 ) {
-                    #$NETSTATS{$host} = $_;
-                    #$NETSTATS_HAS{$host} = 1 unless defined $NETSTATS_HAS{$host};
+                    $NETSTATS{$host} = $_;
+                    print "$_\n";
+                    $NETSTATS_HAS{$host} = 1 unless defined $NETSTATS_HAS{$host};
             }
 
             if ($sigusr1) {

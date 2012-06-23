@@ -862,7 +862,7 @@ sub loop ($@) {
                 ) if $C{extended};
 
                 if ($is_host_summary) {
-                    if ( defined $loadavg[0] ) {
+                    if ( defined $loadavg[2] ) {
                         $app->print( $x, $y += $space, 'Avg:' );
                         $app->print(
                             $x,

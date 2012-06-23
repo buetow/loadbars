@@ -127,7 +127,7 @@ BASH
         $SIG{TERM} = sub { $sigterm = 1 };
 
         # Precompile some regexp
-        my $loadavgexp = qr/(\d+\.\d{2}) (\d+\.\d{2}) (\d+\.\d{2})/;
+        my $loadavg_re = qr/(\d+\.\d{2}) (\d+\.\d{2}) (\d+\.\d{2})/;
         my $cpu_re = qr/$I{cpuregexp}/;
         my @meminfo = 
             map { [$_, qr/^$_: *(\d+)/] } 
@@ -144,7 +144,7 @@ BASH
                     $mode = 1;
 
                 }
-                elsif (/^$loadavgexp/) {
+                elsif ($_ =~ $loadavg_re/) {
                     $AVGSTATS{$host} = "$1;$2;$3";
 
                 }

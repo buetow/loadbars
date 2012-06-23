@@ -1,17 +1,17 @@
 package Loadbars::HelpDispatch;
 
 use strict;
-use warnings;
+    use warnings;
 
-use Loadbars::Constants;
-use Loadbars::Shared;
+    use Loadbars::Constants;
+    use Loadbars::Shared;
 
-sub create () {
-    my $hosts = '';
+    sub create () {
+        my $hosts = '';
 
-    my $textdesc = <<END;
-CPU stuff:
-    st = Steal in % [see man proc] (extended)
+        my $textdesc = <<END;
+    CPU stuff:
+        st = Steal in % [see man proc] (extended)
         Color: Red
     gt = Guest in % [see man proc] (extended)
         Color: Red
@@ -197,13 +197,6 @@ END
             cmd     => 'w',
             help    => 'Write config to config file',
             mode    => 1
-        },
-
-        samples => {
-            menupos => 17,
-            help    => 'Set number of samples until ssh reconnects',
-            mode    => 6,
-            type    => 'i'
         },
 
         showcores => {

@@ -141,7 +141,7 @@ sub stats_thread ($;$) {
                     close FH;
                 }
 
-                for (1..$C{samples}) {
+                for (1..10000) {
                     load();
 
                     printf qq(M MEMSTATS\n);

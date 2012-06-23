@@ -13,6 +13,8 @@ use constant {
     COLOR_DEPTH        => 8,
     BLACK              => SDL::Color->new( -r => 0x00, -g => 0x00, -b => 0x00 ),
     BLUE0              => SDL::Color->new( -r => 0x00, -g => 0x00, -b => 0xff ),
+    LIGHT_BLUE         => SDL::Color->new( -r => 0x00, -g => 0x00, -b => 0xdd ),
+    LIGHT_BLUE0        => SDL::Color->new( -r => 0x00, -g => 0x00, -b => 0xcc ),
     BLUE               => SDL::Color->new( -r => 0x00, -g => 0x00, -b => 0x88 ),
     GREEN              => SDL::Color->new( -r => 0x00, -g => 0x90, -b => 0x00 ),
     ORANGE             => SDL::Color->new( -r => 0xff, -g => 0x70, -b => 0x00 ),

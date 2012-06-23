@@ -44,6 +44,7 @@ our %I : shared;
     maxwidth     => 1280,
     showcores    => 0,
     showmem      => 0,
+    shownet      => 0,
     showtext     => 1,
     showtexthost => 0,
     sshopts      => '',

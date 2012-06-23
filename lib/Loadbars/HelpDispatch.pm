@@ -217,6 +217,15 @@ END
         showmem_hot =>
           { menupos => 17, cmd => 'm', help => 'Toggle show mem', mode => 1 },
 
+        shownet => {
+            menupos => 17,
+            help    => 'Toggle net display (0 or 1)',
+            mode    => 7,
+            type    => 'i'
+        },
+        shownet_hot =>
+          { menupos => 17, cmd => 'n', help => 'Toggle show net', mode => 1 },
+
         showtexthost => {
             menupos => 18,
             help    => 'Toggle hostname/num text display (0 or 1)',

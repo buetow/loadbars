@@ -134,9 +134,14 @@ sub stats_thread ($;$) {
                     while (<FH>) {
                         next unless s/:/ /;
                         my (\\\$foo, \\\$int, \\\$bytes, \\\$packets, \\\$errs, \\\$drop, \\\$fifo, \\\$frame, \\\$compressed, \\\$multicast, \\\$tbytes, \\\$tpackets, \\\$terrs, \\\$tdrop, \\\$tfifo, \\\$tcolls, \\\$tcarrier, \\\$tcompressed) = split \\\$whitespace_re, \\\$_;
-                        printf qq(%s:b=%d;tb=%d;p=%d;tp=%d\n), 
-                               \\\$int, \\\$bytes,
-                                \\\$tbytes, \\\$packets, \\\$tpackets; 
+                        if (\\\$bytes || \\\$tbytes) {
+                            printf qq(%s:b=%d;tb=%d;p=%d;tp=%d;e=%d;te=%d;d=%d;td=%d\n), \\\$int, 
+                               \\\$bytes, \\\$tbytes, 
+                               \\\$packets, \\\$tpackets,
+                                \\\$errs, \\\$terrs,
+                                \\\$drop, \\\$tdrop
+                                   ; 
+                        }
                     }
                     close FH;
                 }
@@ -223,7 +228,7 @@ REMOTECODE
             }
             elsif ( $mode == 3 ) {
                     my ($int, @stats) = split ':', $_;
-                    printf "$host;$int = @stats\n";
+                    #printf "$host;$int = @stats\n";
                     $NETSTATS{"$host;$int"} = "@stats";
                     $NETSTATS_HAS{$host} = 1 unless defined $NETSTATS_HAS{$host};
             }
@@ -434,6 +439,11 @@ sub loop ($@) {
                 display_info 'Toggled show mem';
 
             }
+            elsif ( $key_name eq 'n' ) {
+                $C{shownet} = !$C{shownet};
+                display_info 'Toggled show net';
+
+            }
             elsif ( $key_name eq 't' ) {
                 $C{showtext} = !$C{showtext};
                 $redraw_background = 1;
@@ -629,18 +639,26 @@ sub loop ($@) {
             $app->fill( $rect_nice,    Loadbars::Constants->GREEN );
             $app->fill( $rect_iowait,  Loadbars::Constants->PURPLE );
 
-            my $add_x         = 0;
             my $rect_memused  = get_rect $rects, "$host;memused";
             my $rect_memfree  = get_rect $rects, "$host;memfree";
-            my $rect_buffers  = get_rect $rects, "$host;buffers";
-            my $rect_cached   = get_rect $rects, "$host;cached";
+            #my $rect_buffers  = get_rect $rects, "$host;buffers";
+            #my $rect_cached   = get_rect $rects, "$host;cached";
             my $rect_swapused = get_rect $rects, "$host;swapused";
             my $rect_swapfree = get_rect $rects, "$host;swapfree";
+
+            my $rect_netused  = get_rect $rects, "$host;netused";
+            my $rect_netfree  = get_rect $rects, "$host;netfree";
+
+            my $rect_tnetused  = get_rect $rects, "$host;tnetused";
+            my $rect_tnetfree  = get_rect $rects, "$host;tnetfree";
+
+            my $add_x         = 0;
+            my $half_width = $width / 2;
 
             my %meminfo;
             if ($is_host_summary) {
                 if ( $C{showmem} ) {
-                    $add_x = $width + 1;
+                    $add_x += $width + 1;
 
                     my $ram_per = percentage $MEMSTATS{"$host;MemTotal"},
                       $MEMSTATS{"$host;MemFree"};
@@ -659,7 +677,6 @@ sub loop ($@) {
                         SwapUsed => ( 100 - $swap_per ) * ( $C{height} / 100 ),
                     );
 
-                    my $half_width = $width / 2;
                     $y = $C{height} - $heights{MemUsed};
                     $rect_memused->width($half_width);
                     $rect_memused->height( $heights{MemUsed} );
@@ -689,6 +706,86 @@ sub loop ($@) {
 
                     $app->fill( $rect_swapused, Loadbars::Constants->GREY );
                     $app->fill( $rect_swapfree, Loadbars::Constants->BLACK );
+
+                    if ( $C{showtext} ) {
+                        my $y_ = 5;
+                        $app->print( $x + $add_x, $y_, 'Ram:' );
+                        $app->print(
+                            $x + $add_x,
+                            $y_ += $font_height,
+                            sprintf '%02d',
+                            ( 100 - $meminfo{ram_per} )
+                        );
+                        $app->print( $x + $add_x, $y_ += $font_height, 'Swp:' );
+                        $app->print(
+                            $x + $add_x,
+                            $y_ += $font_height,
+                            sprintf '%02d',
+                            ( 100 - $meminfo{swap_per} )
+                        );
+                    }
+                }
+
+                if ( $C{shownet} ) {
+                    $add_x += $width + 1;
+
+                    my $net_per = 43;
+                    my $tnet_per = 10;
+
+                    my %heights = (
+                        NetFree => $net_per * ( $C{height} / 100 ),
+                        NetUsed => ( 100 - $net_per ) * ( $C{height} / 100 ),
+                        TNetFree => $tnet_per * ( $C{height} / 100 ),
+                        TNetUsed => ( 100 - $tnet_per ) * ( $C{height} / 100 ),
+                    );
+
+                    $y = $C{height} - $heights{NetUsed};
+                    $rect_netused->width($half_width);
+                    $rect_netused->height( $heights{NetUsed} );
+                    $rect_netused->x( $x + $add_x );
+                    $rect_netused->y($y);
+
+                    $y -= $heights{NetFree};
+                    $rect_netfree->width($half_width);
+                    $rect_netfree->height( $heights{NetFree} );
+                    $rect_netfree->x( $x + $add_x );
+                    $rect_netfree->y($y);
+
+                    $y = $C{height} - $heights{TNetUsed};
+                    $rect_tnetused->width($half_width);
+                    $rect_tnetused->height( $heights{TNetUsed} );
+                    $rect_tnetused->x( $x + $add_x + $half_width );
+                    $rect_tnetused->y($y);
+
+                    $y -= $heights{TNetFree};
+                    $rect_tnetfree->width($half_width);
+                    $rect_tnetfree->height( $heights{TNetFree} );
+                    $rect_tnetfree->x( $x + $add_x + $half_width );
+                    $rect_tnetfree->y($y);
+
+                    $app->fill( $rect_netused, Loadbars::Constants->LIGHT_BLUE );
+                    $app->fill( $rect_netfree, Loadbars::Constants->BLACK );
+
+                    $app->fill( $rect_tnetused, Loadbars::Constants->LIGHT_BLUE0 );
+                    $app->fill( $rect_tnetfree, Loadbars::Constants->BLACK );
+
+                    if ( $C{showtext} ) {
+                        my $y_ = 5;
+                        $app->print( $x + $add_x, $y_, 'Rx:' );
+                        $app->print(
+                            $x + $add_x,
+                            $y_ += $font_height,
+                            sprintf '%02d',
+                            ( 100 - $meminfo{ram_per} )
+                        );
+                        $app->print( $x + $add_x, $y_ += $font_height, 'Tr:' );
+                        $app->print(
+                            $x + $add_x,
+                            $y_ += $font_height,
+                            sprintf '%02d',
+                            ( 100 - $meminfo{swap_per} )
+                        );
+                    }
                 }
 
                 if ( $C{showcores} ) {
@@ -747,7 +844,7 @@ sub loop ($@) {
                 ? Loadbars::Constants->BLUE0
                 : Loadbars::Constants->BLUE );
 
-            my ( $y, $space ) = ( 5, $font_height );
+            my $y = 5;
 
             my @loadavg = do {
                 if (defined $AVGSTATS_HAS{$host}) {
@@ -758,23 +855,6 @@ sub loop ($@) {
             };
 
             if ( $C{showtext} ) {
-                if ( $C{showmem} && $is_host_summary ) {
-                    my $y_ = $y;
-                    $app->print( $x + $add_x, $y_, 'Ram:' );
-                    $app->print(
-                        $x + $add_x,
-                        $y_ += $space,
-                        sprintf '%02d',
-                        ( 100 - $meminfo{ram_per} )
-                    );
-                    $app->print( $x + $add_x, $y_ += $space, 'Swp:' );
-                    $app->print(
-                        $x + $add_x,
-                        $y_ += $space,
-                        sprintf '%02d',
-                        ( 100 - $meminfo{swap_per} )
-                    );
-                }
                 if ( $C{showtexthost} && $is_host_summary ) {
 
                     # If hostname is printed don't use FQDN
@@ -793,25 +873,25 @@ sub loop ($@) {
                 if ( $C{extended} ) {
                     $app->print(
                         $x,
-                        $y += $space,
+                        $y += $font_height,
                         sprintf '%02d%s',
                         norm $cpuaverage->{steal}, 'st'
                     );
                     $app->print(
                         $x,
-                        $y += $space,
+                        $y += $font_height,
                         sprintf '%02d%s',
                         norm $cpuaverage->{guest}, 'gt'
                     );
                     $app->print(
                         $x,
-                        $y += $space,
+                        $y += $font_height,
                         sprintf '%02d%s',
                         norm $cpuaverage->{softirq}, 'sr'
                     );
                     $app->print(
                         $x,
-                        $y += $space,
+                        $y += $font_height,
                         sprintf '%02d%s',
                         norm $cpuaverage->{irq}, 'ir'
                     );
@@ -819,68 +899,68 @@ sub loop ($@) {
 
                 $app->print(
                     $x,
-                    $y += $space,
+                    $y += $font_height,
                     sprintf '%02d%s',
                     norm $cpuaverage->{iowait}, 'io'
                 );
 
                 $app->print(
                     $x,
-                    $y += $space,
+                    $y += $font_height,
                     sprintf '%02d%s',
                     norm $cpuaverage->{idle}, 'id'
                 ) if $C{extended};
 
                 $app->print(
                     $x,
-                    $y += $space,
+                    $y += $font_height,
                     sprintf '%02d%s',
                     norm $cpuaverage->{nice}, 'ni'
                 );
                 $app->print(
                     $x,
-                    $y += $space,
+                    $y += $font_height,
                     sprintf '%02d%s',
                     norm $cpuaverage->{user}, 'us'
                 );
                 $app->print(
                     $x,
-                    $y += $space,
+                    $y += $font_height,
                     sprintf '%02d%s',
                     norm $cpuaverage->{system}, 'sy'
                 );
                 $app->print(
                     $x,
-                    $y += $space,
+                    $y += $font_height,
                     sprintf '%02d%s',
                     norm $all, 'to'
                 );
 
                 $app->print(
                     $x,
-                    $y += $space,
+                    $y += $font_height,
                     sprintf '%02d%s',
                     norm $max_all, 'pk'
                 ) if $C{extended};
 
                 if ($is_host_summary) {
                     if ( defined $loadavg[2] ) {
-                        $app->print( $x, $y += $space, 'Avg:' );
+                        $app->print( $x, $y += $font_height, 'Avg:' );
                         $app->print(
                             $x,
-                            $y += $space,
+                            $y += $font_height,
                             sprintf "%.2f",
                             $loadavg[0]
                         );
                         $app->print(
                             $x,
-                            $y += $space,
+                            $y += $font_height,
                             sprintf "%.2f",
                             $loadavg[1]
                         );
                         $app->print(
                             $x,
-                            $y += $space,
+                            $y += $font_height,
                             sprintf "%.2f",
                             $loadavg[2]
                         );
@@ -898,6 +978,12 @@ sub loop ($@) {
                 $rect_memfree,  $rect_memused,
                 $rect_swapused, $rect_swapfree
             ) if $C{showmem};
+
+            $app->update(
+                $rect_netfree,  $rect_netused,
+                $rect_tnetfree,  $rect_tnetused
+            ) if $C{shownet};
+
             $app->update($rect_separator) if defined $rect_separator;
 
             $x += $width + 1 + $add_x;
@@ -925,6 +1011,7 @@ sub loop ($@) {
 
         my $new_num_stats = keys %CPUSTATS;
         $new_num_stats += keys %MEMSTATS_HAS if $C{showmem};
+        $new_num_stats += keys %NETSTATS_HAS if $C{shownet};
 
         if ( $new_num_stats != $num_stats ) {
             %prev_stats = ();

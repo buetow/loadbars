@@ -121,32 +121,10 @@ sub stats_thread ($;$) {
                     close \\\$fh;
                 }
 
-                sub parse_cpu_line {
-                    my \\\$line = shift;
-                    my ( \\\$name, \%load );
-                    
-                    ( \\\$name, \@load{qw(user nice system idle iowait irq softirq steal guest)} ) =
-                      split ' ', \\\$line;
-                    
-                    # Not all kernels support this
-                    \\\$load{steal} = 0 unless defined \\\$load{steal};
-                    \\\$load{guest} = 0 unless defined \\\$load{guest};
-                    
-                    \\\$load{TOTAL} =
-                      sum( \@load{qw(user nice system idle iowait irq softirq steal guest)} );
-                    
-                    return ( \\\$name, \%load );
-                }
-
-                sub cpu {
-                    printf qq(CPUSTATS\n);
-                    cat(qq(/proc/stat));
-                }
-
                 for (0..$C{samples}) {
                     loadavg();
-                    cpu();
-
+                    printf qq(CPUSTATS\n);
+                    cat(qq(/proc/stat));
                     printf qq(MEMSTATS\n);
                     cat(qq(/proc/meminfo));
                     printf qq(NETSTATS\n);

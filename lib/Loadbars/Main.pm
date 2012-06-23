@@ -114,9 +114,16 @@ sub stats_thread ($;$) {
                     close \\\$fh;
                 }
 
-                for (0..$C{samples}) {
+                sub loadavg {
                     printf qq(LOADAVG\n);
-                    cat(qq(/proc/loadavg));
+                    open my \\\$fh, qq(/proc/loadavg);
+                    printf qq(%s\n), join qq(;), (split qq( ), <\\\$fh>)[0..2];
+                    close \\\$fh;
+                }
+
+                for (0..$C{samples}) {
+                    loadavg();
+
                     printf qq(CPUSTATS\n);
                     cat(qq(/proc/stat));
                     printf qq(MEMSTATS\n);
@@ -156,9 +163,8 @@ REMOTECODE
                     $mode = 1;
 
                 }
-                elsif ($_ =~ $loadavg_re) {
-                    $AVGSTATS{$host} = "$1;$2;$3";
-
+                else {
+                    $AVGSTATS{$host} = $_;
                 }
             }
             elsif ( $mode == 1 ) {

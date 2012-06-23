@@ -109,7 +109,7 @@ sub stats_thread ($;$) {
                 use Time::HiRes qw(usleep);
 
                 my \\\$whitespace_re = qr/ +/;
-                my \\\$usleep = $interval * 1000000;
+                my \\\$usleep = $interval * 100000;
 
                 sub cat {
                     my \\\$file = shift;
@@ -134,10 +134,9 @@ sub stats_thread ($;$) {
                     while (<FH>) {
                         s/://;
                         my (\\\$foo, \\\$int, \\\$bytes, \\\$packets, \\\$errs, \\\$drop, \\\$fifo, \\\$frame, \\\$compressed, \\\$multicast, \\\$tbytes, \\\$tpackets, \\\$terrs, \\\$tdrop, \\\$tfifo, \\\$tcolls, \\\$tcarrier, \\\$tcompressed) = split \\\$whitespace_re, \\\$_;
-                        printf qq(%s;b:%s\n), \\\$int, \\\$bytes;
-                        printf qq(%s;tb:%s\n), \\\$int, \\\$tbytes;
-                        printf qq(%s;p:%s\n), \\\$int, \\\$packets;
-                        printf qq(%s;tp:%s\n), \\\$int, \\\$tpackets;
+                        printf qq(%s;int=%s;b=%d;tb=%d;p=%d;tp=%d\n), 
+                               \\\$int, \\\$bytes,
+                                \\\$tbytes, \\\$packets, \\\$tpackets; 
                     }
                     close FH;
                 }

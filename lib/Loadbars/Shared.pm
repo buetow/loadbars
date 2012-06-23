@@ -40,7 +40,7 @@ our %I : shared;
     hasagent     => 0,
     height       => 230,
     maxwidth     => 1280,
-    samples      => 1000,
+    samples      => 5000,
     showcores    => 0,
     showmem      => 0,
     showtext     => 1,

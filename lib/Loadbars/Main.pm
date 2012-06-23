@@ -105,30 +105,49 @@ sub stats_thread ($;$) {
             perl -le '
                 use strict;
 
+                my \\\$whitespace_re = qr/ +/;
+
                 sub cat {
                     my \\\$file = shift;
-                    open my \\\$fh, \\\$file;
-                    while (<\\\$fh>) {
+                    open FH, \\\$file;
+                    while (<FH>) {
                         print;
                     }
-                    close \\\$fh;
+                    close FH;
                 }
 
-                sub loadavg {
+                sub load {
                     printf qq(LOADAVG\n);
-                    open my \\\$fh, qq(/proc/loadavg);
-                    printf qq(%s\n), join qq(;), (split qq( ), <\\\$fh>)[0..2];
-                    close \\\$fh;
+                    open FH, qq(/proc/loadavg);
+                    printf qq(%s\n), join qq(;), (split qq( ), <FH>)[0..2];
+                    close FH;
+                }
+
+                sub net {
+                    printf qq(NETSTATS\n);
+                    open FH, qq(/proc/net/dev);
+                    <FH>; <FH>;
+                    while (<FH>) {
+                        s/://;
+                        my (\\\$foo, \\\$int, \\\$bytes, \\\$packets, \\\$errs, \\\$drop, \\\$fifo, \\\$frame, \\\$compressed, \\\$multicast, \\\$tbytes, \\\$tpackets, \\\$terrs, \\\$tdrop, \\\$tfifo, \\\$tcolls, \\\$tcarrier, \\\$tcompressed) = split \\\$whitespace_re, \\\$_;
+                        printf qq(%s;b:%s\n), \\\$int, \\\$bytes;
+                        printf qq(%s;tb:%s\n), \\\$int, \\\$tbytes;
+                        printf qq(%s;p:%s\n), \\\$int, \\\$packets;
+                        printf qq(%s;tp:%s\n), \\\$int, \\\$tpackets;
+                        printf qq(%s;d:%s\n), \\\$int, \\\$drop;
+                        printf qq(%s;td:%s\n), \\\$int, \\\$tdrop;
+                    }
+                    close FH;
                 }
 
                 for (0..$C{samples}) {
-                    loadavg();
+                    load();
                     printf qq(CPUSTATS\n);
                     cat(qq(/proc/stat));
                     printf qq(MEMSTATS\n);
                     cat(qq(/proc/meminfo));
-                    printf qq(NETSTATS\n);
-                    cat(qq(/proc/net/dev));
+                    net();
+
                     sleep $inter;
                 }
         '
@@ -203,10 +222,8 @@ REMOTECODE
 
                 }
                 else {
-                    my @split = split $whitespace_re, $_;
-                    for (@split) {
-                    }
-                    $NETSTATS_HAS{$host} = 1 unless defined $NETSTATS_HAS{$host};
+                    #$NETSTATS{$host} = $_;
+                    #$NETSTATS_HAS{$host} = 1 unless defined $NETSTATS_HAS{$host};
                 }
             }
 

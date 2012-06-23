@@ -89,7 +89,6 @@ sub stats_thread ($;$) {
     $user = defined $user ? "-l $user" : '';
 
     my ( $sigusr1, $sigterm ) = ( 0, 0 );
-    my $loadavgexp = qr/(\d+\.\d{2}) (\d+\.\d{2}) (\d+\.\d{2})/;
     my $inter      = Loadbars::Constants->INTERVAL;
 
     until ($sigterm) {
@@ -127,14 +126,15 @@ BASH
         $SIG{USR1} = sub { $sigusr1 = 1 };
         $SIG{TERM} = sub { $sigterm = 1 };
 
+        # Precompile some regexp
+        my $loadavgexp = qr/(\d+\.\d{2}) (\d+\.\d{2}) (\d+\.\d{2})/;
         my $cpu_re = qr/$I{cpuregexp}/;
-
-        # 0=cpu, 1=mem, 2=net
-        my $mode = 0;
-
         my @meminfo = 
             map { [$_, qr/^$_: *(\d+)/] } 
             (qw(MemTotal MemFree Buffers Cached SwapTotal SwapFree));
+
+        # 0=cpu, 1=mem, 2=net
+        my $mode = 0;
 
         while (<$pipe>) {
             chomp;
@@ -180,7 +180,6 @@ BASH
             }
 
             if ($sigusr1) {
-
                 # TODO: Use index instead of regexp for cpuregexp
                 $cpu_re = qr/$I{cpuregexp}/;
                 $sigusr1   = 0;

@@ -95,14 +95,17 @@ sub stats_thread ($;$) {
     until ($sigterm) {
         my $bash = <<"BASH";
             loadavg=/proc/loadavg
-            stat=/proc/stat
+            cpustat=/proc/stat
             meminfo=/proc/meminfo
+            netstat=/proc/net/dev
             
             for i in \$(seq $C{samples}); do 
                 echo CPUSTATS
-                cat \$loadavg \$stat 
+                cat \$loadavg \$cpustat 
                 echo MEMSTATS
                 cat \$meminfo 
+                echo NETSTATS
+                cat \$netstat
                 sleep $inter
             done
 BASH
@@ -114,7 +117,7 @@ BASH
 
         my $pid = open my $pipe, "$cmd |" or do {
             say "Warning: $!";
-            sleep 0.5;
+            sleep 1;
             next;
         };
 
@@ -124,10 +127,14 @@ BASH
         $SIG{USR1} = sub { $sigusr1 = 1 };
         $SIG{TERM} = sub { $sigterm = 1 };
 
-        my $cpuregexp = qr/$I{cpuregexp}/;
+        my $cpu_re = qr/$I{cpuregexp}/;
 
-        # 1=cpu, 2=mem, 3=net
+        # 0=cpu, 1=mem, 2=net
         my $mode = 0;
+
+        my @meminfo = 
+            map { [$_, qr/^$_: *(\d+)/] } 
+            (qw(MemTotal MemFree Buffers Cached SwapTotal SwapFree));
 
         while (<$pipe>) {
             chomp;
@@ -141,7 +148,7 @@ BASH
                     $AVGSTATS{$host} = "$1;$2;$3";
 
                 }
-                elsif (/$cpuregexp/) {
+                elsif ($_ =~ $cpu_re) {
                     my ( $name, $load ) = parse_cpu_line $_;
                     $CPUSTATS{"$host;$name"} = join ';',
                       map  { $_ . '=' . $load->{$_} }
@@ -149,28 +156,33 @@ BASH
                 }
             }
             elsif ( $mode == 1 ) {
+                if ( $_ eq 'NETSTATS' ) {
+                    $mode = 2;
+
+                }
+                else {
+                    for my $meminfo (@meminfo)
+                    {
+                        if ($_ =~ $meminfo->[1]) {
+                            $MEMSTATS_HAS{$host} = 1;
+                            $MEMSTATS{"$host;$meminfo->[0]"} = $1;
+                        }
+                    }
+                }
+            }
+            elsif ( $mode == 2 ) {
                 if ( $_ eq 'CPUSTATS' ) {
                     $mode = 0;
 
                 }
                 else {
-                    for my $meminfo (
-                        qw(MemTotal MemFree Buffers Cached SwapTotal SwapFree))
-                    {
-
-                        # TODO: Precompile regexp
-                        if (/^$meminfo: *(\d+)/) {
-                            $MEMSTATS_HAS{$host} = 1;
-                            $MEMSTATS{"$host;$meminfo"} = $1;
-                        }
-                    }
                 }
             }
 
             if ($sigusr1) {
 
                 # TODO: Use index instead of regexp for cpuregexp
-                $cpuregexp = qr/$I{cpuregexp}/;
+                $cpu_re = qr/$I{cpuregexp}/;
                 $sigusr1   = 0;
 
             }

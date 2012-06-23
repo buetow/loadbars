@@ -19,9 +19,8 @@ our %AVGSTATS : shared;
 our %CPUSTATS : shared;
 our %MEMSTATS : shared;
 our %MEMSTATS_HAS : shared;
-
-#my %NETSTATS : shared;
-#my %NETSTATS_HAS : shared;
+our %NETSTATS : shared;
+our %NETSTATS_HAS : shared;
 
 # Global configuration hash
 our %C : shared;

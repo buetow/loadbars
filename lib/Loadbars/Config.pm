@@ -6,12 +6,6 @@ use warnings;
 use Loadbars::Utils;
 use Loadbars::Shared;
 
-use Exporter;
-
-use base 'Exporter';
-
-our @EXPORT = qw ( %C %I );
-
 sub read () {
     return unless -f Loadbars::Constants->CONFFILE;
 

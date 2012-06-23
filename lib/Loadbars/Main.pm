@@ -446,6 +446,11 @@ sub loop ($@) {
             }
             elsif ( $key_name eq 't' ) {
                 $C{showtext} = !$C{showtext};
+                if ($C{showtext}) {
+                    $C{width} *= 2;
+                } else {
+                    $C{width} /= 2;
+                }
                 $redraw_background = 1;
                 display_info 'Toggled text display';
 

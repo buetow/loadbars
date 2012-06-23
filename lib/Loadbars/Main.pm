@@ -101,27 +101,37 @@ sub stats_thread ($;$) {
     my $whitespace_re = qr/ +/;
 
     until ($sigterm) {
-        my $bash = <<"BASH";
-            loadavg=/proc/loadavg
-            cpustat=/proc/stat
-            meminfo=/proc/meminfo
-            netstat=/proc/net/dev
-            
-            for i in \$(seq $C{samples}); do 
-                echo CPUSTATS
-                cat \$loadavg \$cpustat 
-                echo MEMSTATS
-                cat \$meminfo 
-                echo NETSTATS
-                cat \$netstat
-                sleep $inter
-            done
-BASH
+        my $remotecode = <<"REMOTECODE";
+            perl -le '
+                use strict;
+
+                sub cat {
+                    my \\\$file = shift;
+                    open my \\\$fh, \\\$file;
+                    while (<\\\$fh>) {
+                        print;
+                    }
+                    close \\\$fh;
+                }
+
+                for (0..$C{samples}) {
+                    printf qq(LOADAVG\n);
+                    cat(qq(/proc/loadavg));
+                    printf qq(CPUSTATS\n);
+                    cat(qq(/proc/stat));
+                    printf qq(MEMSTATS\n);
+                    cat(qq(/proc/meminfo));
+                    printf qq(NETSTATS\n);
+                    cat(qq(/proc/net/dev));
+                    sleep $inter;
+                }
+        '
+REMOTECODE
 
         my $cmd =
           ( $host eq 'localhost' || $host eq '127.0.0.1' )
-          ? $bash
-          : "ssh $user -o StrictHostKeyChecking=no $C{sshopts} $host '$bash'";
+          ? "bash -c \"$remotecode\""
+          : "ssh $user -o StrictHostKeyChecking=no $C{sshopts} $host \"$remotecode\"";
 
         my $pid = open my $pipe, "$cmd |" or do {
             say "Warning: $!";
@@ -135,15 +145,25 @@ BASH
         $SIG{USR1} = sub { $sigusr1 = 1 };
         $SIG{TERM} = sub { $sigterm = 1 };
 
-        # 0=cpu, 1=mem, 2=net
+        # 0=loadavg, 1=cpu, 2=mem, 3=net
         my $mode = 0;
 
         while (<$pipe>) {
             chomp;
 
             if ( $mode == 0 ) {
-                if ( $_ eq 'MEMSTATS' ) {
+                if ( $_ eq 'CPUSTATS' ) {
                     $mode = 1;
+
+                }
+                elsif ($_ =~ $loadavg_re) {
+                    $AVGSTATS{$host} = "$1;$2;$3";
+
+                }
+            }
+            elsif ( $mode == 1 ) {
+                if ( $_ eq 'MEMSTATS' ) {
+                    $mode = 2;
 
                 }
                 elsif (0 == index $_, $cpustring) {
@@ -157,9 +177,9 @@ BASH
 
                 }
             }
-            elsif ( $mode == 1 ) {
+            elsif ( $mode == 2 ) {
                 if ( $_ eq 'NETSTATS' ) {
-                    $mode = 2;
+                    $mode = 3;
 
                 }
                 else {
@@ -172,8 +192,8 @@ BASH
                     }
                 }
             }
-            elsif ( $mode == 2 ) {
-                if ( $_ eq 'CPUSTATS' ) {
+            elsif ( $mode == 3 ) {
+                if ( $_ eq 'LOADAVG' ) {
                     $mode = 0;
 
                 }

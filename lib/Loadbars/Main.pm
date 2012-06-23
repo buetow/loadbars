@@ -146,15 +146,15 @@ BASH
                     $mode = 1;
 
                 }
-                elsif ($_ =~ $loadavg_re) {
-                    $AVGSTATS{$host} = "$1;$2;$3";
-
-                }
                 elsif (0 == index $_, $cpustring) {
                     my ( $name, $load ) = parse_cpu_line $_;
                     $CPUSTATS{"$host;$name"} = join ';',
                       map  { $_ . '=' . $load->{$_} }
                       grep { defined $load->{$_} } keys %$load;
+                }
+                elsif ($_ =~ $loadavg_re) {
+                    $AVGSTATS{$host} = "$1;$2;$3";
+
                 }
             }
             elsif ( $mode == 1 ) {

@@ -27,7 +27,7 @@ use constant {
     SYSTEM_BLUE0       => 30,
     USER_ORANGE        => 70,
     USER_YELLOW0       => 50,
-    INTERVAL           => 0.15,
+    INTERVAL           => 0.1,
     INTERVAL_WARN      => 1.0,
     SUCCESS            => 0,
     E_UNKNOWN          => 1,

@@ -89,21 +89,24 @@ sub stats_thread ($;$) {
     $user = defined $user ? "-l $user" : '';
 
     my ( $sigusr1, $sigterm ) = ( 0, 0 );
-    my $inter      = Loadbars::Constants->INTERVAL;
+    my $interval = Loadbars::Constants->INTERVAL;
 
     my $cpustring = $I{cpustring};
 
     # Precompile some regexp
-    my $loadavg_re = qr/^(\d+\.\d{2}) (\d+\.\d{2}) (\d+\.\d{2})/;
     my @meminfo = 
         map { [$_, qr/^$_: *(\d+)/] } 
         (qw(MemTotal MemFree Buffers Cached SwapTotal SwapFree));
-    my $whitespace_re = qr/ +/;
+
+    my $modeswitch_re = qr/^M /;
 
     until ($sigterm) {
+
+        # UGLY!
         my $remotecode = <<"REMOTECODE";
             perl -le '
                 use strict;
+                use Time::HiRes qw(usleep);
 
                 my \\\$whitespace_re = qr/ +/;
 
@@ -117,14 +120,14 @@ sub stats_thread ($;$) {
                 }
 
                 sub load {
-                    printf qq(LOADAVG\n);
+                    printf qq(M LOADAVG\n);
                     open FH, qq(/proc/loadavg);
                     printf qq(%s\n), join qq(;), (split qq( ), <FH>)[0..2];
                     close FH;
                 }
 
                 sub net {
-                    printf qq(NETSTATS\n);
+                    printf qq(M NETSTATS\n);
                     open FH, qq(/proc/net/dev);
                     <FH>; <FH>;
                     while (<FH>) {
@@ -134,21 +137,31 @@ sub stats_thread ($;$) {
                         printf qq(%s;tb:%s\n), \\\$int, \\\$tbytes;
                         printf qq(%s;p:%s\n), \\\$int, \\\$packets;
                         printf qq(%s;tp:%s\n), \\\$int, \\\$tpackets;
-                        printf qq(%s;d:%s\n), \\\$int, \\\$drop;
-                        printf qq(%s;td:%s\n), \\\$int, \\\$tdrop;
                     }
                     close FH;
                 }
 
-                for (0..$C{samples}) {
+                for (1..$C{samples}) {
                     load();
-                    printf qq(CPUSTATS\n);
-                    cat(qq(/proc/stat));
-                    printf qq(MEMSTATS\n);
+
+                    printf qq(M MEMSTATS\n);
                     cat(qq(/proc/meminfo));
+
                     net();
 
-                    sleep $inter;
+                    printf qq(M CPUSTATS\n);
+                    for (1..$interval*10) {
+                        cat(qq(/proc/stat));
+                        usleep(1000000 * $interval);
+                    }
+
+                    net();
+
+                    printf qq(M CPUSTATS\n);
+                    for (1..$interval*10) {
+                        cat(qq(/proc/stat));
+                        usleep(1000000 * $interval);
+                    }
                 }
         '
 REMOTECODE
@@ -170,61 +183,45 @@ REMOTECODE
         $SIG{USR1} = sub { $sigusr1 = 1 };
         $SIG{TERM} = sub { $sigterm = 1 };
 
-        # 0=loadavg, 1=cpu, 2=mem, 3=net
         my $mode = 0;
 
         while (<$pipe>) {
             chomp;
 
-            if ( $mode == 0 ) {
-                if ( $_ eq 'CPUSTATS' ) {
+            if ( $_ =~ $modeswitch_re ) {
+                if ( $_ eq 'M CPUSTATS' ) {
                     $mode = 1;
-
-                }
-                else {
-                    $AVGSTATS{$host} = $_;
+                } elsif ( $_ eq 'M MEMSTATS' ) {
+                    $mode = 2;
+                } elsif ( $_ eq 'M NETSTATS' ) {
+                    $mode = 3;
+                } elsif ( $_ eq 'M LOADAVG' ) {
+                    $mode = 0;
                 }
             }
-            elsif ( $mode == 1 ) {
-                if ( $_ eq 'MEMSTATS' ) {
-                    $mode = 2;
 
-                }
-                elsif (0 == index $_, $cpustring) {
+            if ( $mode == 0 ) {
+                $AVGSTATS{$host} = $_;
+            }
+            elsif ( $mode == 1 ) {
+                if (0 == index $_, $cpustring) {
                     my ( $name, $load ) = parse_cpu_line $_;
                     $CPUSTATS{"$host;$name"} = join ';',
                       map  { $_ . '=' . $load->{$_} }
                       grep { defined $load->{$_} } keys %$load;
                 }
-                elsif ($_ =~ $loadavg_re) {
-                    $AVGSTATS{$host} = "$1;$2;$3";
-
-                }
             }
             elsif ( $mode == 2 ) {
-                if ( $_ eq 'NETSTATS' ) {
-                    $mode = 3;
-
-                }
-                else {
-                    for my $meminfo (@meminfo)
-                    {
-                        if ($_ =~ $meminfo->[1]) {
-                            $MEMSTATS{"$host;$meminfo->[0]"} = $1;
-                            $MEMSTATS_HAS{$host} = 1 unless defined $MEMSTATS_HAS{$host};
-                        }
+                for my $meminfo (@meminfo) {
+                    if ($_ =~ $meminfo->[1]) {
+                        $MEMSTATS{"$host;$meminfo->[0]"} = $1;
+                        $MEMSTATS_HAS{$host} = 1 unless defined $MEMSTATS_HAS{$host};
                     }
                 }
             }
             elsif ( $mode == 3 ) {
-                if ( $_ eq 'LOADAVG' ) {
-                    $mode = 0;
-
-                }
-                else {
                     #$NETSTATS{$host} = $_;
                     #$NETSTATS_HAS{$host} = 1 unless defined $NETSTATS_HAS{$host};
-                }
             }
 
             if ($sigusr1) {

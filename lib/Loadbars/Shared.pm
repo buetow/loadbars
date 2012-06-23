@@ -6,8 +6,9 @@ use base 'Exporter';
 
 our @EXPORT = qw(
   %PIDS
-  %AVGSTATS
   %CPUSTATS
+  %AVGSTATS
+  %AVGSTATS_HAS
   %MEMSTATS
   %MEMSTATS_HAS
   %NETSTATS
@@ -17,8 +18,9 @@ our @EXPORT = qw(
 );
 
 our %PIDS : shared;
-our %AVGSTATS : shared;
 our %CPUSTATS : shared;
+our %AVGSTATS : shared;
+our %AVGSTATS_HAS : shared;
 our %MEMSTATS : shared;
 our %MEMSTATS_HAS : shared;
 our %NETSTATS : shared;

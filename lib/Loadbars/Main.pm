@@ -109,6 +109,7 @@ sub stats_thread ($;$) {
                 use Time::HiRes qw(usleep);
 
                 my \\\$whitespace_re = qr/ +/;
+                my \\\$usleep = $interval * 1000000;
 
                 sub cat {
                     my \\\$file = shift;
@@ -150,17 +151,17 @@ sub stats_thread ($;$) {
                     net();
 
                     printf qq(M CPUSTATS\n);
-                    for (1..$interval*10) {
+                    for (1..10) {
                         cat(qq(/proc/stat));
-                        usleep(1000000 * $interval);
+                        usleep(\\\$usleep);
                     }
 
                     net();
 
                     printf qq(M CPUSTATS\n);
-                    for (1..$interval*10) {
+                    for (1..10) {
                         cat(qq(/proc/stat));
-                        usleep(1000000 * $interval);
+                        usleep(\\\$usleep);
                     }
                 }
         '
@@ -202,6 +203,7 @@ REMOTECODE
 
             if ( $mode == 0 ) {
                 $AVGSTATS{$host} = $_;
+                $AVGSTATS_HAS{$host} = 1;
             }
             elsif ( $mode == 1 ) {
                 if (0 == index $_, $cpustring) {
@@ -407,6 +409,7 @@ sub loop ($@) {
                 set_showcores_regexp;
                 $_->kill('USR1') for @threads;
                 %AVGSTATS          = ();
+                %AVGSTATS_HAS      = ();
                 %CPUSTATS          = ();
                 $redraw_background = 1;
                 display_info 'Toggled CPUs';
@@ -744,7 +747,13 @@ sub loop ($@) {
 
             my ( $y, $space ) = ( 5, $font_height );
 
-            my @loadavg = split ';', $AVGSTATS{$host};
+            my @loadavg = do {
+                if (defined $AVGSTATS_HAS{$host}) {
+                    split ';', $AVGSTATS{$host};
+                } else {
+                    (undef, undef,undef);
+                }
+            };
 
             if ( $C{showtext} ) {
                 if ( $C{showmem} && $is_host_summary ) {

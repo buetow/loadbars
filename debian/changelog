@@ -1,3 +1,7 @@
+loadbars (0.5.99) testing; urgency=low
+
+  * Some new features.
+
 loadbars (0.5.3) stable; urgency=low
 
   * Introduce new param --hasagent. With --hasagent 1 loadbars will not

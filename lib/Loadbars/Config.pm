@@ -55,7 +55,7 @@ sub write () {
         return undef;
     };
 
-    for ( keys %C ) {
+    for ( grep !/title/, keys %C ) {
         print $conffile "$_=$C{$_}\n";
     }
 

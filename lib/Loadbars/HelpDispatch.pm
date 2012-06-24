@@ -78,8 +78,27 @@ END
             mode    => 1
         },
 
+        netaverage => {
+            menupos => 6,
+            help    => 'Num of net samples for avg. (more fluent animations)',
+            mode    => 6,
+            type    => 'i'
+        },
+        netaverage_hot_up => {
+            menupos => 7,
+            cmd     => 'd',
+            help    => 'Increases number of net samples for calculating avg. by 1',
+            mode    => 1
+        },
+        netaverage_hot_dn => {
+            menupos => 8,
+            cmd     => 'c',
+            help    => 'Decreases number of net samples for calculating avg. by 1',
+            mode    => 1
+        },
+
         barwidth => {
-            menupos => 5,
+            menupos => 9,
             help    => 'Set bar width',
             mode    => 6,
             type    => 'i'

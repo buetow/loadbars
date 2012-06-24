@@ -482,13 +482,24 @@ sub loop ($@) {
             }
             elsif ( $key_name eq 'a' ) {
                 ++$C{cpuaverage};
-                display_info "Set sample average to $C{cpuaverage}";
+                display_info "Set sample cpu average to $C{cpuaverage}";
             }
             elsif ( $key_name eq 'y' or $key_name eq 'z' ) {
                 my $avg = $C{cpuaverage};
                 --$avg;
                 $C{cpuaverage} = $avg > 1 ? $avg : 2;
-                display_info "Set sample cpuaverage to $C{cpuaverage}";
+                display_info "Set sample cpu average to $C{cpuaverage}";
+
+            }
+            elsif ( $key_name eq 'd' ) {
+                ++$C{netaverage};
+                display_info "Set sample net average to $C{netaverage}";
+            }
+            elsif ( $key_name eq 'c' ) {
+                my $avg = $C{netaverage};
+                --$avg;
+                $C{netaverage} = $avg > 1 ? $avg : 2;
+                display_info "Set sample net average to $C{netaverage}";
 
             }
             elsif ( $key_name eq 's' ) {

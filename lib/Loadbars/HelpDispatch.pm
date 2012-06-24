@@ -59,22 +59,22 @@ END
  # Combinations: Like chmod(1)
 
     my %d = (
-        average => {
+        cpuaverage => {
             menupos => 3,
-            help    => 'Num of samples for avg. (more fluent animations)',
+            help    => 'Num of cpu samples for avg. (more fluent animations)',
             mode    => 6,
             type    => 'i'
         },
-        average_hot_up => {
+        cpuaverage_hot_up => {
             menupos => 4,
             cmd     => 'a',
-            help    => 'Increases number of samples for calculating avg. by 1',
+            help    => 'Increases number of cpu samples for calculating avg. by 1',
             mode    => 1
         },
-        average_hot_dn => {
+        cpuaverage_hot_dn => {
             menupos => 5,
             cmd     => 'y',
-            help    => 'Decreases number of samples for calculating avg. by 1',
+            help    => 'Decreases number of cpu samples for calculating avg. by 1',
             mode    => 1
         },
 

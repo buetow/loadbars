@@ -42,7 +42,7 @@ our %I : shared;
 # Setting defaults
 %C = (
     title        => undef,
-    average      => 15,
+    cpuaverage      => 15,
     netaverage   => 5,
     barwidth     => 35,
     extended     => 0,

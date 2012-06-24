@@ -401,7 +401,6 @@ sub loop ($@) {
     my %cpu_history;
     my %cpu_max;
 
-    my %net_last_update;
     my %net_history;
 
     my $net_max_bytes = 0;
@@ -482,14 +481,14 @@ sub loop ($@) {
 
             }
             elsif ( $key_name eq 'a' ) {
-                ++$C{average};
-                display_info "Set sample average to $C{average}";
+                ++$C{cpuaverage};
+                display_info "Set sample average to $C{cpuaverage}";
             }
             elsif ( $key_name eq 'y' or $key_name eq 'z' ) {
-                my $avg = $C{average};
+                my $avg = $C{cpuaverage};
                 --$avg;
-                $C{average} = $avg > 1 ? $avg : 2;
-                display_info "Set sample average to $C{average}";
+                $C{cpuaverage} = $avg > 1 ? $avg : 2;
+                display_info "Set sample cpuaverage to $C{cpuaverage}";
 
             }
             elsif ( $key_name eq 's' ) {
@@ -547,7 +546,7 @@ sub loop ($@) {
             my $prev_stat_r = $cpu_history{$key}[0];
 
             push @{$cpu_history{$key}}, $now_stat_r;
-            shift @{$cpu_history{$key}} while $C{average} < @{$cpu_history{$key}};
+            shift @{$cpu_history{$key}} while $C{cpuaverage} < @{$cpu_history{$key}};
 
             my %cpu_loads =
               null $now_stat_r->{TOTAL} == null $prev_stat_r->{TOTAL}
@@ -556,13 +555,14 @@ sub loop ($@) {
 
             my $cpu_loads_r = cpu_normalize_loads \%cpu_loads;
 
-            my $cpumax = $cpu_loads_r;
-
             my %heights = map {
                     $_ => defined $cpu_loads_r->{$_}
                   ? $cpu_loads_r->{$_} * ( $C{height} / 100 )
                   : 1
             } keys %$cpu_loads_r;
+
+            push @{$cpu_max{$key}}, $cpu_loads_r;
+            shift @{$cpu_max{$key}} while $C{cpuaverage} < @{$cpu_max{$key}};
 
             my $is_host_summary = $name eq 'cpu' ? 1 : 0;
 
@@ -755,8 +755,8 @@ sub loop ($@) {
                     my $net_per = percentage $net_max_bytes, $diff_stat_r->{b};
                     my $tnet_per = percentage $net_max_bytes, $diff_stat_r->{tb};
 
-                    use Data::Dumper;
-                    print "$net_max_bytes $diff_stat_r->{b} $net_per ; $net_max_bytes $diff_stat_r->{tb} $tnet_per\n";
+#use Data::Dumper;
+#                    print "$net_max_bytes $diff_stat_r->{b} $net_per ; $net_max_bytes $diff_stat_r->{tb} $tnet_per\n";
 
                     my %heights = (
                         NetFree => $net_per * ( $C{height} / 100 ),
@@ -826,29 +826,27 @@ sub loop ($@) {
             }
 
             if ( $C{extended} ) {
-                my %maxheights = map {
-                        $_ => defined $cpumax->{$_}
-                      ? $cpumax->{$_} * ( $C{height} / 100 )
-                      : 1
-                } keys %$cpumax;
+                my $max_val = 0;
+
+                for (@{$cpu_max{$key}}) {
+                    my $new_val = sum @{$_}{qw{system user}};
+                    $max_val = $new_val if $max_val < $new_val;
+                }
+
+                my $maxheight = $max_val * ($C{height} / 100 );
 
                 $rect_peak = sdl_get_rect $rects, "$key;max";
                 $rect_peak->width($width);
                 $rect_peak->height(1);
                 $rect_peak->x($x);
-                $rect_peak->y(
-                    $C{height} - $maxheights{system} - $maxheights{user} );
-
-                $max_all =
-                  sum @{$cpumax}
-                  {qw(user system iowait irq softirq steal guest)};
+                $rect_peak->y($C{height} - $maxheight );
 
                 $app->fill(
                     $rect_peak,
-                    $max_all > Loadbars::Constants->USER_ORANGE
+                    $max_val > Loadbars::Constants->USER_ORANGE
                     ? Loadbars::Constants->ORANGE
                     : (
-                        $max_all > Loadbars::Constants->USER_YELLOW0
+                        $max_val > Loadbars::Constants->USER_YELLOW0
                         ? Loadbars::Constants->YELLOW0
                         : ( Loadbars::Constants->YELLOW )
                     )

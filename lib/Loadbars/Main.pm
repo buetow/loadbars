@@ -220,7 +220,6 @@ REMOTECODE
             elsif ( $mode == 3 ) {
                     my ($int, @stats) = split ':', $_;
                     $NETSTATS{"$host;$int"} = "@stats";
-                    $NETSTATS_LASTUPDATE{"$host;$int"} = Time::HiRes::time();
                     $NETSTATS_INT{$int} = 1 unless defined $NETSTATS_INT{$int};
                     $NETSTATS_HAS{$host} = 1 unless defined $NETSTATS_HAS{$host};
             }

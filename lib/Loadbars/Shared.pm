@@ -31,7 +31,6 @@ our %MEMSTATS_HAS : shared;
 our %NETSTATS : shared;
 our %NETSTATS_HAS : shared;
 our %NETSTATS_INT : shared;
-our %NETSTATS_LASTUPDATE : shared;
 
 # Global configuration hash
 our %C : shared;

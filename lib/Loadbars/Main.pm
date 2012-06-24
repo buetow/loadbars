@@ -26,7 +26,7 @@ use Loadbars::Utils;
 
 $| = 1;
 
-sub set_showcores_regexp () {
+sub cpu_set_showcores_re () {
     $I{cpustring} = $C{showcores} ? 'cpu' : 'cpu ';
 }
 
@@ -43,7 +43,7 @@ sub norm ($) {
     return $n > 100 ? 100 : ( $n < 0 ? 0 : $n );
 }
 
-sub parse_cpu_line ($) {
+sub cpu_parse_line ($) {
     my $line = shift;
     my ( $name, %load );
 
@@ -60,7 +60,7 @@ sub parse_cpu_line ($) {
     return ( $name, \%load );
 }
 
-sub terminate_pids (@) {
+sub threads_terminate_pids (@) {
     my @threads = @_;
 
     display_info 'Terminating sub-processes, hasta la vista!';
@@ -84,7 +84,7 @@ sub terminate_pids (@) {
     display_info 'Terminating done. I\'ll be back!';
 }
 
-sub stats_thread ($;$) {
+sub threads_stats ($;$) {
     my ( $host, $user ) = @_;
     $user = defined $user ? "-l $user" : '';
 
@@ -212,7 +212,7 @@ REMOTECODE
             }
             elsif ( $mode == 1 ) {
                 if (0 == index $_, $cpustring) {
-                    my ( $name, $load ) = parse_cpu_line $_;
+                    my ( $name, $load ) = cpu_parse_line $_;
                     $CPUSTATS{"$host;$name"} = join ';',
                       map  { $_ . '=' . $load->{$_} }
                       grep { defined $load->{$_} } keys %$load;
@@ -250,14 +250,14 @@ REMOTECODE
     return undef;
 }
 
-sub get_rect ($$) {
+sub sdl_get_rect ($$) {
     my ( $rects, $name ) = @_;
 
     return $rects->{$name} if exists $rects->{$name};
     return $rects->{$name} = SDL::Rect->new();
 }
 
-sub normalize_cpu_loads (%) {
+sub cpu_normalize_loads (%) {
     my %cpu_loads = @_;
 
     return %cpu_loads unless exists $cpu_loads{TOTAL};
@@ -266,7 +266,7 @@ sub normalize_cpu_loads (%) {
     return map { $_ => $cpu_loads{$_} / ( $total / 100 ) } keys %cpu_loads;
 }
 
-sub get_cpuaverage ($@) {
+sub cpu_get_average ($@) {
     my ( $factor, @cpu_loads ) = @_;
     my ( %cpumax, %cpuaverage );
 
@@ -309,9 +309,9 @@ sub net_parse ($;$) {
     return [\%a, \%b];
 }
 
-sub draw_background ($$) {
+sub sdl_draw_background ($$) {
     my ( $app, $rects ) = @_;
-    my $rect = get_rect $rects, 'background';
+    my $rect = sdl_get_rect $rects, 'background';
 
     $rect->width( $C{width} );
     $rect->height( $C{height} );
@@ -321,9 +321,9 @@ sub draw_background ($$) {
     return undef;
 }
 
-sub create_threads (@) {
+sub threads_create (@) {
     return map { $_->detach(); $_ }
-      map { threads->create( 'stats_thread', split ':' ) } @_;
+      map { threads->create( 'threads_stats', split ':' ) } @_;
 }
 
 sub auto_off_text ($) {
@@ -412,7 +412,7 @@ sub loop ($@) {
     my %prev_net_stats;
     my %last_cpu_avg;
 
-    my $redraw_background = 0;
+    my $resdl_draw_background = 0;
     my $font_height       = 14;
 
     my $infotxt : shared       = '';
@@ -433,18 +433,18 @@ sub loop ($@) {
 
             if ( $key_name eq '1' ) {
                 $C{showcores} = !$C{showcores};
-                set_showcores_regexp;
+                cpu_set_showcores_re;
                 $_->kill('USR1') for @threads;
                 %AVGSTATS          = ();
                 %AVGSTATS_HAS      = ();
                 %CPUSTATS          = ();
-                $redraw_background = 1;
+                $resdl_draw_background = 1;
                 display_info 'Toggled CPUs';
 
             }
             elsif ( $key_name eq 'e' ) {
                 $C{extended} = !$C{extended};
-                $redraw_background = 1;
+                $resdl_draw_background = 1;
                 display_info 'Toggled extended display';
 
             }
@@ -466,18 +466,18 @@ sub loop ($@) {
             }
             elsif ( $key_name eq 't' ) {
                 $C{showtext} = !$C{showtext};
-                $redraw_background = 1;
+                $resdl_draw_background = 1;
                 display_info 'Toggled text display';
 
             }
             elsif ( $key_name eq 'u' ) {
                 $C{showtexthost} = !$C{showtexthost};
-                $redraw_background = 1;
+                $resdl_draw_background = 1;
                 display_info 'Toggled number/hostname display';
 
             }
             elsif ( $key_name eq 'q' ) {
-                terminate_pids @threads;
+                threads_terminate_pids @threads;
                 $quit = 1;
                 return;
 
@@ -564,12 +564,12 @@ sub loop ($@) {
 
             $prev_cpu_stats{$key} = \%stat;
 
-            %cpu_loads = normalize_cpu_loads %cpu_loads;
+            %cpu_loads = cpu_normalize_loads %cpu_loads;
             push @{ $last_cpu_avg{$key} }, \%cpu_loads;
             shift @{ $last_cpu_avg{$key} }
               while @{ $last_cpu_avg{$key} } >= $C{average};
 
-            my ( $cpumax, $cpuaverage ) = get_cpuaverage $C{factor},
+            my ( $cpumax, $cpuaverage ) = cpu_get_average $C{factor},
               @{ $last_cpu_avg{$key} };
 
             my %heights = map {
@@ -582,15 +582,15 @@ sub loop ($@) {
 
             my $rect_separator = undef;
 
-            my $rect_idle    = get_rect $rects, "$key;idle";
-            my $rect_steal   = get_rect $rects, "$key;steal";
-            my $rect_guest   = get_rect $rects, "$key;guest";
-            my $rect_irq     = get_rect $rects, "$key;irq";
-            my $rect_softirq = get_rect $rects, "$key;softirq";
-            my $rect_nice    = get_rect $rects, "$key;nice";
-            my $rect_iowait  = get_rect $rects, "$key;iowait";
-            my $rect_user    = get_rect $rects, "$key;user";
-            my $rect_system  = get_rect $rects, "$key;system";
+            my $rect_idle    = sdl_get_rect $rects, "$key;idle";
+            my $rect_steal   = sdl_get_rect $rects, "$key;steal";
+            my $rect_guest   = sdl_get_rect $rects, "$key;guest";
+            my $rect_irq     = sdl_get_rect $rects, "$key;irq";
+            my $rect_softirq = sdl_get_rect $rects, "$key;softirq";
+            my $rect_nice    = sdl_get_rect $rects, "$key;nice";
+            my $rect_iowait  = sdl_get_rect $rects, "$key;iowait";
+            my $rect_user    = sdl_get_rect $rects, "$key;user";
+            my $rect_system  = sdl_get_rect $rects, "$key;system";
 
             my $rect_peak;
 
@@ -659,18 +659,18 @@ sub loop ($@) {
             $app->fill( $rect_nice,    Loadbars::Constants->GREEN );
             $app->fill( $rect_iowait,  Loadbars::Constants->PURPLE );
 
-            my $rect_memused  = get_rect $rects, "$host;memused";
-            my $rect_memfree  = get_rect $rects, "$host;memfree";
-            #my $rect_buffers  = get_rect $rects, "$host;buffers";
-            #my $rect_cached   = get_rect $rects, "$host;cached";
-            my $rect_swapused = get_rect $rects, "$host;swapused";
-            my $rect_swapfree = get_rect $rects, "$host;swapfree";
+            my $rect_memused  = sdl_get_rect $rects, "$host;memused";
+            my $rect_memfree  = sdl_get_rect $rects, "$host;memfree";
+            #my $rect_buffers  = sdl_get_rect $rects, "$host;buffers";
+            #my $rect_cached   = sdl_get_rect $rects, "$host;cached";
+            my $rect_swapused = sdl_get_rect $rects, "$host;swapused";
+            my $rect_swapfree = sdl_get_rect $rects, "$host;swapfree";
 
-            my $rect_netused  = get_rect $rects, "$host;netused";
-            my $rect_netfree  = get_rect $rects, "$host;netfree";
+            my $rect_netused  = sdl_get_rect $rects, "$host;netused";
+            my $rect_netfree  = sdl_get_rect $rects, "$host;netfree";
 
-            my $rect_tnetused  = get_rect $rects, "$host;tnetused";
-            my $rect_tnetfree  = get_rect $rects, "$host;tnetfree";
+            my $rect_tnetused  = sdl_get_rect $rects, "$host;tnetused";
+            my $rect_tnetfree  = sdl_get_rect $rects, "$host;tnetfree";
 
             my $add_x         = 0;
             my $half_width = $width / 2;
@@ -822,7 +822,7 @@ sub loop ($@) {
 
                 if ( $C{showcores} ) {
                     $current_corenum = 0;
-                    $rect_separator = get_rect $rects, "$key;separator";
+                    $rect_separator = sdl_get_rect $rects, "$key;separator";
                     $rect_separator->width(1);
                     $rect_separator->height( $C{height} );
                     $rect_separator->x( $x - 1 );
@@ -838,7 +838,7 @@ sub loop ($@) {
                       : 1
                 } keys %$cpumax;
 
-                $rect_peak = get_rect $rects, "$key;max";
+                $rect_peak = sdl_get_rect $rects, "$key;max";
                 $rect_peak->width($width);
                 $rect_peak->height(1);
                 $rect_peak->x($x);
@@ -1060,12 +1060,12 @@ sub loop ($@) {
             set_dimensions $newsize{width}, $newsize{height};
             $app->resize( $C{width}, $C{height} );
             $resize_window     = 0;
-            $redraw_background = 1;
+            $resdl_draw_background = 1;
         }
 
-        if ($redraw_background) {
-            draw_background $app, $rects;
-            $redraw_background = 0;
+        if ($resdl_draw_background) {
+            sdl_draw_background $app, $rects;
+            $resdl_draw_background = 0;
         }
 
         auto_off_text $width;

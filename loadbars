@@ -43,7 +43,7 @@ if ( defined $usage ) {
     exit Loadbars::Constants->SUCCESS;
 }
 
-Loadbars::Main::set_showcores_regexp;
+Loadbars::Main::cpu_set_showcores_re;
 
 my @hosts = map {
     my ( $a, $b ) = split /\@/, $_;
@@ -62,7 +62,7 @@ else {
     exit Loadbars::Constants->E_NOHOST;
 }
 
-my @threads = Loadbars::Main::create_threads @hosts;
+my @threads = Loadbars::Main::threads_create @hosts;
 Loadbars::Main::loop $dispatch, @threads;
 
 exit Loadbars::Constants->SUCCESS;

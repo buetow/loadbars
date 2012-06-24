@@ -135,7 +135,7 @@ sub stats_thread ($;$) {
                         next unless s/:/ /;
                         my (\\\$foo, \\\$int, \\\$bytes, \\\$packets, \\\$errs, \\\$drop, \\\$fifo, \\\$frame, \\\$compressed, \\\$multicast, \\\$tbytes, \\\$tpackets, \\\$terrs, \\\$tdrop, \\\$tfifo, \\\$tcolls, \\\$tcarrier, \\\$tcompressed) = split \\\$whitespace_re, \\\$_;
                         if (\\\$bytes || \\\$tbytes) {
-                            printf qq(%s:b=%d;tb=%d;p=%d;tp=%d;e=%d;te=%d;d=%d;td=%d\n), \\\$int, 
+                            printf qq(%s:b=%d;tb=%d;p=%d;tp=%d e=%d;te=%d;d=%d;td=%d\n), \\\$int, 
                                \\\$bytes, \\\$tbytes, 
                                \\\$packets, \\\$tpackets,
                                 \\\$errs, \\\$terrs,
@@ -228,8 +228,8 @@ REMOTECODE
             }
             elsif ( $mode == 3 ) {
                     my ($int, @stats) = split ':', $_;
-                    #printf "$host;$int = @stats\n";
                     $NETSTATS{"$host;$int"} = "@stats";
+                    $NETSTATS_INT{$int} = 1 unless defined $NETSTATS_INT{$int};
                     $NETSTATS_HAS{$host} = 1 unless defined $NETSTATS_HAS{$host};
             }
 
@@ -257,20 +257,20 @@ sub get_rect ($$) {
     return $rects->{$name} = SDL::Rect->new();
 }
 
-sub normalize_loads (%) {
-    my %loads = @_;
+sub normalize_cpu_loads (%) {
+    my %cpu_loads = @_;
 
-    return %loads unless exists $loads{TOTAL};
+    return %cpu_loads unless exists $cpu_loads{TOTAL};
 
-    my $total = $loads{TOTAL} == 0 ? 1 : $loads{TOTAL};
-    return map { $_ => $loads{$_} / ( $total / 100 ) } keys %loads;
+    my $total = $cpu_loads{TOTAL} == 0 ? 1 : $cpu_loads{TOTAL};
+    return map { $_ => $cpu_loads{$_} / ( $total / 100 ) } keys %cpu_loads;
 }
 
 sub get_cpuaverage ($@) {
-    my ( $factor, @loads ) = @_;
+    my ( $factor, @cpu_loads ) = @_;
     my ( %cpumax, %cpuaverage );
 
-    for my $l (@loads) {
+    for my $l (@cpu_loads) {
         for ( keys %$l ) {
             $cpuaverage{$_} += $l->{$_};
 
@@ -280,7 +280,7 @@ sub get_cpuaverage ($@) {
         }
     }
 
-    my $div = @loads / $factor;
+    my $div = @cpu_loads / $factor;
 
     for ( keys %cpuaverage ) {
         $cpuaverage{$_} /= $div;
@@ -288,6 +288,25 @@ sub get_cpuaverage ($@) {
     }
 
     return ( \%cpumax, \%cpuaverage );
+}
+
+sub net_parse ($;$) {
+    my ($line_r,$dob) = @_;
+    my ($a, $b) = split ' ', $$line_r;
+
+    my %a = map { 
+        my ($k, $v) = split '=', $_; 
+        $k => $v; 
+
+    } split ';', $a;
+
+    my %b = map { 
+        my ($k, $v) = split '=', $_; 
+        $k => $v; 
+
+    } split ';', $b;
+
+    return [\%a, \%b];
 }
 
 sub draw_background ($$) {
@@ -389,8 +408,9 @@ sub loop ($@) {
     SDL::Font->new($font)->use();
 
     my $rects = {};
-    my %prev_stats;
-    my %last_loads;
+    my %prev_cpu_stats;
+    my %prev_net_stats;
+    my %last_cpu_avg;
 
     my $redraw_background = 0;
     my $font_height       = 14;
@@ -446,11 +466,6 @@ sub loop ($@) {
             }
             elsif ( $key_name eq 't' ) {
                 $C{showtext} = !$C{showtext};
-                if ($C{showtext}) {
-                    $C{width} *= 2;
-                } else {
-                    $C{width} /= 2;
-                }
                 $redraw_background = 1;
                 display_info 'Toggled text display';
 
@@ -536,26 +551,26 @@ sub loop ($@) {
 
             } split ';', $CPUSTATS{$key};
 
-            unless ( exists $prev_stats{$key} ) {
-                $prev_stats{$key} = \%stat;
+            unless ( exists $prev_cpu_stats{$key} ) {
+                $prev_cpu_stats{$key} = \%stat;
                 next;
             }
 
-            my $prev_stat = $prev_stats{$key};
-            my %loads =
+            my $prev_stat = $prev_cpu_stats{$key};
+            my %cpu_loads =
               null $stat{TOTAL} == null $prev_stat->{TOTAL}
               ? %stat
               : map { $_ => $stat{$_} - $prev_stat->{$_} } keys %stat;
 
-            $prev_stats{$key} = \%stat;
+            $prev_cpu_stats{$key} = \%stat;
 
-            %loads = normalize_loads %loads;
-            push @{ $last_loads{$key} }, \%loads;
-            shift @{ $last_loads{$key} }
-              while @{ $last_loads{$key} } >= $C{average};
+            %cpu_loads = normalize_cpu_loads %cpu_loads;
+            push @{ $last_cpu_avg{$key} }, \%cpu_loads;
+            shift @{ $last_cpu_avg{$key} }
+              while @{ $last_cpu_avg{$key} } >= $C{average};
 
             my ( $cpumax, $cpuaverage ) = get_cpuaverage $C{factor},
-              @{ $last_loads{$key} };
+              @{ $last_cpu_avg{$key} };
 
             my %heights = map {
                     $_ => defined $cpuaverage->{$_}
@@ -644,8 +659,6 @@ sub loop ($@) {
             $app->fill( $rect_nice,    Loadbars::Constants->GREEN );
             $app->fill( $rect_iowait,  Loadbars::Constants->PURPLE );
 
-
-
             my $rect_memused  = get_rect $rects, "$host;memused";
             my $rect_memfree  = get_rect $rects, "$host;memfree";
             #my $rect_buffers  = get_rect $rects, "$host;buffers";
@@ -733,8 +746,20 @@ sub loop ($@) {
                     }
                 }
 
-                if ( $C{shownet} ) {
+                if ( $C{shownet} && exists $NETSTATS_HAS{$host}) {
                     $add_x += $width + 1;
+
+                    my $int = 'wlan0';
+                    my $key = "$host;$int";
+                    unless ( exists $prev_net_stats{$key} && exists $NETSTATS{$key} ) {
+                        $prev_net_stats{$key} = net_parse \$NETSTATS{$key};
+                    }
+
+                    my $now_stat_r = net_parse \$NETSTATS{$key};
+                    my $prev_stat_r = $prev_net_stats{$key};
+                    $prev_net_stats{$key} = $now_stat_r;
+
+                    use Data::Dumper; print Dumper $prev_stat_r;
 
                     my $net_per = 43;
                     my $tnet_per = 10;
@@ -1021,8 +1046,9 @@ sub loop ($@) {
         $new_num_stats += keys %NETSTATS_HAS if $C{shownet};
 
         if ( $new_num_stats != $num_stats ) {
-            %prev_stats = ();
-            %last_loads = ();
+            %prev_net_stats = ();
+            %prev_cpu_stats = ();
+            %last_cpu_avg = ();
 
             $num_stats       = $new_num_stats;
             $newsize{width}  = $C{barwidth} * $num_stats;

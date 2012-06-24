@@ -13,18 +13,23 @@ our @EXPORT = qw(
   %MEMSTATS_HAS
   %NETSTATS
   %NETSTATS_HAS
+  %NETSTATS_INT
   %C
   %I
 );
 
 our %PIDS : shared;
+
 our %CPUSTATS : shared;
 our %AVGSTATS : shared;
 our %AVGSTATS_HAS : shared;
+
 our %MEMSTATS : shared;
 our %MEMSTATS_HAS : shared;
+
 our %NETSTATS : shared;
 our %NETSTATS_HAS : shared;
+our %NETSTATS_INT : shared;
 
 # Global configuration hash
 our %C : shared;

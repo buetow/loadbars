@@ -151,19 +151,10 @@ sub threads_stats ($;$) {
 
                     printf qq(M MEMSTATS\n);
                     cat(qq(/proc/meminfo));
-
                     net();
 
                     printf qq(M CPUSTATS\n);
-                    for (1..10) {
-                        cat(qq(/proc/stat));
-                        usleep(\\\$usleep);
-                    }
-
-                    net();
-
-                    printf qq(M CPUSTATS\n);
-                    for (1..10) {
+                    for (1..20) {
                         cat(qq(/proc/stat));
                         usleep(\\\$usleep);
                     }
@@ -229,6 +220,7 @@ REMOTECODE
             elsif ( $mode == 3 ) {
                     my ($int, @stats) = split ':', $_;
                     $NETSTATS{"$host;$int"} = "@stats";
+                    $NETSTATS_LASTUPDATE{"$host;$int"} = Time::HiRes::time();
                     $NETSTATS_INT{$int} = 1 unless defined $NETSTATS_INT{$int};
                     $NETSTATS_HAS{$host} = 1 unless defined $NETSTATS_HAS{$host};
             }
@@ -257,41 +249,29 @@ sub sdl_get_rect ($$) {
     return $rects->{$name} = SDL::Rect->new();
 }
 
-sub cpu_normalize_loads (%) {
-    my %cpu_loads = @_;
+sub cpu_normalize_loads ($) {
+    my $cpu_loads_r = shift;
 
-    return %cpu_loads unless exists $cpu_loads{TOTAL};
+    return $cpu_loads_r unless exists $cpu_loads_r->{TOTAL};
 
-    my $total = $cpu_loads{TOTAL} == 0 ? 1 : $cpu_loads{TOTAL};
-    return map { $_ => $cpu_loads{$_} / ( $total / 100 ) } keys %cpu_loads;
+    my $total = $cpu_loads_r->{TOTAL} == 0 ? 1 : $cpu_loads_r->{TOTAL};
+    my %cpu_loads = map { $_ => $cpu_loads_r->{$_} / ( $total / 100 ) } keys %$cpu_loads_r;
+    return \%cpu_loads;
 }
 
-sub cpu_get_average ($@) {
-    my ( $factor, @cpu_loads ) = @_;
-    my ( %cpumax, %cpuaverage );
+sub cpu_parse ($) {
+    my ($line_r) =  shift;
 
-    for my $l (@cpu_loads) {
-        for ( keys %$l ) {
-            $cpuaverage{$_} += $l->{$_};
+    my %stat = map {
+        my ( $k, $v ) = split '=';
+        $k => $v
+    } split ';', $$line_r;
 
-            $cpumax{$_} = $l->{$_}
-              if not exists $cpumax{$_}
-                  or $cpumax{$_} < $l->{$_};
-        }
-    }
-
-    my $div = @cpu_loads / $factor;
-
-    for ( keys %cpuaverage ) {
-        $cpuaverage{$_} /= $div;
-        $cpumax{$_}     /= $factor;
-    }
-
-    return ( \%cpumax, \%cpuaverage );
+    return \%stat;
 }
 
-sub net_parse ($;$) {
-    my ($line_r,$dob) = @_;
+sub net_parse ($) {
+    my ($line_r) = shift;
     my ($a, $b) = split ' ', $$line_r;
 
     my %a = map { 
@@ -307,6 +287,16 @@ sub net_parse ($;$) {
     } split ';', $b;
 
     return [\%a, \%b];
+}
+
+sub net_diff ($$) {
+    my ($a_r, $b_r) = @_;
+
+    my %diff = map {
+        $_ => ($a_r->{$_} - $b_r->{$_})
+    } keys %$a_r;
+
+    return \%diff;
 }
 
 sub sdl_draw_background ($$) {
@@ -408,12 +398,17 @@ sub loop ($@) {
     SDL::Font->new($font)->use();
 
     my $rects = {};
-    my %prev_cpu_stats;
-    my %prev_net_stats;
-    my %last_cpu_avg;
+    my %cpu_history;
+    my %cpu_max;
 
-    my $resdl_draw_background = 0;
-    my $font_height       = 14;
+    my %net_last_update;
+    my %net_history;
+
+    my $net_max_bytes = 0;
+    my $net_max_packets = 0;
+
+    my $sdl_redraw_background = 0;
+    my $sdl_font_height       = 14;
 
     my $infotxt : shared       = '';
     my $quit : shared          = 0;
@@ -438,13 +433,13 @@ sub loop ($@) {
                 %AVGSTATS          = ();
                 %AVGSTATS_HAS      = ();
                 %CPUSTATS          = ();
-                $resdl_draw_background = 1;
+                $sdl_redraw_background = 1;
                 display_info 'Toggled CPUs';
 
             }
             elsif ( $key_name eq 'e' ) {
                 $C{extended} = !$C{extended};
-                $resdl_draw_background = 1;
+                $sdl_redraw_background = 1;
                 display_info 'Toggled extended display';
 
             }
@@ -466,13 +461,13 @@ sub loop ($@) {
             }
             elsif ( $key_name eq 't' ) {
                 $C{showtext} = !$C{showtext};
-                $resdl_draw_background = 1;
+                $sdl_redraw_background = 1;
                 display_info 'Toggled text display';
 
             }
             elsif ( $key_name eq 'u' ) {
                 $C{showtexthost} = !$C{showtexthost};
-                $resdl_draw_background = 1;
+                $sdl_redraw_background = 1;
                 display_info 'Toggled number/hostname display';
 
             }
@@ -545,38 +540,29 @@ sub loop ($@) {
 
             next unless defined $CPUSTATS{$key};
 
-            my %stat = map {
-                my ( $k, $v ) = split '=';
-                $k => $v
+            $cpu_history{$key} = [cpu_parse \$CPUSTATS{$key}]
+                unless exists $cpu_history{$key} && exists $CPUSTATS{$key};
 
-            } split ';', $CPUSTATS{$key};
+            my $now_stat_r = cpu_parse \$CPUSTATS{$key};
+            my $prev_stat_r = $cpu_history{$key}[0];
 
-            unless ( exists $prev_cpu_stats{$key} ) {
-                $prev_cpu_stats{$key} = \%stat;
-                next;
-            }
+            push @{$cpu_history{$key}}, $now_stat_r;
+            shift @{$cpu_history{$key}} while $C{average} < @{$cpu_history{$key}};
 
-            my $prev_stat = $prev_cpu_stats{$key};
             my %cpu_loads =
-              null $stat{TOTAL} == null $prev_stat->{TOTAL}
-              ? %stat
-              : map { $_ => $stat{$_} - $prev_stat->{$_} } keys %stat;
+              null $now_stat_r->{TOTAL} == null $prev_stat_r->{TOTAL}
+              ? %$now_stat_r
+              : map { $_ => $now_stat_r->{$_} - $prev_stat_r->{$_} } keys %$now_stat_r;
 
-            $prev_cpu_stats{$key} = \%stat;
+            my $cpu_loads_r = cpu_normalize_loads \%cpu_loads;
 
-            %cpu_loads = cpu_normalize_loads %cpu_loads;
-            push @{ $last_cpu_avg{$key} }, \%cpu_loads;
-            shift @{ $last_cpu_avg{$key} }
-              while @{ $last_cpu_avg{$key} } >= $C{average};
-
-            my ( $cpumax, $cpuaverage ) = cpu_get_average $C{factor},
-              @{ $last_cpu_avg{$key} };
+            my $cpumax = $cpu_loads_r;
 
             my %heights = map {
-                    $_ => defined $cpuaverage->{$_}
-                  ? $cpuaverage->{$_} * ( $C{height} / 100 )
+                    $_ => defined $cpu_loads_r->{$_}
+                  ? $cpu_loads_r->{$_} * ( $C{height} / 100 )
                   : 1
-            } keys %$cpuaverage;
+            } keys %$cpu_loads_r;
 
             my $is_host_summary = $name eq 'cpu' ? 1 : 0;
 
@@ -648,7 +634,7 @@ sub loop ($@) {
             $rect_steal->x($x);
             $rect_steal->y($y);
 
-            my $all     = 100 - $cpuaverage->{idle};
+            my $all     = 100 - $cpu_loads_r->{idle};
             my $max_all = 0;
 
             $app->fill( $rect_idle,    Loadbars::Constants->BLACK );
@@ -732,14 +718,14 @@ sub loop ($@) {
                         $app->print( $x + $add_x, $y_, 'Ram:' );
                         $app->print(
                             $x + $add_x,
-                            $y_ += $font_height,
+                            $y_ += $sdl_font_height,
                             sprintf '%02d',
                             ( 100 - $meminfo{ram_per} )
                         );
-                        $app->print( $x + $add_x, $y_ += $font_height, 'Swp:' );
+                        $app->print( $x + $add_x, $y_ += $sdl_font_height, 'Swp:' );
                         $app->print(
                             $x + $add_x,
-                            $y_ += $font_height,
+                            $y_ += $sdl_font_height,
                             sprintf '%02d',
                             ( 100 - $meminfo{swap_per} )
                         );
@@ -751,18 +737,26 @@ sub loop ($@) {
 
                     my $int = 'wlan0';
                     my $key = "$host;$int";
-                    unless ( exists $prev_net_stats{$key} && exists $NETSTATS{$key} ) {
-                        $prev_net_stats{$key} = net_parse \$NETSTATS{$key};
-                    }
+
+                    $net_history{$key} = [net_parse \$NETSTATS{$key}]
+                        unless exists $net_history{$key} && exists $NETSTATS{$key};
 
                     my $now_stat_r = net_parse \$NETSTATS{$key};
-                    my $prev_stat_r = $prev_net_stats{$key};
-                    $prev_net_stats{$key} = $now_stat_r;
+                    my $prev_stat_r = $net_history{$key}[0];
 
-                    use Data::Dumper; print Dumper $prev_stat_r;
+                    push @{$net_history{$key}}, $now_stat_r;
+                    shift @{$net_history{$key}} while $C{netaverage} < @{$net_history{$key}};
 
-                    my $net_per = 43;
-                    my $tnet_per = 10;
+                    my $diff_stat_r = net_diff $now_stat_r->[0], $prev_stat_r->[0];
+
+                    $net_max_bytes = $diff_stat_r->{b} if $diff_stat_r->{b} > $net_max_bytes;
+                    $net_max_bytes = $diff_stat_r->{tb} if $diff_stat_r->{tb} > $net_max_bytes;
+
+                    my $net_per = percentage $net_max_bytes, $diff_stat_r->{b};
+                    my $tnet_per = percentage $net_max_bytes, $diff_stat_r->{tb};
+
+                    use Data::Dumper;
+                    print "$net_max_bytes $diff_stat_r->{b} $net_per ; $net_max_bytes $diff_stat_r->{tb} $tnet_per\n";
 
                     my %heights = (
                         NetFree => $net_per * ( $C{height} / 100 ),
@@ -771,27 +765,27 @@ sub loop ($@) {
                         TNetUsed => ( 100 - $tnet_per ) * ( $C{height} / 100 ),
                     );
 
-                    $y = $C{height} - $heights{NetUsed};
+                    $y = $C{height} - $heights{NetFree};
                     $rect_netused->width($half_width);
-                    $rect_netused->height( $heights{NetUsed} );
+                    $rect_netused->height( $heights{NetFree} );
                     $rect_netused->x( $x + $add_x );
                     $rect_netused->y($y);
 
-                    $y -= $heights{NetFree};
+                    $y -= $heights{NetUsed};
                     $rect_netfree->width($half_width);
-                    $rect_netfree->height( $heights{NetFree} );
+                    $rect_netfree->height( $heights{NetUsed} );
                     $rect_netfree->x( $x + $add_x );
                     $rect_netfree->y($y);
 
-                    $y = $C{height} - $heights{TNetUsed};
+                    $y = $C{height} - $heights{TNetFree};
                     $rect_tnetused->width($half_width);
-                    $rect_tnetused->height( $heights{TNetUsed} );
+                    $rect_tnetused->height( $heights{TNetFree} );
                     $rect_tnetused->x( $x + $add_x + $half_width );
                     $rect_tnetused->y($y);
 
-                    $y -= $heights{TNetFree};
+                    $y -= $heights{TNetUsed};
                     $rect_tnetfree->width($half_width);
-                    $rect_tnetfree->height( $heights{TNetFree} );
+                    $rect_tnetfree->height( $heights{TNetUsed} );
                     $rect_tnetfree->x( $x + $add_x + $half_width );
                     $rect_tnetfree->y($y);
 
@@ -806,14 +800,14 @@ sub loop ($@) {
                         $app->print( $x + $add_x, $y_, 'Rx:' );
                         $app->print(
                             $x + $add_x,
-                            $y_ += $font_height,
+                            $y_ += $sdl_font_height,
                             sprintf '%02d',
                             ( 100 - $meminfo{ram_per} )
                         );
-                        $app->print( $x + $add_x, $y_ += $font_height, 'Tr:' );
+                        $app->print( $x + $add_x, $y_ += $sdl_font_height, 'Tr:' );
                         $app->print(
                             $x + $add_x,
-                            $y_ += $font_height,
+                            $y_ += $sdl_font_height,
                             sprintf '%02d',
                             ( 100 - $meminfo{swap_per} )
                         );
@@ -872,7 +866,7 @@ sub loop ($@) {
                 )
             );
             $app->fill( $rect_system,
-                $cpuaverage->{system} > Loadbars::Constants->SYSTEM_BLUE0
+                $cpu_loads_r->{system} > Loadbars::Constants->SYSTEM_BLUE0
                 ? Loadbars::Constants->BLUE0
                 : Loadbars::Constants->BLUE );
 
@@ -905,94 +899,94 @@ sub loop ($@) {
                 if ( $C{extended} ) {
                     $app->print(
                         $x,
-                        $y += $font_height,
+                        $y += $sdl_font_height,
                         sprintf '%02d%s',
-                        norm $cpuaverage->{steal}, 'st'
+                        norm $cpu_loads_r->{steal}, 'st'
                     );
                     $app->print(
                         $x,
-                        $y += $font_height,
+                        $y += $sdl_font_height,
                         sprintf '%02d%s',
-                        norm $cpuaverage->{guest}, 'gt'
+                        norm $cpu_loads_r->{guest}, 'gt'
                     );
                     $app->print(
                         $x,
-                        $y += $font_height,
+                        $y += $sdl_font_height,
                         sprintf '%02d%s',
-                        norm $cpuaverage->{softirq}, 'sr'
+                        norm $cpu_loads_r->{softirq}, 'sr'
                     );
                     $app->print(
                         $x,
-                        $y += $font_height,
+                        $y += $sdl_font_height,
                         sprintf '%02d%s',
-                        norm $cpuaverage->{irq}, 'ir'
+                        norm $cpu_loads_r->{irq}, 'ir'
                     );
                 }
 
                 $app->print(
                     $x,
-                    $y += $font_height,
+                    $y += $sdl_font_height,
                     sprintf '%02d%s',
-                    norm $cpuaverage->{iowait}, 'io'
+                    norm $cpu_loads_r->{iowait}, 'io'
                 );
 
                 $app->print(
                     $x,
-                    $y += $font_height,
+                    $y += $sdl_font_height,
                     sprintf '%02d%s',
-                    norm $cpuaverage->{idle}, 'id'
+                    norm $cpu_loads_r->{idle}, 'id'
                 ) if $C{extended};
 
                 $app->print(
                     $x,
-                    $y += $font_height,
+                    $y += $sdl_font_height,
                     sprintf '%02d%s',
-                    norm $cpuaverage->{nice}, 'ni'
+                    norm $cpu_loads_r->{nice}, 'ni'
                 );
                 $app->print(
                     $x,
-                    $y += $font_height,
+                    $y += $sdl_font_height,
                     sprintf '%02d%s',
-                    norm $cpuaverage->{user}, 'us'
+                    norm $cpu_loads_r->{user}, 'us'
                 );
                 $app->print(
                     $x,
-                    $y += $font_height,
+                    $y += $sdl_font_height,
                     sprintf '%02d%s',
-                    norm $cpuaverage->{system}, 'sy'
+                    norm $cpu_loads_r->{system}, 'sy'
                 );
                 $app->print(
                     $x,
-                    $y += $font_height,
+                    $y += $sdl_font_height,
                     sprintf '%02d%s',
                     norm $all, 'to'
                 );
 
                 $app->print(
                     $x,
-                    $y += $font_height,
+                    $y += $sdl_font_height,
                     sprintf '%02d%s',
                     norm $max_all, 'pk'
                 ) if $C{extended};
 
                 if ($is_host_summary) {
                     if ( defined $loadavg[2] ) {
-                        $app->print( $x, $y += $font_height, 'Avg:' );
+                        $app->print( $x, $y += $sdl_font_height, 'Avg:' );
                         $app->print(
                             $x,
-                            $y += $font_height,
+                            $y += $sdl_font_height,
                             sprintf "%.2f",
                             $loadavg[0]
                         );
                         $app->print(
                             $x,
-                            $y += $font_height,
+                            $y += $sdl_font_height,
                             sprintf "%.2f",
                             $loadavg[1]
                         );
                         $app->print(
                             $x,
-                            $y += $font_height,
+                            $y += $sdl_font_height,
                             sprintf "%.2f",
                             $loadavg[2]
                         );
@@ -1026,14 +1020,14 @@ sub loop ($@) {
         $t2 = Time::HiRes::time();
         my $t_diff = $t2 - $t1;
 
-        if ( Loadbars::Constants->INTERVAL > $t_diff ) {
+        if ( Loadbars::Constants->INTERVAL_SDL > $t_diff ) {
             usleep 10000;
 
             # Goto is OK as long you don't produce spaghetti code
             goto TIMEKEEPER;
 
         }
-        elsif ( Loadbars::Constants->INTERVAL_WARN < $t_diff ) {
+        elsif ( Loadbars::Constants->INTERVAL_SDL_WARN < $t_diff ) {
             display_warn
 "WARN: Loop is behind $t_diff seconds, your computer may be too slow";
         }
@@ -1046,9 +1040,8 @@ sub loop ($@) {
         $new_num_stats += keys %NETSTATS_HAS if $C{shownet};
 
         if ( $new_num_stats != $num_stats ) {
-            %prev_net_stats = ();
-            %prev_cpu_stats = ();
-            %last_cpu_avg = ();
+            %cpu_history = ();
+            %net_history = ();
 
             $num_stats       = $new_num_stats;
             $newsize{width}  = $C{barwidth} * $num_stats;
@@ -1060,12 +1053,12 @@ sub loop ($@) {
             set_dimensions $newsize{width}, $newsize{height};
             $app->resize( $C{width}, $C{height} );
             $resize_window     = 0;
-            $resdl_draw_background = 1;
+            $sdl_redraw_background = 1;
         }
 
-        if ($resdl_draw_background) {
+        if ($sdl_redraw_background) {
             sdl_draw_background $app, $rects;
-            $resdl_draw_background = 0;
+            $sdl_redraw_background = 0;
         }
 
         auto_off_text $width;

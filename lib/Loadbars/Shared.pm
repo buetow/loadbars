@@ -7,6 +7,7 @@ use base 'Exporter';
 our @EXPORT = qw(
   %PIDS
   %CPUSTATS
+  %NETSTATS_LASTUPDATE
   %AVGSTATS
   %AVGSTATS_HAS
   %MEMSTATS
@@ -30,6 +31,7 @@ our %MEMSTATS_HAS : shared;
 our %NETSTATS : shared;
 our %NETSTATS_HAS : shared;
 our %NETSTATS_INT : shared;
+our %NETSTATS_LASTUPDATE : shared;
 
 # Global configuration hash
 our %C : shared;
@@ -41,6 +43,7 @@ our %I : shared;
 %C = (
     title        => undef,
     average      => 15,
+    netaverage   => 5,
     barwidth     => 35,
     extended     => 0,
     factor       => 1,

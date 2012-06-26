@@ -756,7 +756,7 @@ sub loop ($@) {
                     push @{$net_history{$key}}, $now_stat_r;
                     shift @{$net_history{$key}} while $C{netaverage} < @{$net_history{$key}};
 
-                    #my $diff_stat_r = net_diff $now_stat_r->[0], $prev_stat_r->[0];
+                    my $diff_stat_r = net_diff $now_stat_r->[0], $prev_stat_r->[0];
 
                     #$net_max_bytes = $diff_stat_r->{b} if $diff_stat_r->{b} > $net_max_bytes;
                     #$net_max_bytes = $diff_stat_r->{tb} if $diff_stat_r->{tb} > $net_max_bytes;

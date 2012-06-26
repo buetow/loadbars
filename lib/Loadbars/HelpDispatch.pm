@@ -97,6 +97,13 @@ END
             mode    => 1
         },
 
+        netint => {
+            menupos => 6,
+            help    => 'Interface to show netstats for (default: eth0)',
+            mode    => 6,
+            type    => 's'
+        },
+
         barwidth => {
             menupos => 9,
             help    => 'Set bar width',

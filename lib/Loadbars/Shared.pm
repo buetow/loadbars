@@ -48,13 +48,14 @@ our %I : shared;
     factor       => 1,
     hasagent     => 0,
     height       => 230,
-    maxwidth     => 1280,
+    maxwidth     => 1250,
     showcores    => 0,
     showmem      => 0,
     shownet      => 0,
     showtext     => 1,
     showtexthost => 0,
     sshopts      => '',
+    netint       => 'eth0',
 );
 
 %I = (

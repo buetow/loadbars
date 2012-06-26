@@ -402,8 +402,7 @@ sub loop ($@) {
 
     my %net_history;
 
-    my $net_max_bytes = 0;
-    my $net_max_packets = 0;
+    my $net_max_bytes = Loadbars::Constants->BYTES_GBIT;
 
     my $sdl_redraw_background = 0;
     my $sdl_font_height       = 14;
@@ -745,7 +744,7 @@ sub loop ($@) {
                 if ( $C{shownet} && exists $NETSTATS_HAS{$host}) {
                     $add_x += $width + 1;
 
-                    my $int = 'wlan0';
+                    my $int = $C{netint};
                     my $key = "$host;$int";
 
                     $net_history{$key} = [net_parse \$NETSTATS{$key}]
@@ -757,11 +756,13 @@ sub loop ($@) {
                     push @{$net_history{$key}}, $now_stat_r;
                     shift @{$net_history{$key}} while $C{netaverage} < @{$net_history{$key}};
 
-                    my $diff_stat_r = net_diff $now_stat_r->[0], $prev_stat_r->[0];
+                    #my $diff_stat_r = net_diff $now_stat_r->[0], $prev_stat_r->[0];
 
-                    $net_max_bytes = $diff_stat_r->{b} if $diff_stat_r->{b} > $net_max_bytes;
-                    $net_max_bytes = $diff_stat_r->{tb} if $diff_stat_r->{tb} > $net_max_bytes;
+                    #$net_max_bytes = $diff_stat_r->{b} if $diff_stat_r->{b} > $net_max_bytes;
+                    #$net_max_bytes = $diff_stat_r->{tb} if $diff_stat_r->{tb} > $net_max_bytes;
 
+                    my $net_per = percentage $net_max_bytes, $diff_stat_r->{b};
+                    my $tnet_per = percentage $net_max_bytes, $diff_stat_r->{tb};
                     my $net_per = percentage $net_max_bytes, $diff_stat_r->{b};
                     my $tnet_per = percentage $net_max_bytes, $diff_stat_r->{tb};
 

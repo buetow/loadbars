@@ -273,6 +273,7 @@ sub net_parse ($) {
     my ($line_r) = shift;
     my ($a, $b) = split ' ', $$line_r;
 
+
     my %a = map { 
         my ($k, $v) = split '=', $_; 
         $k => $v; 
@@ -747,8 +748,10 @@ sub loop ($@) {
                     my $int = $C{netint};
                     my $key = "$host;$int";
 
+                    if (exists $NETSTATS{$key}) {
+
                     $net_history{$key} = [net_parse \$NETSTATS{$key}]
-                        unless exists $net_history{$key} && exists $NETSTATS{$key};
+                        unless exists $net_history{$key};
 
                     my $now_stat_r = net_parse \$NETSTATS{$key};
                     my $prev_stat_r = $net_history{$key}[0];
@@ -765,9 +768,6 @@ sub loop ($@) {
                     my $tnet_per = percentage $net_max_bytes, $diff_stat_r->{tb};
                     my $net_per = percentage $net_max_bytes, $diff_stat_r->{b};
                     my $tnet_per = percentage $net_max_bytes, $diff_stat_r->{tb};
-
-#use Data::Dumper;
-#                    print "$net_max_bytes $diff_stat_r->{b} $net_per ; $net_max_bytes $diff_stat_r->{tb} $tnet_per\n";
 
                     my %heights = (
                         NetFree => $net_per * ( $C{height} / 100 ),
@@ -822,6 +822,8 @@ sub loop ($@) {
                             sprintf '%02d',
                             ( 100 - $meminfo{swap_per} )
                         );
+                    }
+
                     }
                 }
 

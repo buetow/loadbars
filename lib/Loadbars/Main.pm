@@ -803,7 +803,8 @@ sub loop ($@) {
 
                     if ( $C{showtext} ) {
                         my $y_ = 5;
-                        $app->print( $x + $add_x, $y_, 'Rxb:' );
+                        $app->print( $x + $add_x, $y_, $int );
+                        $app->print( $x + $add_x, $y_ += $sdl_font_height, 'Rxb:' );
                         $app->print(
                             $x + $add_x,
                             $y_ += $sdl_font_height,

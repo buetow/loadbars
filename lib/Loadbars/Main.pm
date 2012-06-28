@@ -761,17 +761,12 @@ sub loop ($@) {
 
                     my $diff_stat_r = net_diff $now_stat_r->[0], $prev_stat_r->[0];
 
-                    #$net_max_bytes = $diff_stat_r->{b} if $diff_stat_r->{b} > $net_max_bytes;
-                    #$net_max_bytes = $diff_stat_r->{tb} if $diff_stat_r->{tb} > $net_max_bytes;
-
-                    my $net_per = percentage $net_max_bytes, $diff_stat_r->{b};
-                    my $tnet_per = percentage $net_max_bytes, $diff_stat_r->{tb};
                     my $net_per = percentage $net_max_bytes, $diff_stat_r->{b};
                     my $tnet_per = percentage $net_max_bytes, $diff_stat_r->{tb};
 
                     my %heights = (
-                        NetFree => $net_per * ( $C{height} / 100 ),
-                        NetUsed => ( 100 - $net_per ) * ( $C{height} / 100 ),
+                        NetUsed => $net_per * ( $C{height} / 100 ),
+                        NetFree => ( 100 - $net_per ) * ( $C{height} / 100 ),
                         TNetFree => $tnet_per * ( $C{height} / 100 ),
                         TNetUsed => ( 100 - $tnet_per ) * ( $C{height} / 100 ),
                     );
@@ -800,27 +795,27 @@ sub loop ($@) {
                     $rect_tnetfree->x( $x + $add_x + $half_width );
                     $rect_tnetfree->y($y);
 
-                    $app->fill( $rect_netused, Loadbars::Constants->LIGHT_BLUE );
-                    $app->fill( $rect_netfree, Loadbars::Constants->BLACK );
+                    $app->fill( $rect_netused, Loadbars::Constants->BLACK );
+                    $app->fill( $rect_netfree, Loadbars::Constants->LIGHT_GREEN );
 
-                    $app->fill( $rect_tnetused, Loadbars::Constants->LIGHT_BLUE0 );
+                    $app->fill( $rect_tnetused, Loadbars::Constants->LIGHT_GREEN );
                     $app->fill( $rect_tnetfree, Loadbars::Constants->BLACK );
 
                     if ( $C{showtext} ) {
                         my $y_ = 5;
-                        $app->print( $x + $add_x, $y_, 'Rx:' );
+                        $app->print( $x + $add_x, $y_, 'Rxb:' );
                         $app->print(
                             $x + $add_x,
                             $y_ += $sdl_font_height,
-                            sprintf '%02d',
-                            ( 100 - $meminfo{ram_per} )
+                            sprintf '%02d%%',
+                            ( $net_per )
                         );
-                        $app->print( $x + $add_x, $y_ += $sdl_font_height, 'Tr:' );
+                        $app->print( $x + $add_x, $y_ += $sdl_font_height, 'Trb:' );
                         $app->print(
                             $x + $add_x,
                             $y_ += $sdl_font_height,
-                            sprintf '%02d',
-                            ( 100 - $meminfo{swap_per} )
+                            sprintf '%02d%%',
+                            ( $tnet_per )
                         );
                     }
 

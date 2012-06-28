@@ -17,6 +17,7 @@ use constant {
     LIGHT_BLUE0        => SDL::Color->new( -r => 0x00, -g => 0x00, -b => 0xcc ),
     BLUE               => SDL::Color->new( -r => 0x00, -g => 0x00, -b => 0x88 ),
     GREEN              => SDL::Color->new( -r => 0x00, -g => 0x90, -b => 0x00 ),
+    LIGHT_GREEN        => SDL::Color->new( -r => 0x00, -g => 0xb0, -b => 0x00 ),
     ORANGE             => SDL::Color->new( -r => 0xff, -g => 0x70, -b => 0x00 ),
     PURPLE             => SDL::Color->new( -r => 0xa0, -g => 0x20, -b => 0xf0 ),
     RED                => SDL::Color->new( -r => 0xff, -g => 0x00, -b => 0x00 ),

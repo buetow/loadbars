@@ -1,6 +1,8 @@
-loadbars (0.5.99) testing; urgency=low
+loadbars (0.5.99+nmu2) stable; urgency=low
 
-  * Some new features.
+  * Non-maintainer upload.
+
+ -- Paul Buetow <pb@Debian-60-squeeze-64-minimal>  Fri, 29 Jun 2012 21:00:01 +0200
 
 loadbars (0.5.3) stable; urgency=low
 

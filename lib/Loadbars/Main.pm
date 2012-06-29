@@ -790,15 +790,15 @@ sub loop ($@) {
                     my $tnet_per = percentage($net_max, $diff_stat_r->{tb});
 
                     if ($net_per < 0) {
-                        $net_per = ${$net_last_value{"$key;per"}};
+                        $net_per = $net_last_value{"$key;per"};
                     } else {
-                        $net_last_value{"$key;per"} = \$net_per;
+                        $net_last_value{"$key;per"} = $net_per;
                     }
 
                     if ($tnet_per < 0) {
-                        $tnet_per = ${$net_last_value{"$key;tper"}};
+                        $tnet_per = $net_last_value{"$key;tper"};
                     } else {
-                        $net_last_value{"$key;tper"} = \$tnet_per;
+                        $net_last_value{"$key;tper"} = $tnet_per;
                     }
 
                     my %heights = (

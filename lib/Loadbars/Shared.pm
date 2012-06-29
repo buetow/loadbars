@@ -42,7 +42,7 @@ our %I : shared;
 %C = (
     title        => undef,
     cpuaverage   => 15,
-    netaverage   => 5,
+    netaverage   => 15,
     barwidth     => 35,
     extended     => 0,
     factor       => 1,

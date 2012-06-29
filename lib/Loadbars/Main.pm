@@ -36,6 +36,12 @@ sub percentage ($$) {
     return int( null($part) / notnull( null($total) / 100 ) );
 }
 
+sub percentage_norm ($$$) {
+    my ( $total, $part, $norm ) = @_;
+
+    return int( null($part) / notnull( null($total) / 100 ) / notnull $norm);
+}
+
 sub norm ($) {
     my $n = shift;
 
@@ -127,6 +133,11 @@ sub threads_stats ($;$) {
                     close FH;
                 }
 
+                sub mem {
+                    printf qq(M MEMSTATS\n);
+                    cat(qq(/proc/meminfo));
+                }
+
                 sub net {
                     printf qq(M NETSTATS\n);
                     open FH, qq(/proc/net/dev);
@@ -148,9 +159,7 @@ sub threads_stats ($;$) {
 
                 for (1..10000) {
                     load();
-
-                    printf qq(M MEMSTATS\n);
-                    cat(qq(/proc/meminfo));
+                    mem();
                     net();
 
                     printf qq(M CPUSTATS\n);
@@ -220,6 +229,7 @@ REMOTECODE
             elsif ( $mode == 3 ) {
                     my ($int, @stats) = split ':', $_;
                     $NETSTATS{"$host;$int"} = "@stats";
+                    $NETSTATS{"$host;$int;stamp"} = Time::HiRes::time();
                     $NETSTATS_INT{$int} = 1 unless defined $NETSTATS_INT{$int};
                     $NETSTATS_HAS{$host} = 1 unless defined $NETSTATS_HAS{$host};
             }
@@ -272,7 +282,6 @@ sub cpu_parse ($) {
 sub net_parse ($) {
     my ($line_r) = shift;
     my ($a, $b) = split ' ', $$line_r;
-
 
     my %a = map { 
         my ($k, $v) = split '=', $_; 
@@ -402,6 +411,7 @@ sub loop ($@) {
     my %cpu_max;
 
     my %net_history;
+    my %net_history_stamps;
 
     my $net_max_bytes = Loadbars::Constants->BYTES_GBIT;
 
@@ -750,8 +760,18 @@ sub loop ($@) {
 
                     if (exists $NETSTATS{$key}) {
 
-                    $net_history{$key} = [net_parse \$NETSTATS{$key}]
-                        unless exists $net_history{$key};
+                    unless (exists $net_history{$key}) {
+                        $net_history{$key} = [net_parse \$NETSTATS{$key}];
+                        $net_history_stamps{$key} = [$NETSTATS{"$key;stamp"}];
+                    }
+
+                    my $now_stat_stamp = $NETSTATS{"$key;stamp"};
+                    my $prev_stat_stamp = $net_history_stamps{$key}[0];
+
+                    my $net_max = $net_max_bytes * ($now_stat_stamp - $prev_stat_stamp);
+
+                    push @{$net_history_stamps{$key}}, $now_stat_stamp;
+                    shift @{$net_history_stamps{$key}} while $C{netaverage} < @{$net_history_stamps{$key}};
 
                     my $now_stat_r = net_parse \$NETSTATS{$key};
                     my $prev_stat_r = $net_history{$key}[0];
@@ -759,10 +779,11 @@ sub loop ($@) {
                     push @{$net_history{$key}}, $now_stat_r;
                     shift @{$net_history{$key}} while $C{netaverage} < @{$net_history{$key}};
 
+
                     my $diff_stat_r = net_diff $now_stat_r->[0], $prev_stat_r->[0];
 
-                    my $net_per = percentage $net_max_bytes, $diff_stat_r->{b};
-                    my $tnet_per = percentage $net_max_bytes, $diff_stat_r->{tb};
+                    my $net_per = percentage($net_max, $diff_stat_r->{b});
+                    my $tnet_per = percentage($net_max, $diff_stat_r->{tb});
 
                     my %heights = (
                         NetUsed => $net_per * ( $C{height} / 100 ),

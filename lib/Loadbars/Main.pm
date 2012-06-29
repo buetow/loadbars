@@ -146,7 +146,7 @@ sub threads_stats ($;$) {
                         next unless s/:/ /;
                         my (\\\$foo, \\\$int, \\\$bytes, \\\$packets, \\\$errs, \\\$drop, \\\$fifo, \\\$frame, \\\$compressed, \\\$multicast, \\\$tbytes, \\\$tpackets, \\\$terrs, \\\$tdrop, \\\$tfifo, \\\$tcolls, \\\$tcarrier, \\\$tcompressed) = split \\\$whitespace_re, \\\$_;
                         if (\\\$bytes || \\\$tbytes) {
-                            printf qq(%s:b=%d;tb=%d;p=%d;tp=%d e=%d;te=%d;d=%d;td=%d\n), \\\$int, 
+                            printf qq(%s:b=%s;tb=%s;p=%s;tp=%s e=%s;te=%s;d=%s;td=%s\n), \\\$int, 
                                \\\$bytes, \\\$tbytes, 
                                \\\$packets, \\\$tpackets,
                                 \\\$errs, \\\$terrs,
@@ -412,6 +412,7 @@ sub loop ($@) {
 
     my %net_history;
     my %net_history_stamps;
+    my %net_last_value;
 
     my $net_max_bytes = Loadbars::Constants->BYTES_GBIT;
 
@@ -766,6 +767,10 @@ sub loop ($@) {
                     }
 
                     my $now_stat_stamp = $NETSTATS{"$key;stamp"};
+                    my $foo_r = \$NETSTATS{$key};
+                    #my $now_stat_r = net_parse \$NETSTATS{$key};
+                    my $now_stat_r = net_parse $foo_r;
+
                     my $prev_stat_stamp = $net_history_stamps{$key}[0];
 
                     my $net_max = $net_max_bytes * ($now_stat_stamp - $prev_stat_stamp);
@@ -773,7 +778,6 @@ sub loop ($@) {
                     push @{$net_history_stamps{$key}}, $now_stat_stamp;
                     shift @{$net_history_stamps{$key}} while $C{netaverage} < @{$net_history_stamps{$key}};
 
-                    my $now_stat_r = net_parse \$NETSTATS{$key};
                     my $prev_stat_r = $net_history{$key}[0];
 
                     push @{$net_history{$key}}, $now_stat_r;
@@ -784,6 +788,18 @@ sub loop ($@) {
 
                     my $net_per = percentage($net_max, $diff_stat_r->{b});
                     my $tnet_per = percentage($net_max, $diff_stat_r->{tb});
+
+                    if ($net_per < 0) {
+                        $net_per = ${$net_last_value{"$key;per"}};
+                    } else {
+                        $net_last_value{"$key;per"} = \$net_per;
+                    }
+
+                    if ($tnet_per < 0) {
+                        $tnet_per = ${$net_last_value{"$key;tper"}};
+                    } else {
+                        $net_last_value{"$key;tper"} = \$tnet_per;
+                    }
 
                     my %heights = (
                         NetUsed => $net_per * ( $C{height} / 100 ),

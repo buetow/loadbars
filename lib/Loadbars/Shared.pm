@@ -41,21 +41,22 @@ our %I : shared;
 # Setting defaults
 %C = (
     title        => undef,
-    cpuaverage   => 15,
-    netaverage   => 15,
     barwidth     => 35,
+    cpuaverage   => 15,
     extended     => 0,
     factor       => 1,
     hasagent     => 0,
     height       => 230,
     maxwidth     => 1250,
+    netaverage   => 15,
+    netint       => 'eth0',
+    netusepeak   => 0,
     showcores    => 0,
     showmem      => 0,
     shownet      => 0,
     showtext     => 1,
     showtexthost => 0,
     sshopts      => '',
-    netint       => 'eth0',
 );
 
 %I = (

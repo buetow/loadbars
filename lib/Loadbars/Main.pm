@@ -440,13 +440,13 @@ sub loop ($@) {
                 cpu_set_showcores_re;
                 $_->kill('USR1') for @threads;
                 $sdl_redraw_background = 1;
-                display_info 'Toggled CPUs';
+                display_info "Toggled CPUs $C{showcores}";
 
             }
             elsif ( $key_name eq 'e' ) {
                 $C{extended} = !$C{extended};
                 $sdl_redraw_background = 1;
-                display_info 'Toggled extended display';
+                display_info "Toggled extended display $C{extended}";
 
             }
             elsif ( $key_name eq 'h' ) {
@@ -457,24 +457,29 @@ sub loop ($@) {
             }
             elsif ( $key_name eq 'm' ) {
                 $C{showmem} = !$C{showmem};
-                display_info 'Toggled show mem';
+                display_info "Toggled show mem";
 
             }
             elsif ( $key_name eq 'n' ) {
                 $C{shownet} = !$C{shownet};
-                display_info 'Toggled show net';
+                display_info "Toggled show net $C{shownet}";
+
+            }
+            elsif ( $key_name eq 'p' ) {
+                $C{netusepeak} = !$C{netusepeak};
+                display_info "Toggled net use peak $C{netusepeak}";
 
             }
             elsif ( $key_name eq 't' ) {
                 $C{showtext} = !$C{showtext};
                 $sdl_redraw_background = 1;
-                display_info 'Toggled text display';
+                display_info "Toggled text display $C{showtext}";
 
             }
             elsif ( $key_name eq 'u' ) {
                 $C{showtexthost} = !$C{showtexthost};
                 $sdl_redraw_background = 1;
-                display_info 'Toggled number/hostname display';
+                display_info "Toggled number/hostname display $C{showtexthost}";
 
             }
             elsif ( $key_name eq 'q' ) {
@@ -489,24 +494,24 @@ sub loop ($@) {
             }
             elsif ( $key_name eq 'a' ) {
                 ++$C{cpuaverage};
-                display_info "Set sample cpu average to $C{cpuaverage}";
+                display_info "Set sample cpu average $C{cpuaverage}";
             }
             elsif ( $key_name eq 'y' or $key_name eq 'z' ) {
                 my $avg = $C{cpuaverage};
                 --$avg;
                 $C{cpuaverage} = $avg > 1 ? $avg : 2;
-                display_info "Set sample cpu average to $C{cpuaverage}";
+                display_info "Set sample cpu average $C{cpuaverage}";
 
             }
             elsif ( $key_name eq 'd' ) {
                 ++$C{netaverage};
-                display_info "Set sample net average to $C{netaverage}";
+                display_info "Set sample net average $C{netaverage}";
             }
             elsif ( $key_name eq 'c' ) {
                 my $avg = $C{netaverage};
                 --$avg;
                 $C{netaverage} = $avg > 1 ? $avg : 2;
-                display_info "Set sample net average to $C{netaverage}";
+                display_info "Set sample net average $C{netaverage}";
 
             }
             elsif ( $key_name eq 's' ) {

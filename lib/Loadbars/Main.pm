@@ -439,9 +439,6 @@ sub loop ($@) {
                 $C{showcores} = !$C{showcores};
                 cpu_set_showcores_re;
                 $_->kill('USR1') for @threads;
-                %AVGSTATS          = ();
-                %AVGSTATS_HAS      = ();
-                %CPUSTATS          = ();
                 $sdl_redraw_background = 1;
                 display_info 'Toggled CPUs';
 
@@ -1103,6 +1100,9 @@ sub loop ($@) {
         if ($sdl_redraw_background) {
             sdl_draw_background $app, $rects;
             $sdl_redraw_background = 0;
+            %AVGSTATS          = ();
+            %AVGSTATS_HAS      = ();
+            %CPUSTATS          = ();
         }
 
         auto_off_text $width;

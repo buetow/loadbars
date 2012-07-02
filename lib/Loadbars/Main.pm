@@ -300,10 +300,7 @@ sub net_parse ($) {
 
 sub net_diff ($$) {
     my ($a_r, $b_r) = @_;
-
-    my %diff = map {
-        $_ => ($a_r->{$_} - $b_r->{$_})
-    } keys %$a_r;
+    my %diff = map { $_ => ($a_r->{$_} - $b_r->{$_}) } keys %$a_r;
 
     return \%diff;
 }
@@ -370,6 +367,10 @@ sub set_dimensions ($$) {
     }
 }
 
+sub get_interface_speed () {
+    return Loadbars::Constants->BYTES_GBIT;
+}
+
 sub loop ($@) {
     my ( $dispatch, @threads ) = @_;
 
@@ -414,7 +415,7 @@ sub loop ($@) {
     my %net_history_stamps;
     my %net_last_value;
 
-    my $net_max_bytes = Loadbars::Constants->BYTES_GBIT;
+    my $net_max_bytes = get_interface_speed;
 
     my $sdl_redraw_background = 0;
     my $sdl_font_height       = 14;
@@ -463,11 +464,6 @@ sub loop ($@) {
             elsif ( $key_name eq 'n' ) {
                 $C{shownet} = !$C{shownet};
                 display_info "Toggled show net $C{shownet}";
-
-            }
-            elsif ( $key_name eq 'p' ) {
-                $C{netusepeak} = !$C{netusepeak};
-                display_info "Toggled net use peak $C{netusepeak}";
 
             }
             elsif ( $key_name eq 't' ) {
@@ -769,13 +765,11 @@ sub loop ($@) {
                     }
 
                     my $now_stat_stamp = $NETSTATS{"$key;stamp"};
-                    my $foo_r = \$NETSTATS{$key};
-                    #my $now_stat_r = net_parse \$NETSTATS{$key};
-                    my $now_stat_r = net_parse $foo_r;
+                    my $now_stat_r = net_parse \$NETSTATS{$key};
 
                     my $prev_stat_stamp = $net_history_stamps{$key}[0];
 
-                    my $net_max = $net_max_bytes * ($now_stat_stamp - $prev_stat_stamp);
+                    my $net_factor = $net_max_bytes * ($now_stat_stamp - $prev_stat_stamp);
 
                     push @{$net_history_stamps{$key}}, $now_stat_stamp;
                     shift @{$net_history_stamps{$key}} while $C{netaverage} < @{$net_history_stamps{$key}};
@@ -788,8 +782,8 @@ sub loop ($@) {
 
                     my $diff_stat_r = net_diff $now_stat_r->[0], $prev_stat_r->[0];
 
-                    my $net_per = percentage($net_max, $diff_stat_r->{b});
-                    my $tnet_per = percentage($net_max, $diff_stat_r->{tb});
+                    my $net_per = percentage($net_factor, $diff_stat_r->{b});
+                    my $tnet_per = percentage($net_factor, $diff_stat_r->{tb});
 
                     if ($net_per < 0) {
                         $net_per = $net_last_value{"$key;per"};

@@ -50,7 +50,6 @@ our %I : shared;
     maxwidth     => 1250,
     netaverage   => 15,
     netint       => 'eth0',
-    netusepeak   => 0,
     showcores    => 0,
     showmem      => 0,
     shownet      => 0,

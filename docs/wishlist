@@ -1,8 +1,13 @@
-* Fast hostname display
+TODO FOR NEXT RELEASE:
+* Fast hostnum display
+* Optimize code (too much cpu usage if there are too many hosts involved). E.g. do more stuff on the remote side (preparing the data).
+* Optimize data polling intervals and make it configurable
+
+MORE STUFF:
+
 * More stats for memory
 * More stats for network
 * Auto detect single core boxes
 * Allow bash expansion/wildcards (e.g. loadbars --hosts server{01..30}
-* Optimize code (too much cpu usage if there are too many hosts involved). E.g. do more stuff on the remote side (preparing the data).
 * Make bars mor modular (e.g. atm there is always a cpu bar, and network and mem are optional, everything should be optional).
 

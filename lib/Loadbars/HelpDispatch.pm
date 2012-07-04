@@ -103,6 +103,9 @@ END
             mode    => 6,
             type    => 's'
         },
+        netint_hot =>
+          { menupos => 17, cmd => 'n', help => 'Iterate to next net interface', mode => 1 },
+
         netlink => {
             menupos => 6,
             help =>
@@ -113,14 +116,14 @@ END
         netlink_hot_up => {
             menupos => 9,
             cmd     => 'f',
-            help => 'Doubles net interface link speed reference',
-            mode => 1
+            help    => 'Doubles net interface link speed reference',
+            mode    => 1
         },
         netlink_hot_dn => {
             menupos => 10,
             cmd     => 'v',
-            help => 'Halfs net interface link speed reference',
-            mode => 1
+            help    => 'Halfs net interface link speed reference',
+            mode    => 1
         },
 
         barwidth => {

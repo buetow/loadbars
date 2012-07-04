@@ -307,6 +307,32 @@ sub net_link () {
     return $linkspeed;
 }
 
+sub net_next_int ($;$) {
+    my ( $num, $initial_device_flag ) = @_;
+    my $int = undef;
+
+    for ( ; ; ) {
+        my @ints = sort keys %NETSTATS_INT;
+        $int = $ints[ int( $num % @ints ) ] if @ints;
+
+        unless ( defined $int ) {
+            sleep 0.1;
+            next;
+        }
+
+        # On startup dont show a loopback device net interface
+        if ( defined $initial_device_flag && $int =~ /^lo/ ) {
+            $num++;
+            sleep 0.1;
+            next;
+        }
+
+        last;
+    }
+
+    return $int;
+}
+
 sub net_parse ($) {
     my ($line_r) = shift;
     my ( $a, $b ) = split ' ', $$line_r;
@@ -440,6 +466,7 @@ sub loop ($@) {
     my %net_history_stamps;
     my %net_last_value;
     my $net_int_number = 0;
+    my $net_int = net_next_int $net_int_number, 1;
 
     my $net_max_bytes = net_link;
 
@@ -477,10 +504,12 @@ sub loop ($@) {
             }
             elsif ( $key_name eq '3' ) {
                 $C{shownet} = !$C{shownet};
-                $net_int_number = 0;
                 display_info "Toggled show net $C{shownet}";
-                display_info "Net interface speed reference is " . ($net_max_bytes / $I{bytes_mbit}) . 'mbit/s' if $C{shownet};
-              }
+                display_info "Net interface speed reference is "
+                  . ( $net_max_bytes / $I{bytes_mbit} )
+                  . 'mbit/s'
+                  if $C{shownet};
+            }
 
             elsif ( $key_name eq 'e' ) {
                 $C{extended} = !$C{extended};
@@ -495,13 +524,19 @@ sub loop ($@) {
 
             }
             elsif ( $key_name eq 'm' ) {
-                display_warn "Toggled show mem hotkey 'm' is deprecated. Please use '2' hotkey instead";
-
+                display_warn
+"Toggled show mem hotkey 'm' is deprecated. Please use '2' hotkey instead";
 
             }
-            elsif ( $key_name eq 'h' ) {
-                ++$net_int_number;
-                display_info "Using next net interface. To reset press '3' hotkey twice";
+            elsif ( $key_name eq 'n' ) {
+                if ( $C{shownet} ) {
+                    $net_int = net_next_int ++$net_int_number;
+                    display_info "Using net interface which is $net_int";
+                }
+                else {
+                    display_warn
+"Net stats are not activated. Press '3' hotkey to activate first";
+                }
 
             }
             elsif ( $key_name eq 't' ) {
@@ -560,11 +595,15 @@ sub loop ($@) {
             }
             elsif ( $key_name eq 'f' ) {
                 $net_max_bytes *= 2;
-                display_info "Set net interface speed reference to " . ($net_max_bytes / $I{bytes_mbit}) . 'mbit/s';
+                display_info "Set net interface speed reference to "
+                  . ( $net_max_bytes / $I{bytes_mbit} )
+                  . 'mbit/s';
             }
-            elsif ( $key_name eq 'v') {
-                $net_max_bytes = int($net_max_bytes / 2);
-                display_info "Set net interface speed reference to " . ($net_max_bytes / $I{bytes_mbit}) . 'mbit/s';
+            elsif ( $key_name eq 'v' ) {
+                $net_max_bytes = int( $net_max_bytes / 2 );
+                display_info "Set net interface speed reference to "
+                  . ( $net_max_bytes / $I{bytes_mbit} )
+                  . 'mbit/s';
 
             }
             elsif ( $key_name eq 'left' ) {
@@ -807,8 +846,7 @@ sub loop ($@) {
                 if ( $C{shownet} && exists $NETSTATS_HAS{$host} ) {
                     $add_x += $width + 1;
 
-                    my $int = $C{netint};
-                    my $key = "$host;$int";
+                    my $key = "$host;$net_int";
 
                     if ( exists $NETSTATS{$key} ) {
 
@@ -902,7 +940,7 @@ sub loop ($@) {
 
                         if ( $C{showtext} ) {
                             my $y_ = 5;
-                            $app->print( $x + $add_x, $y_, $int );
+                            $app->print( $x + $add_x, $y_, $net_int );
                             $app->print( $x + $add_x,
                                 $y_ += $sdl_font_height, 'Rxb:' );
                             $app->print(

@@ -389,7 +389,7 @@ sub auto_off_text ($) {
     if ( $barwidth < $C{barwidth} - 1 && $I{showtextoff} == 0 ) {
         return unless $C{showtext};
         display_warn
-'Disabling text display, text does not fit into window. Use \'t\' to re-enable.';
+'Disabling text display, text does not fit into window. Press t to re-enable.';
         $I{showtextoff} = 1;
         $C{showtext}    = 0;
 
@@ -514,7 +514,7 @@ sub loop ($@) {
                 display_info "Toggled show net $C{shownet}";
                 display_info "Net interface speed reference is "
                   . ( $net_max_bytes / $I{bytes_mbit} )
-                  . 'mbit/s'
+                  . "mbit/s. Press f/v to scale"
                   if $C{shownet};
             }
 
@@ -532,7 +532,7 @@ sub loop ($@) {
             }
             elsif ( $key_name eq 'm' ) {
                 display_warn
-"Toggled show mem hotkey 'm' is deprecated. Please use '2' hotkey instead";
+"Toggled show mem hotkey m is deprecated. Press 2 hotkey instead";
 
             }
             elsif ( $key_name eq 'n' ) {
@@ -543,7 +543,7 @@ sub loop ($@) {
                 }
                 else {
                     display_warn
-"Net stats are not activated. Press '3' hotkey to activate first";
+"Net stats are not activated. Press 3 hotkey to activate first";
                 }
 
             }

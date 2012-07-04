@@ -538,6 +538,7 @@ sub loop ($@) {
             elsif ( $key_name eq 'n' ) {
                 if ( $C{shownet} ) {
                     $net_int = net_next_int ++$net_int_number;
+                    $sdl_redraw_background = 1;
                     display_info "Using net interface which is $net_int";
                 }
                 else {

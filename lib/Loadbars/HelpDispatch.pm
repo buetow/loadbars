@@ -1,15 +1,15 @@
 package Loadbars::HelpDispatch;
 
 use strict;
-    use warnings;
+use warnings;
 
-    use Loadbars::Constants;
-    use Loadbars::Shared;
+use Loadbars::Constants;
+use Loadbars::Shared;
 
-    sub create () {
-        my $hosts = '';
+sub create () {
+    my $hosts = '';
 
-        my $textdesc = <<END;
+    my $textdesc = <<END;
     CPU stuff:
         st = Steal in % [see man proc] (extended)
         Color: Red
@@ -68,14 +68,14 @@ END
         cpuaverage_hot_up => {
             menupos => 4,
             cmd     => 'a',
-            help    => 'Increases number of cpu samples for calculating avg. by 1',
-            mode    => 1
+            help => 'Increases number of cpu samples for calculating avg. by 1',
+            mode => 1
         },
         cpuaverage_hot_dn => {
             menupos => 5,
             cmd     => 'y',
-            help    => 'Decreases number of cpu samples for calculating avg. by 1',
-            mode    => 1
+            help => 'Decreases number of cpu samples for calculating avg. by 1',
+            mode => 1
         },
 
         netaverage => {
@@ -87,14 +87,14 @@ END
         netaverage_hot_up => {
             menupos => 7,
             cmd     => 'd',
-            help    => 'Increases number of net samples for calculating avg. by 1',
-            mode    => 1
+            help => 'Increases number of net samples for calculating avg. by 1',
+            mode => 1
         },
         netaverage_hot_dn => {
             menupos => 8,
             cmd     => 'c',
-            help    => 'Decreases number of net samples for calculating avg. by 1',
-            mode    => 1
+            help => 'Decreases number of net samples for calculating avg. by 1',
+            mode => 1
         },
 
         netint => {
@@ -102,6 +102,13 @@ END
             help    => 'Interface to show netstats for (default: eth0)',
             mode    => 6,
             type    => 's'
+        },
+        netlink => {
+            menupos => 6,
+            help =>
+'Force interface link speed (mbit, 10mbit, 100mbit, gbit, 10gbit or mbytes/s number',
+            mode => 6,
+            type => 's'
         },
 
         barwidth => {
@@ -278,9 +285,15 @@ END
             mode    => 1
         },
 
-        sshopts => { menupos => 20, help => 'Set SSH options', mode => 6, type => 's' },
+        sshopts =>
+          { menupos => 20, help => 'Set SSH options', mode => 6, type => 's' },
 
-        title => { menupos => 21, help => 'Set title bar text', mode => 6, type => 's' },
+        title => {
+            menupos => 21,
+            help    => 'Set title bar text',
+            mode    => 6,
+            type    => 's'
+        },
     );
 
     my %d_by_short = map {

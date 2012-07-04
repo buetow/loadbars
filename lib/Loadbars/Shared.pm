@@ -50,6 +50,7 @@ our %I : shared;
     maxwidth     => 1250,
     netaverage   => 15,
     netint       => 'eth0',
+    netlink      => 'gbit',
     showcores    => 0,
     showmem      => 0,
     shownet      => 0,
@@ -59,7 +60,12 @@ our %I : shared;
 );
 
 %I = (
-    cpustring   => 'cpu',
-    showtextoff => 0,
+    cpustring     => 'cpu',
+    showtextoff   => 0,
+    bytes_mbit    => 125000,
+    bytes_10mbit  => 1250000,
+    bytes_100mbit => 12500000,
+    bytes_gbit    => 125000000,
+    bytes_10gbit  => 1250000000,
 );
 

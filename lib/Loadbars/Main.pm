@@ -100,9 +100,9 @@ sub threads_stats ($;$) {
     my $cpustring = $I{cpustring};
 
     # Precompile some regexp
-    my @meminfo = 
-        map { [$_, qr/^$_: *(\d+)/] } 
-        (qw(MemTotal MemFree Buffers Cached SwapTotal SwapFree));
+    my @meminfo =
+      map { [ $_, qr/^$_: *(\d+)/ ] }
+      (qw(MemTotal MemFree Buffers Cached SwapTotal SwapFree));
 
     my $modeswitch_re = qr/^M /;
 
@@ -196,22 +196,25 @@ REMOTECODE
             if ( $_ =~ $modeswitch_re ) {
                 if ( $_ eq 'M CPUSTATS' ) {
                     $mode = 1;
-                } elsif ( $_ eq 'M MEMSTATS' ) {
+                }
+                elsif ( $_ eq 'M MEMSTATS' ) {
                     $mode = 2;
-                } elsif ( $_ eq 'M NETSTATS' ) {
+                }
+                elsif ( $_ eq 'M NETSTATS' ) {
                     $mode = 3;
-                } elsif ( $_ eq 'M LOADAVG' ) {
+                }
+                elsif ( $_ eq 'M LOADAVG' ) {
                     $mode = 0;
-                } 
+                }
                 next;
             }
 
             if ( $mode == 0 ) {
-                $AVGSTATS{$host} = $_;
+                $AVGSTATS{$host}     = $_;
                 $AVGSTATS_HAS{$host} = 1;
             }
             elsif ( $mode == 1 ) {
-                if (0 == index $_, $cpustring) {
+                if ( 0 == index $_, $cpustring ) {
                     my ( $name, $load ) = cpu_parse_line $_;
                     $CPUSTATS{"$host;$name"} = join ';',
                       map  { $_ . '=' . $load->{$_} }
@@ -220,18 +223,19 @@ REMOTECODE
             }
             elsif ( $mode == 2 ) {
                 for my $meminfo (@meminfo) {
-                    if ($_ =~ $meminfo->[1]) {
+                    if ( $_ =~ $meminfo->[1] ) {
                         $MEMSTATS{"$host;$meminfo->[0]"} = $1;
-                        $MEMSTATS_HAS{$host} = 1 unless defined $MEMSTATS_HAS{$host};
+                        $MEMSTATS_HAS{$host} = 1
+                          unless defined $MEMSTATS_HAS{$host};
                     }
                 }
             }
             elsif ( $mode == 3 ) {
-                    my ($int, @stats) = split ':', $_;
-                    $NETSTATS{"$host;$int"} = "@stats";
-                    $NETSTATS{"$host;$int;stamp"} = Time::HiRes::time();
-                    $NETSTATS_INT{$int} = 1 unless defined $NETSTATS_INT{$int};
-                    $NETSTATS_HAS{$host} = 1 unless defined $NETSTATS_HAS{$host};
+                my ( $int, @stats ) = split ':', $_;
+                $NETSTATS{"$host;$int"}       = "@stats";
+                $NETSTATS{"$host;$int;stamp"} = Time::HiRes::time();
+                $NETSTATS_INT{$int}  = 1 unless defined $NETSTATS_INT{$int};
+                $NETSTATS_HAS{$host} = 1 unless defined $NETSTATS_HAS{$host};
             }
 
             if ($sigusr1) {
@@ -264,12 +268,13 @@ sub cpu_normalize_loads ($) {
     return $cpu_loads_r unless exists $cpu_loads_r->{TOTAL};
 
     my $total = $cpu_loads_r->{TOTAL} == 0 ? 1 : $cpu_loads_r->{TOTAL};
-    my %cpu_loads = map { $_ => $cpu_loads_r->{$_} / ( $total / 100 ) } keys %$cpu_loads_r;
+    my %cpu_loads =
+      map { $_ => $cpu_loads_r->{$_} / ( $total / 100 ) } keys %$cpu_loads_r;
     return \%cpu_loads;
 }
 
 sub cpu_parse ($) {
-    my ($line_r) =  shift;
+    my ($line_r) = shift;
 
     my %stat = map {
         my ( $k, $v ) = split '=';
@@ -279,28 +284,47 @@ sub cpu_parse ($) {
     return \%stat;
 }
 
+sub net_link () {
+    my $key = "bytes_$C{netlink}";
+
+    my $linkspeed = do {
+        if ( defined $I{$key} ) {
+            $I{$key};
+
+        }
+        else {
+            int $C{netlink} * $I{bytes_mbit};
+        }
+    };
+
+    display_warn "$linkspeed bytes/s is no valid link speed"
+      unless $linkspeed > 0;
+
+    return $linkspeed;
+}
+
 sub net_parse ($) {
     my ($line_r) = shift;
-    my ($a, $b) = split ' ', $$line_r;
+    my ( $a, $b ) = split ' ', $$line_r;
 
-    my %a = map { 
-        my ($k, $v) = split '=', $_; 
-        $k => $v; 
+    my %a = map {
+        my ( $k, $v ) = split '=', $_;
+        $k => $v;
 
     } split ';', $a;
 
-    my %b = map { 
-        my ($k, $v) = split '=', $_; 
-        $k => $v; 
+    my %b = map {
+        my ( $k, $v ) = split '=', $_;
+        $k => $v;
 
     } split ';', $b;
 
-    return [\%a, \%b];
+    return [ \%a, \%b ];
 }
 
 sub net_diff ($$) {
-    my ($a_r, $b_r) = @_;
-    my %diff = map { $_ => ($a_r->{$_} - $b_r->{$_}) } keys %$a_r;
+    my ( $a_r, $b_r ) = @_;
+    my %diff = map { $_ => ( $a_r->{$_} - $b_r->{$_} ) } keys %$a_r;
 
     return \%diff;
 }
@@ -367,10 +391,6 @@ sub set_dimensions ($$) {
     }
 }
 
-sub get_interface_speed () {
-    return Loadbars::Constants->BYTES_GBIT;
-}
-
 sub loop ($@) {
     my ( $dispatch, @threads ) = @_;
 
@@ -378,15 +398,16 @@ sub loop ($@) {
     $C{width} = $C{barwidth};
 
     my $title = do {
-        if (defined $C{title}) {
+        if ( defined $C{title} ) {
             $C{title};
-        } else {
+        }
+        else {
             'Loadbars ' . get_version . ' (press h for help on stdout)';
         }
     };
 
     my $app = SDL::App->new(
-        -title => $title,
+        -title      => $title,
         -icon_title => Loadbars::Constants->VERSION,
         -width      => $C{width},
         -height     => $C{height},
@@ -415,7 +436,8 @@ sub loop ($@) {
     my %net_history_stamps;
     my %net_last_value;
 
-    my $net_max_bytes = get_interface_speed;
+    my $net_max_bytes = net_link;
+    printf "my $net_max_bytes = net_link\n";
 
     my $sdl_redraw_background = 0;
     my $sdl_font_height       = 14;
@@ -558,19 +580,21 @@ sub loop ($@) {
 
             next unless defined $CPUSTATS{$key};
 
-            $cpu_history{$key} = [cpu_parse \$CPUSTATS{$key}]
-                unless exists $cpu_history{$key} && exists $CPUSTATS{$key};
+            $cpu_history{$key} = [ cpu_parse \$CPUSTATS{$key} ]
+              unless exists $cpu_history{$key} && exists $CPUSTATS{$key};
 
-            my $now_stat_r = cpu_parse \$CPUSTATS{$key};
+            my $now_stat_r  = cpu_parse \$CPUSTATS{$key};
             my $prev_stat_r = $cpu_history{$key}[0];
 
-            push @{$cpu_history{$key}}, $now_stat_r;
-            shift @{$cpu_history{$key}} while $C{cpuaverage} < @{$cpu_history{$key}};
+            push @{ $cpu_history{$key} }, $now_stat_r;
+            shift @{ $cpu_history{$key} }
+              while $C{cpuaverage} < @{ $cpu_history{$key} };
 
             my %cpu_loads =
               null $now_stat_r->{TOTAL} == null $prev_stat_r->{TOTAL}
               ? %$now_stat_r
-              : map { $_ => $now_stat_r->{$_} - $prev_stat_r->{$_} } keys %$now_stat_r;
+              : map { $_ => $now_stat_r->{$_} - $prev_stat_r->{$_} }
+              keys %$now_stat_r;
 
             my $cpu_loads_r = cpu_normalize_loads \%cpu_loads;
 
@@ -580,8 +604,9 @@ sub loop ($@) {
                   : 1
             } keys %$cpu_loads_r;
 
-            push @{$cpu_max{$key}}, $cpu_loads_r;
-            shift @{$cpu_max{$key}} while $C{cpuaverage} < @{$cpu_max{$key}};
+            push @{ $cpu_max{$key} }, $cpu_loads_r;
+            shift @{ $cpu_max{$key} }
+              while $C{cpuaverage} < @{ $cpu_max{$key} };
 
             my $is_host_summary = $name eq 'cpu' ? 1 : 0;
 
@@ -664,20 +689,21 @@ sub loop ($@) {
             $app->fill( $rect_nice,    Loadbars::Constants->GREEN );
             $app->fill( $rect_iowait,  Loadbars::Constants->PURPLE );
 
-            my $rect_memused  = sdl_get_rect $rects, "$host;memused";
-            my $rect_memfree  = sdl_get_rect $rects, "$host;memfree";
+            my $rect_memused = sdl_get_rect $rects, "$host;memused";
+            my $rect_memfree = sdl_get_rect $rects, "$host;memfree";
+
             #my $rect_buffers  = sdl_get_rect $rects, "$host;buffers";
             #my $rect_cached   = sdl_get_rect $rects, "$host;cached";
             my $rect_swapused = sdl_get_rect $rects, "$host;swapused";
             my $rect_swapfree = sdl_get_rect $rects, "$host;swapfree";
 
-            my $rect_netused  = sdl_get_rect $rects, "$host;netused";
-            my $rect_netfree  = sdl_get_rect $rects, "$host;netfree";
+            my $rect_netused = sdl_get_rect $rects, "$host;netused";
+            my $rect_netfree = sdl_get_rect $rects, "$host;netfree";
 
-            my $rect_tnetused  = sdl_get_rect $rects, "$host;tnetused";
-            my $rect_tnetfree  = sdl_get_rect $rects, "$host;tnetfree";
+            my $rect_tnetused = sdl_get_rect $rects, "$host;tnetused";
+            my $rect_tnetfree = sdl_get_rect $rects, "$host;tnetfree";
 
-            my $add_x         = 0;
+            my $add_x      = 0;
             my $half_width = $width / 2;
 
             my %meminfo;
@@ -741,7 +767,8 @@ sub loop ($@) {
                             sprintf '%02d',
                             ( 100 - $meminfo{ram_per} )
                         );
-                        $app->print( $x + $add_x, $y_ += $sdl_font_height, 'Swp:' );
+                        $app->print( $x + $add_x,
+                            $y_ += $sdl_font_height, 'Swp:' );
                         $app->print(
                             $x + $add_x,
                             $y_ += $sdl_font_height,
@@ -751,107 +778,122 @@ sub loop ($@) {
                     }
                 }
 
-                if ( $C{shownet} && exists $NETSTATS_HAS{$host}) {
+                if ( $C{shownet} && exists $NETSTATS_HAS{$host} ) {
                     $add_x += $width + 1;
 
                     my $int = $C{netint};
                     my $key = "$host;$int";
 
-                    if (exists $NETSTATS{$key}) {
+                    if ( exists $NETSTATS{$key} ) {
 
-                    unless (exists $net_history{$key}) {
-                        $net_history{$key} = [net_parse \$NETSTATS{$key}];
-                        $net_history_stamps{$key} = [$NETSTATS{"$key;stamp"}];
-                    }
+                        unless ( exists $net_history{$key} ) {
+                            $net_history{$key} = [ net_parse \$NETSTATS{$key} ];
+                            $net_history_stamps{$key} =
+                              [ $NETSTATS{"$key;stamp"} ];
+                        }
 
-                    my $now_stat_stamp = $NETSTATS{"$key;stamp"};
-                    my $now_stat_r = net_parse \$NETSTATS{$key};
+                        my $now_stat_stamp = $NETSTATS{"$key;stamp"};
+                        my $now_stat_r     = net_parse \$NETSTATS{$key};
 
-                    my $prev_stat_stamp = $net_history_stamps{$key}[0];
+                        my $prev_stat_stamp = $net_history_stamps{$key}[0];
 
-                    my $net_factor = $net_max_bytes * ($now_stat_stamp - $prev_stat_stamp);
+                        my $net_factor = $net_max_bytes *
+                          ( $now_stat_stamp - $prev_stat_stamp );
 
-                    push @{$net_history_stamps{$key}}, $now_stat_stamp;
-                    shift @{$net_history_stamps{$key}} while $C{netaverage} < @{$net_history_stamps{$key}};
+                        push @{ $net_history_stamps{$key} }, $now_stat_stamp;
+                        shift @{ $net_history_stamps{$key} }
+                          while $C{netaverage} < @{ $net_history_stamps{$key} };
 
-                    my $prev_stat_r = $net_history{$key}[0];
+                        my $prev_stat_r = $net_history{$key}[0];
 
-                    push @{$net_history{$key}}, $now_stat_r;
-                    shift @{$net_history{$key}} while $C{netaverage} < @{$net_history{$key}};
+                        push @{ $net_history{$key} }, $now_stat_r;
+                        shift @{ $net_history{$key} }
+                          while $C{netaverage} < @{ $net_history{$key} };
 
+                        my $diff_stat_r = net_diff $now_stat_r->[0],
+                          $prev_stat_r->[0];
 
-                    my $diff_stat_r = net_diff $now_stat_r->[0], $prev_stat_r->[0];
+                        my $net_per =
+                          percentage( $net_factor, $diff_stat_r->{b} );
+                        my $tnet_per =
+                          percentage( $net_factor, $diff_stat_r->{tb} );
 
-                    my $net_per = percentage($net_factor, $diff_stat_r->{b});
-                    my $tnet_per = percentage($net_factor, $diff_stat_r->{tb});
+                        if ( $net_per < 0 ) {
+                            $net_per = $net_last_value{"$key;per"};
+                        }
+                        else {
+                            $net_last_value{"$key;per"} = $net_per;
+                        }
 
-                    if ($net_per < 0) {
-                        $net_per = $net_last_value{"$key;per"};
-                    } else {
-                        $net_last_value{"$key;per"} = $net_per;
-                    }
+                        if ( $tnet_per < 0 ) {
+                            $tnet_per = $net_last_value{"$key;tper"};
+                        }
+                        else {
+                            $net_last_value{"$key;tper"} = $tnet_per;
+                        }
 
-                    if ($tnet_per < 0) {
-                        $tnet_per = $net_last_value{"$key;tper"};
-                    } else {
-                        $net_last_value{"$key;tper"} = $tnet_per;
-                    }
-
-                    my %heights = (
-                        NetUsed => $net_per * ( $C{height} / 100 ),
-                        NetFree => ( 100 - $net_per ) * ( $C{height} / 100 ),
-                        TNetFree => $tnet_per * ( $C{height} / 100 ),
-                        TNetUsed => ( 100 - $tnet_per ) * ( $C{height} / 100 ),
-                    );
-
-                    $y = $C{height} - $heights{NetFree};
-                    $rect_netused->width($half_width);
-                    $rect_netused->height( $heights{NetFree} );
-                    $rect_netused->x( $x + $add_x );
-                    $rect_netused->y($y);
-
-                    $y -= $heights{NetUsed};
-                    $rect_netfree->width($half_width);
-                    $rect_netfree->height( $heights{NetUsed} );
-                    $rect_netfree->x( $x + $add_x );
-                    $rect_netfree->y($y);
-
-                    $y = $C{height} - $heights{TNetFree};
-                    $rect_tnetused->width($half_width);
-                    $rect_tnetused->height( $heights{TNetFree} );
-                    $rect_tnetused->x( $x + $add_x + $half_width );
-                    $rect_tnetused->y($y);
-
-                    $y -= $heights{TNetUsed};
-                    $rect_tnetfree->width($half_width);
-                    $rect_tnetfree->height( $heights{TNetUsed} );
-                    $rect_tnetfree->x( $x + $add_x + $half_width );
-                    $rect_tnetfree->y($y);
-
-                    $app->fill( $rect_netused, Loadbars::Constants->BLACK );
-                    $app->fill( $rect_netfree, Loadbars::Constants->LIGHT_GREEN );
-
-                    $app->fill( $rect_tnetused, Loadbars::Constants->LIGHT_GREEN );
-                    $app->fill( $rect_tnetfree, Loadbars::Constants->BLACK );
-
-                    if ( $C{showtext} ) {
-                        my $y_ = 5;
-                        $app->print( $x + $add_x, $y_, $int );
-                        $app->print( $x + $add_x, $y_ += $sdl_font_height, 'Rxb:' );
-                        $app->print(
-                            $x + $add_x,
-                            $y_ += $sdl_font_height,
-                            sprintf '%02d%%',
-                            ( $net_per )
+                        my %heights = (
+                            NetUsed => $net_per * ( $C{height} / 100 ),
+                            NetFree => ( 100 - $net_per ) *
+                              ( $C{height} / 100 ),
+                            TNetFree => $tnet_per * ( $C{height} / 100 ),
+                            TNetUsed => ( 100 - $tnet_per ) *
+                              ( $C{height} / 100 ),
                         );
-                        $app->print( $x + $add_x, $y_ += $sdl_font_height, 'Trb:' );
-                        $app->print(
-                            $x + $add_x,
-                            $y_ += $sdl_font_height,
-                            sprintf '%02d%%',
-                            ( $tnet_per )
-                        );
-                    }
+
+                        $y = $C{height} - $heights{NetFree};
+                        $rect_netused->width($half_width);
+                        $rect_netused->height( $heights{NetFree} );
+                        $rect_netused->x( $x + $add_x );
+                        $rect_netused->y($y);
+
+                        $y -= $heights{NetUsed};
+                        $rect_netfree->width($half_width);
+                        $rect_netfree->height( $heights{NetUsed} );
+                        $rect_netfree->x( $x + $add_x );
+                        $rect_netfree->y($y);
+
+                        $y = $C{height} - $heights{TNetFree};
+                        $rect_tnetused->width($half_width);
+                        $rect_tnetused->height( $heights{TNetFree} );
+                        $rect_tnetused->x( $x + $add_x + $half_width );
+                        $rect_tnetused->y($y);
+
+                        $y -= $heights{TNetUsed};
+                        $rect_tnetfree->width($half_width);
+                        $rect_tnetfree->height( $heights{TNetUsed} );
+                        $rect_tnetfree->x( $x + $add_x + $half_width );
+                        $rect_tnetfree->y($y);
+
+                        $app->fill( $rect_netused, Loadbars::Constants->BLACK );
+                        $app->fill( $rect_netfree,
+                            Loadbars::Constants->LIGHT_GREEN );
+
+                        $app->fill( $rect_tnetused,
+                            Loadbars::Constants->LIGHT_GREEN );
+                        $app->fill( $rect_tnetfree,
+                            Loadbars::Constants->BLACK );
+
+                        if ( $C{showtext} ) {
+                            my $y_ = 5;
+                            $app->print( $x + $add_x, $y_, $int );
+                            $app->print( $x + $add_x,
+                                $y_ += $sdl_font_height, 'Rxb:' );
+                            $app->print(
+                                $x + $add_x,
+                                $y_ += $sdl_font_height,
+                                sprintf '%02d%%',
+                                ($net_per)
+                            );
+                            $app->print( $x + $add_x,
+                                $y_ += $sdl_font_height, 'Trb:' );
+                            $app->print(
+                                $x + $add_x,
+                                $y_ += $sdl_font_height,
+                                sprintf '%02d%%',
+                                ($tnet_per)
+                            );
+                        }
 
                     }
                 }
@@ -870,18 +912,18 @@ sub loop ($@) {
             if ( $C{extended} ) {
                 my $max_val = 0;
 
-                for (@{$cpu_max{$key}}) {
+                for ( @{ $cpu_max{$key} } ) {
                     my $new_val = sum @{$_}{qw{system user}};
                     $max_val = $new_val if $max_val < $new_val;
                 }
 
-                my $maxheight = $max_val * ($C{height} / 100 );
+                my $maxheight = $max_val * ( $C{height} / 100 );
 
                 $rect_peak = sdl_get_rect $rects, "$key;max";
                 $rect_peak->width($width);
                 $rect_peak->height(1);
                 $rect_peak->x($x);
-                $rect_peak->y($C{height} - $maxheight );
+                $rect_peak->y( $C{height} - $maxheight );
 
                 $app->fill(
                     $rect_peak,
@@ -913,10 +955,11 @@ sub loop ($@) {
             my $y = 5;
 
             my @loadavg = do {
-                if (defined $AVGSTATS_HAS{$host}) {
+                if ( defined $AVGSTATS_HAS{$host} ) {
                     split ';', $AVGSTATS{$host};
-                } else {
-                    (undef, undef,undef);
+                }
+                else {
+                    ( undef, undef, undef );
                 }
             };
 
@@ -1047,7 +1090,7 @@ sub loop ($@) {
 
             $app->update(
                 $rect_netfree,  $rect_netused,
-                $rect_tnetfree,  $rect_tnetused
+                $rect_tnetfree, $rect_tnetused
             ) if $C{shownet};
 
             $app->update($rect_separator) if defined $rect_separator;
@@ -1092,16 +1135,16 @@ sub loop ($@) {
         if ($resize_window) {
             set_dimensions $newsize{width}, $newsize{height};
             $app->resize( $C{width}, $C{height} );
-            $resize_window     = 0;
+            $resize_window         = 0;
             $sdl_redraw_background = 1;
         }
 
         if ($sdl_redraw_background) {
             sdl_draw_background $app, $rects;
             $sdl_redraw_background = 0;
-            %AVGSTATS          = ();
-            %AVGSTATS_HAS      = ();
-            %CPUSTATS          = ();
+            %AVGSTATS              = ();
+            %AVGSTATS_HAS          = ();
+            %CPUSTATS              = ();
         }
 
         auto_off_text $width;

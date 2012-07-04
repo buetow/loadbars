@@ -35,8 +35,6 @@ use constant {
     INTERVAL_MEM       => 1.0,
     INTERVAL_SDL       => 0.14,
     INTERVAL_SDL_WARN  => 1.0,
-    BYTES_MBIT         => 125000,
-    BYTES_GBIT         => 125000000,
     SUCCESS            => 0,
     E_UNKNOWN          => 1,
     E_NOHOST           => 2,

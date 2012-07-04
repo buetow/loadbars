@@ -297,8 +297,12 @@ sub net_link () {
         }
     };
 
-    display_warn "$linkspeed bytes/s is no valid link speed"
-      unless $linkspeed > 0;
+    my $mbit = $linkspeed / $I{bytes_mbit};
+
+    display_warn "$mbit mbit/s is no valid reference link speed"
+      unless $mbit > 0;
+
+    display_info "Setting reference linkspeed to $mbit mbit/s";
 
     return $linkspeed;
 }
@@ -435,9 +439,9 @@ sub loop ($@) {
     my %net_history;
     my %net_history_stamps;
     my %net_last_value;
+    my $net_int_number = 0;
 
     my $net_max_bytes = net_link;
-    printf "my $net_max_bytes = net_link\n";
 
     my $sdl_redraw_background = 0;
     my $sdl_font_height       = 14;
@@ -466,6 +470,18 @@ sub loop ($@) {
                 display_info "Toggled CPUs $C{showcores}";
 
             }
+            elsif ( $key_name eq '2' ) {
+                $C{showmem} = !$C{showmem};
+                display_info "Toggled show mem";
+
+            }
+            elsif ( $key_name eq '3' ) {
+                $C{shownet} = !$C{shownet};
+                $net_int_number = 0;
+                display_info "Toggled show net $C{shownet}";
+                display_info "Net interface speed reference is " . ($net_max_bytes / $I{bytes_mbit}) . 'mbit/s' if $C{shownet};
+              }
+
             elsif ( $key_name eq 'e' ) {
                 $C{extended} = !$C{extended};
                 $sdl_redraw_background = 1;
@@ -479,13 +495,13 @@ sub loop ($@) {
 
             }
             elsif ( $key_name eq 'm' ) {
-                $C{showmem} = !$C{showmem};
-                display_info "Toggled show mem";
+                display_warn "Toggled show mem hotkey 'm' is deprecated. Please use '2' hotkey instead";
+
 
             }
-            elsif ( $key_name eq 'n' ) {
-                $C{shownet} = !$C{shownet};
-                display_info "Toggled show net $C{shownet}";
+            elsif ( $key_name eq 'h' ) {
+                ++$net_int_number;
+                display_info "Using next net interface. To reset press '3' hotkey twice";
 
             }
             elsif ( $key_name eq 't' ) {

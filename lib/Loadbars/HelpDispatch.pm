@@ -106,7 +106,7 @@ END
         netlink => {
             menupos => 6,
             help =>
-'Force interface link speed (mbit, 10mbit, 100mbit, gbit, 10gbit or mbytes/s number',
+'Force interface link speed (mbit, 10mbit, 100mbit, gbit, 10gbit or a mbytes/s number e.g. 3 for 3mbit',
             mode => 6,
             type => 's'
         },
@@ -260,7 +260,7 @@ END
             type    => 'i'
         },
         showmem_hot =>
-          { menupos => 17, cmd => 'm', help => 'Toggle show mem', mode => 1 },
+          { menupos => 17, cmd => '2', help => 'Toggle show mem', mode => 1 },
 
         shownet => {
             menupos => 17,
@@ -269,7 +269,7 @@ END
             type    => 'i'
         },
         shownet_hot =>
-          { menupos => 17, cmd => 'n', help => 'Toggle show net', mode => 1 },
+          { menupos => 17, cmd => '3', help => 'Toggle show net', mode => 1 },
 
         showtexthost => {
             menupos => 18,

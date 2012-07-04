@@ -10,7 +10,7 @@ sub create () {
     my $hosts = '';
 
     my $textdesc = <<END;
-    CPU stuff:
+CPU stuff:
         st = Steal in % [see man proc] (extended)
         Color: Red
     gt = Guest in % [see man proc] (extended)
@@ -39,6 +39,15 @@ Memory stuff:
         Color: Dark grey
     Swp: System swap usage in %
         Color: Grey
+Network stuff:
+    Rxb: Incoming (received) traffic in %
+        Color: Light green, normal green if >100% while using low netlink ref
+        Bar comes from top and is half width
+    Txb: Outgoing (transmitted) traffic in %
+        Color: Light green, normal green if >100% while using low netlink ref
+        Bar comes from bottom and is half width
+    When network bar is red: The interface does not exist on the specific 
+    remote host.
 Config file support:
     Loadbars tries to read ~/.loadbarsrc and it's possible to configure any
     option you find in --help but without leading '--'. For comments just use
@@ -116,13 +125,13 @@ END
         netlink_hot_up => {
             menupos => 9,
             cmd     => 'f',
-            help    => 'Doubles net interface link speed reference',
+            help    => 'Increases net interface link speed reference by factor 10',
             mode    => 1
         },
         netlink_hot_dn => {
             menupos => 10,
             cmd     => 'v',
-            help    => 'Halfs net interface link speed reference',
+            help    => 'Decreases net interface link speed reference by factor 10',
             mode    => 1
         },
 

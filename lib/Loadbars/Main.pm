@@ -36,6 +36,10 @@ sub percentage ($$) {
     return int( null($part) / notnull( null($total) / 100 ) );
 }
 
+sub max_100 ($) {
+    return $_[0] > 100 ? 100 : $_[0]; 
+}
+
 sub percentage_norm ($$$) {
     my ( $total, $part, $norm ) = @_;
 
@@ -309,6 +313,9 @@ sub net_link () {
 
 sub net_next_int ($;$) {
     my ( $num, $initial_device_flag ) = @_;
+
+    return $C{netint} if defined $initial_device_flag && $C{netint} ne '';
+
     my $int = undef;
 
     for ( ; ; ) {
@@ -594,15 +601,16 @@ sub loop ($@) {
 
             }
             elsif ( $key_name eq 'f' ) {
-                $net_max_bytes *= 2;
+                $net_max_bytes *= 10;
                 display_info "Set net interface speed reference to "
                   . ( $net_max_bytes / $I{bytes_mbit} )
                   . 'mbit/s';
             }
             elsif ( $key_name eq 'v' ) {
-                $net_max_bytes = int( $net_max_bytes / 2 );
+                $net_max_bytes = int( $net_max_bytes / 10 );
+                $net_max_bytes = $I{bytes_mbit} if $net_max_bytes < $I{bytes_mbit};
                 display_info "Set net interface speed reference to "
-                  . ( $net_max_bytes / $I{bytes_mbit} )
+                  . int ( $net_max_bytes / $I{bytes_mbit} )
                   . 'mbit/s';
 
             }
@@ -847,6 +855,7 @@ sub loop ($@) {
                     $add_x += $width + 1;
 
                     my $key = "$host;$net_int";
+                    my %heights;
 
                     if ( exists $NETSTATS{$key} ) {
 
@@ -896,12 +905,15 @@ sub loop ($@) {
                             $net_last_value{"$key;tper"} = $tnet_per;
                         }
 
-                        my %heights = (
-                            NetUsed => $net_per * ( $C{height} / 100 ),
-                            NetFree => ( 100 - $net_per ) *
+                        my $net_per_100 = max_100 $net_per;
+                        my $tnet_per_100 = max_100 $tnet_per;
+
+                        %heights = (
+                            NetUsed => $net_per_100 * ( $C{height} / 100 ),
+                            NetFree => ( 100 - $net_per_100 ) *
                               ( $C{height} / 100 ),
-                            TNetFree => $tnet_per * ( $C{height} / 100 ),
-                            TNetUsed => ( 100 - $tnet_per ) *
+                            TNetFree => $tnet_per_100 * ( $C{height} / 100 ),
+                            TNetUsed => ( 100 - $tnet_per_100 ) *
                               ( $C{height} / 100 ),
                         );
 
@@ -931,12 +943,17 @@ sub loop ($@) {
 
                         $app->fill( $rect_netused, Loadbars::Constants->BLACK );
                         $app->fill( $rect_netfree,
-                            Loadbars::Constants->LIGHT_GREEN );
+                            $net_per > 100 
+                                ?  Loadbars::Constants->GREEN
+                                : Loadbars::Constants->LIGHT_GREEN );
 
                         $app->fill( $rect_tnetused,
-                            Loadbars::Constants->LIGHT_GREEN );
+                            $tnet_per > 100 
+                                ?  Loadbars::Constants->GREEN
+                                : Loadbars::Constants->LIGHT_GREEN );
                         $app->fill( $rect_tnetfree,
                             Loadbars::Constants->BLACK );
+
 
                         if ( $C{showtext} ) {
                             my $y_ = 5;
@@ -946,7 +963,7 @@ sub loop ($@) {
                             $app->print(
                                 $x + $add_x,
                                 $y_ += $sdl_font_height,
-                                sprintf '%02d%%',
+                                sprintf '%02d',
                                 ($net_per)
                             );
                             $app->print( $x + $add_x,
@@ -954,12 +971,31 @@ sub loop ($@) {
                             $app->print(
                                 $x + $add_x,
                                 $y_ += $sdl_font_height,
-                                sprintf '%02d%%',
+                                sprintf '%02d',
                                 ($tnet_per)
                             );
                         }
 
+                    # No netstats available for this host;device pair.
+                    } else {
+                        $rect_netused->width($width);
+                        $rect_netused->height( $C{height} );
+                        $rect_netused->x( $x + $add_x );
+                        $rect_netused->y($y);
+
+                        $app->fill( $rect_netused, Loadbars::Constants->RED );
+                        $app->fill( $rect_tnetused, Loadbars::Constants->RED );
+                        $app->fill( $rect_netfree, Loadbars::Constants->RED );
+                        $app->fill( $rect_tnetfree, Loadbars::Constants->RED );
+
+                        if ( $C{showtext} ) {
+                            my $y_ = 5;
+                            $app->print( $x + $add_x, $y_, $net_int);
+                            $app->print( $x + $add_x,
+                                $y_ += $sdl_font_height, 'n/a' );
+                        }
                     }
+
                 }
 
                 if ( $C{showcores} ) {

@@ -49,7 +49,7 @@ our %I : shared;
     height       => 230,
     maxwidth     => 1250,
     netaverage   => 15,
-    netint       => 'eth0',
+    netint       => '',
     netlink      => 'gbit',
     showcores    => 0,
     showmem      => 0,

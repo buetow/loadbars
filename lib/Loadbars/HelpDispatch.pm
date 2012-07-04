@@ -110,9 +110,21 @@ END
             mode => 6,
             type => 's'
         },
+        netlink_hot_up => {
+            menupos => 9,
+            cmd     => 'f',
+            help => 'Doubles net interface link speed reference',
+            mode => 1
+        },
+        netlink_hot_dn => {
+            menupos => 10,
+            cmd     => 'v',
+            help => 'Halfs net interface link speed reference',
+            mode => 1
+        },
 
         barwidth => {
-            menupos => 9,
+            menupos => 11,
             help    => 'Set bar width',
             mode    => 6,
             type    => 'i'
@@ -176,13 +188,13 @@ END
             type    => 's'
         },
         factor_hot_up => {
-            menupos => 8,
+            menupos => 12,
             cmd     => 's',
             help    => 'Increases graph scale factor by 0.1',
             mode    => 1
         },
         factor_hot_dn => {
-            menupos => 9,
+            menupos => 13,
             cmd     => 'x',
             help    => 'Decreases graph scale factor by 0.1',
             mode    => 1

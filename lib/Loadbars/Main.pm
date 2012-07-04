@@ -521,6 +521,16 @@ sub loop ($@) {
                 display_info "Set sample cpu average $C{cpuaverage}";
 
             }
+            elsif ( $key_name eq 's' ) {
+                $C{factor} += 0.1;
+                display_info "Set scale factor to $C{factor}";
+            }
+            elsif ( $key_name eq 'x' or $key_name eq 'z' ) {
+                $C{factor} -= 0.1;
+                display_info "Set scale factor to $C{factor}";
+
+            }
+
             elsif ( $key_name eq 'd' ) {
                 ++$C{netaverage};
                 display_info "Set sample net average $C{netaverage}";
@@ -532,13 +542,13 @@ sub loop ($@) {
                 display_info "Set sample net average $C{netaverage}";
 
             }
-            elsif ( $key_name eq 's' ) {
-                $C{factor} += 0.1;
-                display_info "Set scale factor to $C{factor}";
+            elsif ( $key_name eq 'f' ) {
+                $net_max_bytes *= 2;
+                display_info "Set net interface speed reference to " . ($net_max_bytes / $I{bytes_mbit}) . 'mbit/s';
             }
-            elsif ( $key_name eq 'x' or $key_name eq 'z' ) {
-                $C{factor} -= 0.1;
-                display_info "Set scale factor to $C{factor}";
+            elsif ( $key_name eq 'v') {
+                $net_max_bytes = int($net_max_bytes / 2);
+                display_info "Set net interface speed reference to " . ($net_max_bytes / $I{bytes_mbit}) . 'mbit/s';
 
             }
             elsif ( $key_name eq 'left' ) {

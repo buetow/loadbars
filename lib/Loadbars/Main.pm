@@ -37,7 +37,7 @@ sub percentage ($$) {
 }
 
 sub max_100 ($) {
-    return $_[0] > 100 ? 100 : $_[0]; 
+    return $_[0] > 100 ? 100 : $_[0];
 }
 
 sub percentage_norm ($$$) {
@@ -608,9 +608,10 @@ sub loop ($@) {
             }
             elsif ( $key_name eq 'v' ) {
                 $net_max_bytes = int( $net_max_bytes / 10 );
-                $net_max_bytes = $I{bytes_mbit} if $net_max_bytes < $I{bytes_mbit};
+                $net_max_bytes = $I{bytes_mbit}
+                  if $net_max_bytes < $I{bytes_mbit};
                 display_info "Set net interface speed reference to "
-                  . int ( $net_max_bytes / $I{bytes_mbit} )
+                  . int( $net_max_bytes / $I{bytes_mbit} )
                   . 'mbit/s';
 
             }
@@ -905,7 +906,7 @@ sub loop ($@) {
                             $net_last_value{"$key;tper"} = $tnet_per;
                         }
 
-                        my $net_per_100 = max_100 $net_per;
+                        my $net_per_100  = max_100 $net_per;
                         my $tnet_per_100 = max_100 $tnet_per;
 
                         %heights = (
@@ -943,17 +944,16 @@ sub loop ($@) {
 
                         $app->fill( $rect_netused, Loadbars::Constants->BLACK );
                         $app->fill( $rect_netfree,
-                            $net_per > 100 
-                                ?  Loadbars::Constants->GREEN
-                                : Loadbars::Constants->LIGHT_GREEN );
+                            $net_per > 100
+                            ? Loadbars::Constants->GREEN
+                            : Loadbars::Constants->LIGHT_GREEN );
 
                         $app->fill( $rect_tnetused,
-                            $tnet_per > 100 
-                                ?  Loadbars::Constants->GREEN
-                                : Loadbars::Constants->LIGHT_GREEN );
+                            $tnet_per > 100
+                            ? Loadbars::Constants->GREEN
+                            : Loadbars::Constants->LIGHT_GREEN );
                         $app->fill( $rect_tnetfree,
                             Loadbars::Constants->BLACK );
-
 
                         if ( $C{showtext} ) {
                             my $y_ = 5;
@@ -976,21 +976,22 @@ sub loop ($@) {
                             );
                         }
 
-                    # No netstats available for this host;device pair.
-                    } else {
+                        # No netstats available for this host;device pair.
+                    }
+                    else {
                         $rect_netused->width($width);
                         $rect_netused->height( $C{height} );
                         $rect_netused->x( $x + $add_x );
                         $rect_netused->y($y);
 
-                        $app->fill( $rect_netused, Loadbars::Constants->RED );
+                        $app->fill( $rect_netused,  Loadbars::Constants->RED );
                         $app->fill( $rect_tnetused, Loadbars::Constants->RED );
-                        $app->fill( $rect_netfree, Loadbars::Constants->RED );
+                        $app->fill( $rect_netfree,  Loadbars::Constants->RED );
                         $app->fill( $rect_tnetfree, Loadbars::Constants->RED );
 
                         if ( $C{showtext} ) {
                             my $y_ = 5;
-                            $app->print( $x + $add_x, $y_, $net_int);
+                            $app->print( $x + $add_x, $y_, $net_int );
                             $app->print( $x + $add_x,
                                 $y_ += $sdl_font_height, 'n/a' );
                         }

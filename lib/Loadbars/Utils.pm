@@ -12,13 +12,14 @@ our @EXPORT = qw (
   display_info
   display_info_no_nl
   display_warn
+  error
+  get_version
   newline
   notnull
   null
   say
   sum
   trim
-  get_version
 );
 
 sub say (@) { print "$_\n" for @_; return undef }

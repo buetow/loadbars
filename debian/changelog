@@ -1,3 +1,9 @@
+loadbars (0.5.99+nmu3) stable; urgency=low
+
+  * Foo muu
+
+ -- Paul Buetow <pb@Debian-60-squeeze-64-minimal>  Sat, 07 Jul 2012 10:27:38 +0200
+
 loadbars (0.5.99+nmu2) stable; urgency=low
 
   * Non-maintainer upload.

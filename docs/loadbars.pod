@@ -82,7 +82,7 @@ extended=1 # Always use extended mode on startup
 
 =back
 
-will always show all CPU cores in extended mode but no text display. 
+will always show all CPU cores in extended mode but no text display. If you press the 'w' hotkey during program execution your config file will be overwritten using the current settings. 
 
 
 =head1 LICENSE

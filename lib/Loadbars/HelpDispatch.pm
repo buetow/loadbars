@@ -73,7 +73,7 @@ END
         netlink => {
             menupos => 6,
             help =>
-'Force interface link speed (mbit, 10mbit, 100mbit, gbit, 10gbit or a mbytes/s number e.g. 3 for 3mbit',
+'Force interface link speed (mbit, 10mbit, 100mbit, gbit, 10gbit or a mbytes/s number e.g. 3 for 3mbit)',
             mode => 6,
             type => 's'
         },

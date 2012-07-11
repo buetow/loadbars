@@ -1,9 +1,4 @@
-TODO FOR NEXT RELEASE:
-* Graph scale factor should work for all graphs
 * Optimize data polling intervals and make it configurable
-
-MORE STUFF:
-
 * Optimize code (too much cpu usage if there are too many hosts involved). E.g. do more stuff on the remote side (preparing the data).
 * Fast hostnum display
 * --tiny switch

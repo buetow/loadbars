@@ -10,56 +10,7 @@ sub create () {
     my $hosts = '';
 
     my $textdesc = <<END;
-CPU stuff:
-        st = Steal in % [see man proc] (extended)
-        Color: Red
-    gt = Guest in % [see man proc] (extended)
-        Color: Red
-    sr = Soft IRQ usage in % (extended)
-        Color: White
-    ir = IRQ usage in % (extended)
-        Color: White
-    io = IOwait cpu sage in % 
-        Color: Purple
-    id = Idle cpu usage in % (extended)
-        Color: Black
-    ni = Nice cpu usage in % 
-        Color: Green
-    us = User cpu usage in % 
-        Color: Yellow, dark yellow if to>50%, orange if to>50%
-    sy = System cpu sage in % 
-        Blue, lighter blue if >30%
-    to = Total CPU usage, which is (100% - id)
-    pk = Max us+sy peak of last avg. samples (extended)
-    avg = System load average; desc. order: 1, 5 and 15 min. avg. 
-    1px horizontal line: Maximum sy+us+io of last 'avg' samples (extended)
-    Extended means: text display only if extended mode is turned on
-Memory stuff:
-    Ram: System ram usage in %
-        Color: Dark grey
-    Swp: System swap usage in %
-        Color: Grey
-Network stuff:
-    Rxb: Incoming (received) traffic in %
-        Color: Light green, normal green if >100% while using low netlink ref
-        Bar comes from top and is half width
-    Txb: Outgoing (transmitted) traffic in %
-        Color: Light green, normal green if >100% while using low netlink ref
-        Bar comes from bottom and is half width
-    When network bar is red: The interface does not exist on the specific 
-    remote host.
-Config file support:
-    Loadbars tries to read ~/.loadbarsrc and it's possible to configure any
-    option you find in --help but without leading '--'. For comments just use
-    the '#' sign. Sample config:
-        showcores=1 # Always show cores on startup
-        showtext=0 # Always don't display text on startup
-        extended=1 # Always use extended mode on startup
-    will always show all CPU cores in extended mode but no text display. 
-Examples:
-    loadbars --extended 1 --showcores 1 --height 300 --hosts localhost
-    loadbars --hosts localhost,server1.example.com,server2.example.com
-    loadbars --cluster foocluster (foocluster is in /etc/clusters [ClusterSSH])
+For more help please consult the manual page or press the 'h' hotkey during program execution and watch this terminal window. This are just the available startup parameters:
 END
 
  # mode 1: Option is shown in the online help menu (stdout not sdl)
@@ -338,7 +289,7 @@ END
             $textdesc . "Hotkeys:\n" . (
                 join "\n",
                 map {
-                    "$_\t- $d_by_short{$_}{help}"
+                    "$_ - $d_by_short{$_}{help}"
 
                   } grep {
                     $d_by_short{$_}{mode} & 1 and exists $d_by_short{$_}{help};
@@ -354,10 +305,10 @@ END
                 map {
                     if ( $_ eq 'help' )
                     {
-                        "--$_\t\t- $d{$_}{help}";
+                        "--$_ - $d{$_}{help}";
                     }
                     else {
-                        "--$_ <ARG>\t- $d{$_}{help}";
+                        "--$_ <ARG> - $d{$_}{help}";
                     }
 
                   } grep {

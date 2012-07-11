@@ -44,7 +44,6 @@ our %I : shared;
     barwidth     => 35,
     cpuaverage   => 15,
     extended     => 0,
-    factor       => 1,
     hasagent     => 0,
     height       => 230,
     maxwidth     => 1250,

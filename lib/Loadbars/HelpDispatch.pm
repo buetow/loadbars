@@ -197,25 +197,6 @@ END
             mode    => 1
         },
 
-        factor => {
-            menupos => 7,
-            help    => 'Set graph scale factor (1.0 means 100%)',
-            mode    => 6,
-            type    => 's'
-        },
-        factor_hot_up => {
-            menupos => 12,
-            cmd     => 's',
-            help    => 'Increases graph scale factor by 0.1',
-            mode    => 1
-        },
-        factor_hot_dn => {
-            menupos => 13,
-            cmd     => 'x',
-            help    => 'Decreases graph scale factor by 0.1',
-            mode    => 1
-        },
-
         hasagent => {
             menupos => 10,
             help    => 'SSH key is already known by the SSH agent (0 or 1)',

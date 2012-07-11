@@ -1,4 +1,3 @@
-
 package Loadbars::Main;
 
 use strict;
@@ -49,7 +48,6 @@ sub percentage_norm ($$$) {
 sub norm ($) {
     my $n = shift;
 
-    return $n if $C{factor} != 1;
     return $n > 100 ? 100 : ( $n < 0 ? 0 : $n );
 }
 
@@ -578,15 +576,6 @@ sub loop ($@) {
                 --$avg;
                 $C{cpuaverage} = $avg > 1 ? $avg : 2;
                 display_info "Set sample cpu average $C{cpuaverage}";
-
-            }
-            elsif ( $key_name eq 's' ) {
-                $C{factor} += 0.1;
-                display_info "Set scale factor to $C{factor}";
-            }
-            elsif ( $key_name eq 'x' or $key_name eq 'z' ) {
-                $C{factor} -= 0.1;
-                display_info "Set scale factor to $C{factor}";
 
             }
 

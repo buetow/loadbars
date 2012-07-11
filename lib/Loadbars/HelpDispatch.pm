@@ -10,7 +10,7 @@ sub create () {
     my $hosts = '';
 
     my $textdesc = <<END;
-For more help please consult the manual page or press the 'h' hotkey during program execution and watch this terminal window. This are just the available startup parameters:
+For more help please consult the manual page or press the 'h' hotkey during program execution and watch this terminal window. 
 END
 
  # mode 1: Option is shown in the online help menu (stdout not sdl)

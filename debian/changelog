@@ -1,4 +1,4 @@
-loadbars (0.6.0) stable; urgency=low
+loadbars (0.6.0.5) stable; urgency=low
 
   * Introducing network stats. Network stats toggle button is 3
     The new --netint INTNAME startup param specifies the nic to observe.

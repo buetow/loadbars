@@ -1,14 +1,63 @@
-loadbars (0.5.99+nmu3) stable; urgency=low
+loadbars (0.6.0) stable; urgency=low
 
-  * Foo muu
+  * Introducing network stats. Network stats toggle button is 3
+    The new --netint INTNAME startup param specifies the nic to observe.
+    The new --hasnet 0|1 startup params specifies whether to display network 
+    stats on startup. 
+    The new --netlink SPEED startup params specifies the network interface 
+    speed to assume on startup on the given nic. Possible values are mbit,
+    10mbit, 100mbit, gbit, 10gbit or just a number which is interpreted as 
+    mbytes/s. If no --netlink param is given the standard NIC speed is set to
+    1gbit.
 
- -- Paul Buetow <pb@Debian-60-squeeze-64-minimal>  Sat, 07 Jul 2012 10:27:38 +0200
+  * Incoming network traffic is displayed from a bar coming from upside down 
+    (light green). 100% means: The theoretical network bandwidth is used 
+    100%.
 
-loadbars (0.5.99+nmu2) stable; urgency=low
+  * Outgoing network traffic is displayed from a bar coming from downside up 
+    (light green). 100% means: The theoretical network bandwidth is used 
+    100%.
 
-  * Non-maintainer upload.
+  * Rxb means: Received bytes in % until total bandwidth
 
- -- Paul Buetow <pb@Debian-60-squeeze-64-minimal>  Fri, 29 Jun 2012 21:00:01 +0200
+  * Txb means: Transmitted bytes in % until total bandwidth
+
+  * During runtime the v hotkey decrease the link speed by factor 10
+
+  * During runtime the f hotkey increases the link speed by factor 10
+
+  * During runtime the n hotkey switches to the next available network
+    interface. If you have hosts with different nics and try to switch to a
+    nic wich is available on one host but not on another a *big red* bar will
+    be shown on the host which is missing the specific nic.
+
+  * Memory stats toggle button is now 2 instead of m. If you press m a
+    deprecation massage is shown and nothing more happens.
+
+  * Some code optimizations on CPU bars. It should consume *at least a little*
+    less CPU on the display host than before. BUT NOT *much less*!
+
+  * New manual page (removed some infos from --help and put it into the 
+    manpage).
+
+  * Removed the --factor switch, since it was barely used and caused some 
+    implementation details on network and memory stats. Maybe I am just too 
+    studpid.
+
+  * Improved the info messages displayed on stdout.
+
+  * The remote code (fetching infos from /proc fs) is now written in perl and 
+    not bash anymore. Sooner or later this will be used to put more logic into
+    it (e.g. setting uptime intervals separately for differend kinds of stats).
+
+  * Re-add the --title startup params which specifies the window title of the
+    loadbars session.
+
+  * Some code refactoring.
+
+  * New wishlist brainstorming for next released (see docs/wishlist).
+
+ -- Paul Buetow <paul@buetow.org>  Mon, 23 Jul 2012 18:40:39 +0200
 
 loadbars (0.5.3) stable; urgency=low
 

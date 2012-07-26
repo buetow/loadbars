@@ -1,3 +1,9 @@
+loadbars (0.6.0.99) precise; urgency=low
+
+  * New dev branch
+
+ -- Paul Buetow <pb@venus>  Thu, 26 Jul 2012 08:24:11 +0200
+
 loadbars (0.6.0.5) stable; urgency=low
 
   * Introducing network stats. Network stats toggle button is 3

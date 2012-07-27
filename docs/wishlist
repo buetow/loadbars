@@ -1,12 +1,12 @@
 * Optimize data polling intervals and make it configurable
 * Optimize code (too much cpu usage if there are too many hosts involved). 
-  E.g. do more stuff on the remote side (preparing the data).
+  E.g. do more stuff on the remote side (preparing the data). 
 * Fast hostnum display
 * --tiny switch
 * More stats for memory
 * More stats for network
 * Auto detect single core boxes
 * Allow bash expansion/wildcards (e.g. loadbars --hosts server{01..30}
-* Make bars mor modular (e.g. atm there is always a cpu bar, and network 
+* Make bars more modular (e.g. atm there is always a cpu bar, and network 
   and mem are optional, everything should be optional).
 

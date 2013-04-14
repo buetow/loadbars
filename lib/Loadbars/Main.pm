@@ -4,12 +4,13 @@ use strict;
 use warnings;
 
 use SDL;
-use SDL::App;
-use SDL::Rect;
 use SDL::Event;
-
+use SDL::Events;
+use SDL::Rect;
 use SDL::Surface;
-use SDL::Font;
+use SDL::Video;
+use SDLx::App;
+use SDLx::SFont;
 
 use Time::HiRes qw(usleep gettimeofday);
 
@@ -22,6 +23,9 @@ use Loadbars::Config;
 use Loadbars::Constants;
 use Loadbars::Shared;
 use Loadbars::Utils;
+
+use Carp;
+$SIG{__DIE__} = sub { Carp::confess(@_) };
 
 $| = 1;
 
@@ -261,7 +265,7 @@ sub sdl_get_rect ($$) {
     my ( $rects, $name ) = @_;
 
     return $rects->{$name} if exists $rects->{$name};
-    return $rects->{$name} = SDL::Rect->new();
+    return $rects->{$name} = SDL::Rect->new(0,0,0,0);
 }
 
 sub cpu_normalize_loads ($) {
@@ -364,14 +368,22 @@ sub net_diff ($$) {
     return \%diff;
 }
 
+sub sdl_fill_rect {
+  my ($app, $rect, $color) = @_;
+
+  my $mapped_color = SDL::Video::map_RGB($app->format(), @$color);
+  SDL::Video::fill_rect($app, $rect, $mapped_color);
+
+  return undef;
+}
+
 sub sdl_draw_background ($$) {
     my ( $app, $rects ) = @_;
     my $rect = sdl_get_rect $rects, 'background';
 
-    $rect->width( $C{width} );
-    $rect->height( $C{height} );
-    $app->fill( $rect, Loadbars::Constants->BLACK );
-    $app->update($rect);
+    $rect->w( $C{width} );
+    $rect->h( $C{height} );
+    sdl_fill_rect($app,  $rect, Loadbars::Constants->BLACK );
 
     return undef;
 }
@@ -441,13 +453,13 @@ sub loop ($@) {
         }
     };
 
-    my $app = SDL::App->new(
-        -title      => $title,
-        -icon_title => Loadbars::Constants->VERSION,
-        -width      => $C{width},
-        -height     => $C{height},
-        -depth      => Loadbars::Constants->COLOR_DEPTH,
-        -resizeable => 1,
+    my $app = SDLx::App->new(
+        title      => $title,
+        icon_title => Loadbars::Constants->VERSION,
+        width      => $C{width},
+        height     => $C{height},
+        depth      => Loadbars::Constants->COLOR_DEPTH,
+        resizeable => 1,
     );
 
     my $font = do {
@@ -461,7 +473,7 @@ sub loop ($@) {
         }
     };
 
-    SDL::Font->new($font)->use();
+    SDLx::SFont->new($font)->use();
 
     my $rects = {};
     my %cpu_history;
@@ -488,140 +500,159 @@ sub loop ($@) {
 
     # Closure for event handling
     my $event_handler = sub {
-
         # While there are events to poll, poll them all!
-        while ( $event->poll() == 1 ) {
+          while ( SDL::Events::poll_event($event) ) {
             next if $event->type() != 2;
-            my $key_name = $event->key_name();
+              my $key_sym = $event->key_sym();
 
-            if ( $key_name eq '1' ) {
-                $C{showcores} = !$C{showcores};
-                cpu_set_showcores_re;
-                $_->kill('USR1') for @threads;
-                $sdl_redraw_background = 1;
-                display_info "Toggled CPUs $C{showcores}";
+              if ( $key_sym == 49 ) {
+                  # 1 pressed
+                  $C{showcores} = !$C{showcores};
+                  cpu_set_showcores_re;
+                  $_->kill('USR1') for @threads;
+                  $sdl_redraw_background = 1;
+                  display_info "Toggled CPUs $C{showcores}";
 
-            }
-            elsif ( $key_name eq '2' ) {
-                $C{showmem} = !$C{showmem};
-                display_info "Toggled show mem";
+              }
+              elsif ( $key_sym == 50 ) {
+                  # 2 pressed
+                  $C{showmem} = !$C{showmem};
+                  display_info "Toggled show mem";
 
-            }
-            elsif ( $key_name eq '3' ) {
-                $C{shownet} = !$C{shownet};
-                display_info "Toggled show net $C{shownet}";
-                display_info "Net interface speed reference is "
-                  . ( $net_max_bytes / $I{bytes_mbit} )
-                  . "mbit/s. Press f/v to scale"
-                  if $C{shownet};
-            }
+              }
+              elsif ( $key_sym == 51 ) {
+                  # 3 pressed
+                  $C{shownet} = !$C{shownet};
+                  display_info "Toggled show net $C{shownet}";
+                  display_info "Net interface speed reference is "
+                    . ( $net_max_bytes / $I{bytes_mbit} )
+                    . "mbit/s. Press f/v to scale"
+                    if $C{shownet};
+              }
 
-            elsif ( $key_name eq 'e' ) {
-                $C{extended} = !$C{extended};
-                $sdl_redraw_background = 1;
-                display_info "Toggled extended display $C{extended}";
+              elsif ( $key_sym == 101 ) {
+                  # e pressed
+                  $C{extended} = !$C{extended};
+                  $sdl_redraw_background = 1;
+                  display_info "Toggled extended display $C{extended}";
 
-            }
-            elsif ( $key_name eq 'h' ) {
-                say '=> Hotkeys to use in the SDL interface';
-                say $dispatch->('hotkeys');
-                display_info 'Hotkeys help printed on terminal stdout';
+              }
+              elsif ( $key_sym == 104 ) {
+                  # h pressed
+                  say '=> Hotkeys to use in the SDL interface';
+                  say $dispatch->('hotkeys');
+                  display_info 'Hotkeys help printed on terminal stdout';
 
-            }
-            elsif ( $key_name eq 'm' ) {
-                display_warn
-"Toggled show mem hotkey m is deprecated. Press 2 hotkey instead";
+              }
+              elsif ( $key_sym == 109 ) {
+                  # m pressed
+                  display_warn
+  "Toggled show mem hotkey m is deprecated. Press 2 hotkey instead";
 
-            }
-            elsif ( $key_name eq 'n' ) {
-                if ( $C{shownet} ) {
-                    $net_int               = net_next_int ++$net_int_number;
-                    $sdl_redraw_background = 1;
-                    display_info "Using net interface which is $net_int";
-                }
-                else {
-                    display_warn
-"Net stats are not activated. Press 3 hotkey to activate first";
-                }
+              }
+              elsif ( $key_sym == 110 ) {
+                  # n pressed
+                  if ( $C{shownet} ) {
+                      $net_int               = net_next_int ++$net_int_number;
+                      $sdl_redraw_background = 1;
+                      display_info "Using net interface which is $net_int";
+                  }
+                  else {
+                      display_warn
+  "Net stats are not activated. Press 3 hotkey to activate first";
+                  }
 
-            }
-            elsif ( $key_name eq 't' ) {
-                $C{showtext} = !$C{showtext};
-                $sdl_redraw_background = 1;
-                display_info "Toggled text display $C{showtext}";
+              }
+              elsif ( $key_sym == 116 ) {
+                  # t pressed
+                  $C{showtext} = !$C{showtext};
+                  $sdl_redraw_background = 1;
+                  display_info "Toggled text display $C{showtext}";
 
-            }
-            elsif ( $key_name eq 'u' ) {
-                $C{showtexthost} = !$C{showtexthost};
-                $sdl_redraw_background = 1;
-                display_info "Toggled number/hostname display $C{showtexthost}";
+              }
+              elsif ( $key_sym == 117 ) {
+                  # u pressed
+                  $C{showtexthost} = !$C{showtexthost};
+                  $sdl_redraw_background = 1;
+                  display_info "Toggled number/hostname display $C{showtexthost}";
 
-            }
-            elsif ( $key_name eq 'q' ) {
-                threads_terminate_pids @threads;
-                $quit = 1;
-                return;
+              }
+              elsif ( $key_sym == 113 ) {
+                  # q pressed
+                  threads_terminate_pids @threads;
+                  $quit = 1;
+                  return;
 
-            }
-            elsif ( $key_name eq 'w' ) {
-                Loadbars::Config::write;
+              }
+              elsif ( $key_sym == 119 ) {
+                  # w pressed
+                  Loadbars::Config::write;
 
-            }
-            elsif ( $key_name eq 'a' ) {
-                ++$C{cpuaverage};
-                display_info "Set sample cpu average $C{cpuaverage}";
-            }
-            elsif ( $key_name eq 'y' or $key_name eq 'z' ) {
-                my $avg = $C{cpuaverage};
-                --$avg;
-                $C{cpuaverage} = $avg > 1 ? $avg : 2;
-                display_info "Set sample cpu average $C{cpuaverage}";
+              }
+              elsif ( $key_sym == 97 ) {
+                  # a pressed
+                  ++$C{cpuaverage};
+                  display_info "Set sample cpu average $C{cpuaverage}";
+              }
+              elsif ( $key_sym == 121 or $key_sym == 122 ) {
+                  # y or z pressed
+                  my $avg = $C{cpuaverage};
+                  --$avg;
+                  $C{cpuaverage} = $avg > 1 ? $avg : 2;
+                  display_info "Set sample cpu average $C{cpuaverage}";
 
-            }
+              }
+              elsif ( $key_sym == 100 ) {
+                  # d pressed
+                  ++$C{netaverage};
+                  display_info "Set sample net average $C{netaverage}";
+              }
+              elsif ( $key_sym == 99 ) {
+                  # c pressed
+                  my $avg = $C{netaverage};
+                  --$avg;
+                  $C{netaverage} = $avg > 1 ? $avg : 2;
+                  display_info "Set sample net average $C{netaverage}";
 
-            elsif ( $key_name eq 'd' ) {
-                ++$C{netaverage};
-                display_info "Set sample net average $C{netaverage}";
-            }
-            elsif ( $key_name eq 'c' ) {
-                my $avg = $C{netaverage};
-                --$avg;
-                $C{netaverage} = $avg > 1 ? $avg : 2;
-                display_info "Set sample net average $C{netaverage}";
+              }
+              elsif ( $key_sym == 102 ) {
+                  # f pressed
+                  $net_max_bytes *= 10;
+                  display_info "Set net interface speed reference to "
+                    . ( $net_max_bytes / $I{bytes_mbit} )
+                    . 'mbit/s';
+              }
+              elsif ( $key_sym == 118 ) {
+                  # v pressed
+                  $net_max_bytes = int( $net_max_bytes / 10 );
+                  $net_max_bytes = $I{bytes_mbit}
+                    if $net_max_bytes < $I{bytes_mbit};
+                  display_info "Set net interface speed reference to "
+                    . int( $net_max_bytes / $I{bytes_mbit} )
+                    . 'mbit/s';
 
-            }
-            elsif ( $key_name eq 'f' ) {
-                $net_max_bytes *= 10;
-                display_info "Set net interface speed reference to "
-                  . ( $net_max_bytes / $I{bytes_mbit} )
-                  . 'mbit/s';
-            }
-            elsif ( $key_name eq 'v' ) {
-                $net_max_bytes = int( $net_max_bytes / 10 );
-                $net_max_bytes = $I{bytes_mbit}
-                  if $net_max_bytes < $I{bytes_mbit};
-                display_info "Set net interface speed reference to "
-                  . int( $net_max_bytes / $I{bytes_mbit} )
-                  . 'mbit/s';
+              }
+              elsif ( $key_sym == 276 ) {
+                  # left pressed
+                  $newsize{width}  = $C{width} - 100;
+                  $newsize{height} = $C{height};
+                  $resize_window   = 1;
+              }
+              elsif ( $key_sym == 275 ) {
+                  # right pressed
+                  $newsize{width}  = $C{width} + 100;
+                  $newsize{height} = $C{height};
+                  $resize_window   = 1;
 
-            }
-            elsif ( $key_name eq 'left' ) {
-                $newsize{width}  = $C{width} - 100;
-                $newsize{height} = $C{height};
-                $resize_window   = 1;
-            }
-            elsif ( $key_name eq 'right' ) {
-                $newsize{width}  = $C{width} + 100;
-                $newsize{height} = $C{height};
-                $resize_window   = 1;
-
-            }
-            elsif ( $key_name eq 'up' ) {
-                $newsize{width}  = $C{width};
-                $newsize{height} = $C{height} - 100;
-                $resize_window   = 1;
-            }
-            elsif ( $key_name eq 'down' ) {
+              }
+              elsif ( $key_sym == 273 ) {
+                  # up pressed
+                  $newsize{width}  = $C{width};
+                  $newsize{height} = $C{height} - 100;
+                  $resize_window   = 1;
+              }
+              elsif ( $key_sym == 274 ) {
+                # down pressed
                 $newsize{width}  = $C{width};
                 $newsize{height} = $C{height} + 100;
                 $resize_window   = 1;
@@ -689,69 +720,69 @@ sub loop ($@) {
             my $rect_peak;
 
             $y = $C{height} - $heights{system};
-            $rect_system->width($width);
-            $rect_system->height( $heights{system} );
+            $rect_system->w($width);
+            $rect_system->h( $heights{system} );
             $rect_system->x($x);
             $rect_system->y($y);
 
             $y -= $heights{user};
-            $rect_user->width($width);
-            $rect_user->height( $heights{user} );
+            $rect_user->w($width);
+            $rect_user->h( $heights{user} );
             $rect_user->x($x);
             $rect_user->y($y);
 
             $y -= $heights{nice};
-            $rect_nice->width($width);
-            $rect_nice->height( $heights{nice} );
+            $rect_nice->w($width);
+            $rect_nice->h( $heights{nice} );
             $rect_nice->x($x);
             $rect_nice->y($y);
 
             $y -= $heights{idle};
-            $rect_idle->width($width);
-            $rect_idle->height( $heights{idle} );
+            $rect_idle->w($width);
+            $rect_idle->h( $heights{idle} );
             $rect_idle->x($x);
             $rect_idle->y($y);
 
             $y -= $heights{iowait};
-            $rect_iowait->width($width);
-            $rect_iowait->height( $heights{iowait} );
+            $rect_iowait->w($width);
+            $rect_iowait->h( $heights{iowait} );
             $rect_iowait->x($x);
             $rect_iowait->y($y);
 
             $y -= $heights{irq};
-            $rect_irq->width($width);
-            $rect_irq->height( $heights{irq} );
+            $rect_irq->w($width);
+            $rect_irq->h( $heights{irq} );
             $rect_irq->x($x);
             $rect_irq->y($y);
 
             $y -= $heights{softirq};
-            $rect_softirq->width($width);
-            $rect_softirq->height( $heights{softirq} );
+            $rect_softirq->w($width);
+            $rect_softirq->h( $heights{softirq} );
             $rect_softirq->x($x);
             $rect_softirq->y($y);
 
             $y -= $heights{guest};
-            $rect_guest->width($width);
-            $rect_guest->height( $heights{guest} );
+            $rect_guest->w($width);
+            $rect_guest->h( $heights{guest} );
             $rect_guest->x($x);
             $rect_guest->y($y);
 
             $y -= $heights{steal};
-            $rect_steal->width($width);
-            $rect_steal->height( $heights{steal} );
+            $rect_steal->w($width);
+            $rect_steal->h( $heights{steal} );
             $rect_steal->x($x);
             $rect_steal->y($y);
 
             my $all     = 100 - $cpu_loads_r->{idle};
             my $max_all = 0;
 
-            $app->fill( $rect_idle,    Loadbars::Constants->BLACK );
-            $app->fill( $rect_steal,   Loadbars::Constants->RED );
-            $app->fill( $rect_guest,   Loadbars::Constants->RED );
-            $app->fill( $rect_irq,     Loadbars::Constants->WHITE );
-            $app->fill( $rect_softirq, Loadbars::Constants->WHITE );
-            $app->fill( $rect_nice,    Loadbars::Constants->GREEN );
-            $app->fill( $rect_iowait,  Loadbars::Constants->PURPLE );
+            sdl_fill_rect($app,  $rect_idle,    Loadbars::Constants->BLACK );
+            sdl_fill_rect($app,  $rect_steal,   Loadbars::Constants->RED );
+            sdl_fill_rect($app,  $rect_guest,   Loadbars::Constants->RED );
+            sdl_fill_rect($app,  $rect_irq,     Loadbars::Constants->WHITE );
+            sdl_fill_rect($app,  $rect_softirq, Loadbars::Constants->WHITE );
+            sdl_fill_rect($app,  $rect_nice,    Loadbars::Constants->GREEN );
+            sdl_fill_rect($app,  $rect_iowait,  Loadbars::Constants->PURPLE );
 
             my $rect_memused = sdl_get_rect $rects, "$host;memused";
             my $rect_memfree = sdl_get_rect $rects, "$host;memfree";
@@ -793,47 +824,47 @@ sub loop ($@) {
                     );
 
                     $y = $C{height} - $heights{MemUsed};
-                    $rect_memused->width($half_width);
-                    $rect_memused->height( $heights{MemUsed} );
+                    $rect_memused->w($half_width);
+                    $rect_memused->h( $heights{MemUsed} );
                     $rect_memused->x( $x + $add_x );
                     $rect_memused->y($y);
 
                     $y -= $heights{MemFree};
-                    $rect_memfree->width($half_width);
-                    $rect_memfree->height( $heights{MemFree} );
+                    $rect_memfree->w($half_width);
+                    $rect_memfree->h( $heights{MemFree} );
                     $rect_memfree->x( $x + $add_x );
                     $rect_memfree->y($y);
 
                     $y = $C{height} - $heights{SwapUsed};
-                    $rect_swapused->width($half_width);
-                    $rect_swapused->height( $heights{SwapUsed} );
+                    $rect_swapused->w($half_width);
+                    $rect_swapused->h( $heights{SwapUsed} );
                     $rect_swapused->x( $x + $add_x + $half_width );
                     $rect_swapused->y($y);
 
                     $y -= $heights{SwapFree};
-                    $rect_swapfree->width($half_width);
-                    $rect_swapfree->height( $heights{SwapFree} );
+                    $rect_swapfree->w($half_width);
+                    $rect_swapfree->h( $heights{SwapFree} );
                     $rect_swapfree->x( $x + $add_x + $half_width );
                     $rect_swapfree->y($y);
 
-                    $app->fill( $rect_memused, Loadbars::Constants->DARK_GREY );
-                    $app->fill( $rect_memfree, Loadbars::Constants->BLACK );
+                    sdl_fill_rect($app,  $rect_memused, Loadbars::Constants->DARK_GREY );
+                    sdl_fill_rect($app,  $rect_memfree, Loadbars::Constants->BLACK );
 
-                    $app->fill( $rect_swapused, Loadbars::Constants->GREY );
-                    $app->fill( $rect_swapfree, Loadbars::Constants->BLACK );
+                    sdl_fill_rect($app,  $rect_swapused, Loadbars::Constants->GREY );
+                    sdl_fill_rect($app,  $rect_swapfree, Loadbars::Constants->BLACK );
 
                     if ( $C{showtext} ) {
                         my $y_ = 5;
-                        $app->print( $x + $add_x, $y_, 'Ram:' );
-                        $app->print(
+                        SDLx::SFont::print_text($app, $x + $add_x, $y_, 'Ram:' );
+                        SDLx::SFont::print_text($app,
                             $x + $add_x,
                             $y_ += $sdl_font_height,
                             sprintf '%02d',
                             ( 100 - $meminfo{ram_per} )
                         );
-                        $app->print( $x + $add_x,
+                        SDLx::SFont::print_text($app, $x + $add_x,
                             $y_ += $sdl_font_height, 'Swp:' );
-                        $app->print(
+                        SDLx::SFont::print_text($app,
                             $x + $add_x,
                             $y_ += $sdl_font_height,
                             sprintf '%02d',
@@ -909,56 +940,56 @@ sub loop ($@) {
                         );
 
                         $y = $C{height} - $heights{NetFree};
-                        $rect_netused->width($half_width);
-                        $rect_netused->height( $heights{NetFree} );
+                        $rect_netused->w($half_width);
+                        $rect_netused->h( $heights{NetFree} );
                         $rect_netused->x( $x + $add_x );
                         $rect_netused->y($y);
 
                         $y -= $heights{NetUsed};
-                        $rect_netfree->width($half_width);
-                        $rect_netfree->height( $heights{NetUsed} );
+                        $rect_netfree->w($half_width);
+                        $rect_netfree->h( $heights{NetUsed} );
                         $rect_netfree->x( $x + $add_x );
                         $rect_netfree->y($y);
 
                         $y = $C{height} - $heights{TNetFree};
-                        $rect_tnetused->width($half_width);
-                        $rect_tnetused->height( $heights{TNetFree} );
+                        $rect_tnetused->w($half_width);
+                        $rect_tnetused->h( $heights{TNetFree} );
                         $rect_tnetused->x( $x + $add_x + $half_width );
                         $rect_tnetused->y($y);
 
                         $y -= $heights{TNetUsed};
-                        $rect_tnetfree->width($half_width);
-                        $rect_tnetfree->height( $heights{TNetUsed} );
+                        $rect_tnetfree->w($half_width);
+                        $rect_tnetfree->h( $heights{TNetUsed} );
                         $rect_tnetfree->x( $x + $add_x + $half_width );
                         $rect_tnetfree->y($y);
 
-                        $app->fill( $rect_netused, Loadbars::Constants->BLACK );
-                        $app->fill( $rect_netfree,
+                        sdl_fill_rect($app,  $rect_netused, Loadbars::Constants->BLACK );
+                        sdl_fill_rect($app,  $rect_netfree,
                             $net_per > 100
                             ? Loadbars::Constants->GREEN
                             : Loadbars::Constants->LIGHT_GREEN );
 
-                        $app->fill( $rect_tnetused,
+                        sdl_fill_rect($app,  $rect_tnetused,
                             $tnet_per > 100
                             ? Loadbars::Constants->GREEN
                             : Loadbars::Constants->LIGHT_GREEN );
-                        $app->fill( $rect_tnetfree,
+                        sdl_fill_rect($app,  $rect_tnetfree,
                             Loadbars::Constants->BLACK );
 
                         if ( $C{showtext} ) {
                             my $y_ = 5;
-                            $app->print( $x + $add_x, $y_, $net_int );
-                            $app->print( $x + $add_x,
+                            SDLx::SFont::print_text($app, $x + $add_x, $y_, $net_int );
+                            SDLx::SFont::print_text($app, $x + $add_x,
                                 $y_ += $sdl_font_height, 'Rxb:' );
-                            $app->print(
+                            SDLx::SFont::print_text($app,
                                 $x + $add_x,
                                 $y_ += $sdl_font_height,
                                 sprintf '%02d',
                                 ($net_per)
                             );
-                            $app->print( $x + $add_x,
+                            SDLx::SFont::print_text($app, $x + $add_x,
                                 $y_ += $sdl_font_height, 'Trb:' );
-                            $app->print(
+                            SDLx::SFont::print_text($app,
                                 $x + $add_x,
                                 $y_ += $sdl_font_height,
                                 sprintf '%02d',
@@ -969,20 +1000,20 @@ sub loop ($@) {
                         # No netstats available for this host;device pair.
                     }
                     else {
-                        $rect_netused->width($width);
-                        $rect_netused->height( $C{height} );
+                        $rect_netused->w($width);
+                        $rect_netused->h( $C{height} );
                         $rect_netused->x( $x + $add_x );
                         $rect_netused->y($y);
 
-                        $app->fill( $rect_netused,  Loadbars::Constants->RED );
-                        $app->fill( $rect_tnetused, Loadbars::Constants->RED );
-                        $app->fill( $rect_netfree,  Loadbars::Constants->RED );
-                        $app->fill( $rect_tnetfree, Loadbars::Constants->RED );
+                        sdl_fill_rect($app,  $rect_netused,  Loadbars::Constants->RED );
+                        sdl_fill_rect($app,  $rect_tnetused, Loadbars::Constants->RED );
+                        sdl_fill_rect($app,  $rect_netfree,  Loadbars::Constants->RED );
+                        sdl_fill_rect($app,  $rect_tnetfree, Loadbars::Constants->RED );
 
                         if ( $C{showtext} ) {
                             my $y_ = 5;
-                            $app->print( $x + $add_x, $y_, $net_int );
-                            $app->print( $x + $add_x,
+                            SDLx::SFont::print_text($app, $x + $add_x, $y_, $net_int );
+                            SDLx::SFont::print_text($app, $x + $add_x,
                                 $y_ += $sdl_font_height, 'n/a' );
                         }
                     }
@@ -992,11 +1023,11 @@ sub loop ($@) {
                 if ( $C{showcores} ) {
                     $current_corenum = 0;
                     $rect_separator = sdl_get_rect $rects, "$key;separator";
-                    $rect_separator->width(1);
-                    $rect_separator->height( $C{height} );
+                    $rect_separator->w(1);
+                    $rect_separator->h( $C{height} );
                     $rect_separator->x( $x - 1 );
                     $rect_separator->y(0);
-                    $app->fill( $rect_separator, Loadbars::Constants->GREY );
+                    sdl_fill_rect($app,  $rect_separator, Loadbars::Constants->GREY );
                 }
             }
 
@@ -1011,12 +1042,12 @@ sub loop ($@) {
                 my $maxheight = $max_val * ( $C{height} / 100 );
 
                 $rect_peak = sdl_get_rect $rects, "$key;max";
-                $rect_peak->width($width);
-                $rect_peak->height(1);
+                $rect_peak->w($width);
+                $rect_peak->h(1);
                 $rect_peak->x($x);
                 $rect_peak->y( $C{height} - $maxheight );
 
-                $app->fill(
+                sdl_fill_rect($app, 
                     $rect_peak,
                     $max_val > Loadbars::Constants->USER_ORANGE
                     ? Loadbars::Constants->ORANGE
@@ -1028,7 +1059,7 @@ sub loop ($@) {
                 );
             }
 
-            $app->fill(
+            sdl_fill_rect($app, 
                 $rect_user,
                 $all > Loadbars::Constants->USER_ORANGE
                 ? Loadbars::Constants->ORANGE
@@ -1038,7 +1069,7 @@ sub loop ($@) {
                     : ( Loadbars::Constants->YELLOW )
                 )
             );
-            $app->fill( $rect_system,
+            sdl_fill_rect($app,  $rect_system,
                 $cpu_loads_r->{system} > Loadbars::Constants->SYSTEM_BLUE0
                 ? Loadbars::Constants->BLUE0
                 : Loadbars::Constants->BLUE );
@@ -1060,36 +1091,36 @@ sub loop ($@) {
                     # If hostname is printed don't use FQDN
                     # because of its length.
                     $host =~ /([^\.]*)/;
-                    $app->print( $x, $y, sprintf '%s:', $1 );
+                    SDLx::SFont::print_text($app, $x, $y, sprintf '%s:', $1 );
 
                 }
                 else {
-                    $app->print( $x, $y, sprintf '%i:',
+                    SDLx::SFont::print_text($app, $x, $y, sprintf '%i:',
                           $C{showcores}
                         ? $current_corenum
                         : $current_barnum + 1 );
                 }
 
                 if ( $C{extended} ) {
-                    $app->print(
+                    SDLx::SFont::print_text($app,
                         $x,
                         $y += $sdl_font_height,
                         sprintf '%02d%s',
                         norm $cpu_loads_r->{steal}, 'st'
                     );
-                    $app->print(
+                    SDLx::SFont::print_text($app,
                         $x,
                         $y += $sdl_font_height,
                         sprintf '%02d%s',
                         norm $cpu_loads_r->{guest}, 'gt'
                     );
-                    $app->print(
+                    SDLx::SFont::print_text($app,
                         $x,
                         $y += $sdl_font_height,
                         sprintf '%02d%s',
                         norm $cpu_loads_r->{softirq}, 'sr'
                     );
-                    $app->print(
+                    SDLx::SFont::print_text($app,
                         $x,
                         $y += $sdl_font_height,
                         sprintf '%02d%s',
@@ -1097,46 +1128,46 @@ sub loop ($@) {
                     );
                 }
 
-                $app->print(
+                SDLx::SFont::print_text($app,
                     $x,
                     $y += $sdl_font_height,
                     sprintf '%02d%s',
                     norm $cpu_loads_r->{iowait}, 'io'
                 );
 
-                $app->print(
+                SDLx::SFont::print_text($app,
                     $x,
                     $y += $sdl_font_height,
                     sprintf '%02d%s',
                     norm $cpu_loads_r->{idle}, 'id'
                 ) if $C{extended};
 
-                $app->print(
+                SDLx::SFont::print_text($app,
                     $x,
                     $y += $sdl_font_height,
                     sprintf '%02d%s',
                     norm $cpu_loads_r->{nice}, 'ni'
                 );
-                $app->print(
+                SDLx::SFont::print_text($app,
                     $x,
                     $y += $sdl_font_height,
                     sprintf '%02d%s',
                     norm $cpu_loads_r->{user}, 'us'
                 );
-                $app->print(
+                SDLx::SFont::print_text($app,
                     $x,
                     $y += $sdl_font_height,
                     sprintf '%02d%s',
                     norm $cpu_loads_r->{system}, 'sy'
                 );
-                $app->print(
+                SDLx::SFont::print_text($app,
                     $x,
                     $y += $sdl_font_height,
                     sprintf '%02d%s',
                     norm $all, 'to'
                 );
 
-                $app->print(
+                SDLx::SFont::print_text($app,
                     $x,
                     $y += $sdl_font_height,
                     sprintf '%02d%s',
@@ -1145,20 +1176,20 @@ sub loop ($@) {
 
                 if ($is_host_summary) {
                     if ( defined $loadavg[2] ) {
-                        $app->print( $x, $y += $sdl_font_height, 'Avg:' );
-                        $app->print(
+                        SDLx::SFont::print_text($app, $x, $y += $sdl_font_height, 'Avg:' );
+                        SDLx::SFont::print_text($app,
                             $x,
                             $y += $sdl_font_height,
                             sprintf "%.2f",
                             $loadavg[0]
                         );
-                        $app->print(
+                        SDLx::SFont::print_text($app,
                             $x,
                             $y += $sdl_font_height,
                             sprintf "%.2f",
                             $loadavg[1]
                         );
-                        $app->print(
+                        SDLx::SFont::print_text($app,
                             $x,
                             $y += $sdl_font_height,
                             sprintf "%.2f",
@@ -1168,26 +1199,8 @@ sub loop ($@) {
                 }
             }
 
-            $app->update(
-                $rect_idle,  $rect_iowait,  $rect_irq,
-                $rect_nice,  $rect_softirq, $rect_steal,
-                $rect_guest, $rect_system,  $rect_user,
-            );
-
-            $app->update(
-                $rect_memfree,  $rect_memused,
-                $rect_swapused, $rect_swapfree
-            ) if $C{showmem};
-
-            $app->update(
-                $rect_netfree,  $rect_netused,
-                $rect_tnetfree, $rect_tnetused
-            ) if $C{shownet};
-
-            $app->update($rect_separator) if defined $rect_separator;
-
+            $app->sync();
             $x += $width + 1 + $add_x;
-
         }
 
       TIMEKEEPER:

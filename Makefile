@@ -2,6 +2,9 @@ NAME=loadbars
 all: version documentation perltidy
 version:
 	cut -d' ' -f2 debian/changelog | head -n 1 | sed 's/(//;s/)//' > .version
+profile:
+	 perl -d:NYTProf loadbars --hosts localhost
+	 nytprofhtml nytprof.out
 perltidy:
 	find . -name \*.pm | xargs perltidy -b
 	perltidy -b $(NAME)
@@ -22,6 +25,9 @@ deinstall:
 	test ! -z "$(DESTDIR)/usr/share/$(NAME)" && -d $(DESTDIR)/usr/share/$(NAME) && rm -r $(DESTDIR)/usr/share/$(NAME) || exit 0
 clean:
 	test -f .version && rm .version
+	test -f nytprof.out && rm nytprof.out
+	test -f tmon.out && rm tmon.out
+	test -d nytprof && rm -Rf nytprof
 deb: 
 	dpkg-buildpackage
 clean-top:

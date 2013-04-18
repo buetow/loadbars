@@ -6,13 +6,14 @@
 
 use strict;
 use warnings;
-use v5.14;
 
 use Getopt::Long;
 
 my $lib;
 
 BEGIN {
+    die "HAllo";
+require v5.14;
     if ( -d './lib/Loadbars' ) {
         $lib = 'lib';
 

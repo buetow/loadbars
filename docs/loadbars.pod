@@ -4,6 +4,10 @@ loadbars - A small and humble tool to observe server loads
 
 =head1 SYNOPSIS
 
+=head2 Tested platforms
+
+This version of loadbars has only been tested on Debian GNU/Linux Squeeze.
+
 =head2 I like flying elephants
 
 For any startup params help check out --help on command line or 'h' during program

@@ -15,7 +15,7 @@ use SDL::TTF::Font;
 use SDL::Video;
 use SDLx::App;
 
-use Time::HiRes qw(usleep gettimeofday);
+use Time::HiRes qw(gettimeofday);
 
 use Proc::ProcessTable;
 
@@ -1275,7 +1275,7 @@ sub loop ($@) {
         my $t_diff = $t2 - $t1;
 
         if ( Loadbars::Constants->INTERVAL_SDL > $t_diff ) {
-            usleep 10000;
+            SDL::delay(10);
 
             # Goto is OK as long you don't produce spaghetti code
             goto TIMEKEEPER;

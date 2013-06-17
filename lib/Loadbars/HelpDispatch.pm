@@ -219,32 +219,6 @@ END
         shownet_hot =>
           { menupos => 17, cmd => '3', help => 'Toggle show net', mode => 1 },
 
-        showtexthost => {
-            menupos => 18,
-            help    => 'Toggle hostname/num text display (0 or 1)',
-            mode    => 7,
-            type    => 'i'
-        },
-        showtexthost_hot => {
-            menupos => 18,
-            cmd     => 'u',
-            help    => 'Toggle hostname/num text display',
-            mode    => 1
-        },
-
-        showtext => {
-            menupos => 19,
-            help    => 'Toggle text display (0 or 1)',
-            mode    => 7,
-            type    => 'i'
-        },
-        showtext_hot => {
-            menupos => 19,
-            cmd     => 't',
-            help    => 'Toggle text display',
-            mode    => 1
-        },
-
         sshopts =>
           { menupos => 20, help => 'Set SSH options', mode => 6, type => 's' },
 

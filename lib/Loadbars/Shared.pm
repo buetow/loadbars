@@ -53,14 +53,11 @@ our %I : shared;
     showcores    => 0,
     showmem      => 0,
     shownet      => 0,
-    showtext     => 1,
-    showtexthost => 0,
     sshopts      => '',
 );
 
 %I = (
     cpustring     => 'cpu',
-    showtextoff   => 0,
     bytes_mbit    => 125000,
     bytes_10mbit  => 1250000,
     bytes_100mbit => 12500000,

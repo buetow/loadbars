@@ -10,8 +10,6 @@ use SDL::Event;
 use SDL::Events;
 use SDL::Rect;
 use SDL::Surface;
-use SDL::TTF;
-use SDL::TTF::Font;
 use SDL::Video;
 use SDLx::App;
 
@@ -396,26 +394,6 @@ sub threads_create (@) {
       map { threads->create( 'threads_stats', split ':' ) } @_;
 }
 
-sub auto_off_text ($) {
-    my ($barwidth) = @_;
-
-    if ( $barwidth < $C{barwidth} - 1 && $I{showtextoff} == 0 ) {
-        return unless $C{showtext};
-        display_warn
-'Disabling text display, text does not fit into window. Press t to re-enable.';
-        $I{showtextoff} = 1;
-        $C{showtext}    = 0;
-
-    }
-    elsif ( $I{showtextoff} == 1 && $barwidth >= $C{barwidth} - 1 ) {
-        display_info 'Re-enabling text display, text fits into window now.';
-        $C{showtext}    = 1;
-        $I{showtextoff} = 0;
-    }
-
-    return undef;
-}
-
 sub set_dimensions ($$) {
     my ( $width, $height ) = @_;
     my $display_info = 0;
@@ -477,11 +455,6 @@ sub loop ($@) {
         }
     };
 =cut
-
-    my ($font_name, $font_size) = ('DroidSans.ttf', 8);
-    die "Could not init SDL::TTF" if SDL::TTF::init();
-    my $font = SDL::TTF::open_font($font_name, $font_size);
-    die "Could not open font $font_name" unless $font;
 
     my $rects = {};
     my %cpu_history;
@@ -577,22 +550,6 @@ sub loop ($@) {
                     display_warn
 "Net stats are not activated. Press 3 hotkey to activate first";
                 }
-
-            }
-            elsif ( $key_sym == 116 ) {
-
-                # t pressed
-                $C{showtext} = !$C{showtext};
-                $sdl_redraw_background = 1;
-                display_info "Toggled text display $C{showtext}";
-
-            }
-            elsif ( $key_sym == 117 ) {
-
-                # u pressed
-                $C{showtexthost} = !$C{showtexthost};
-                $sdl_redraw_background = 1;
-                display_info "Toggled number/hostname display $C{showtexthost}";
 
             }
             elsif ( $key_sym == 113 ) {
@@ -886,31 +843,6 @@ sub loop ($@) {
                         Loadbars::Constants->GREY );
                     sdl_fill_rect( $app, $rect_swapfree,
                         Loadbars::Constants->BLACK );
-
-                    if ( $C{showtext} ) {
-                        my $y_ = 5;
-                        #SDLx::SFont::print_text( $app, $x + $add_x,
-                        #    $y_, 'Ram:' );
-                        #SDLx::SFont::print_text(
-                        #    $app,
-                        #    $x + $add_x,
-                        #    $y_ += $sdl_font_height,
-                        #    sprintf '%02d',
-                        #    ( 100 - $meminfo{ram_per} )
-                        #);
-                        #SDLx::SFont::print_text(
-                        #    $app,
-                        #    $x + $add_x,
-                        #    $y_ += $sdl_font_height, 'Swp:'
-                        #);
-                        #SDLx::SFont::print_text(
-                        #    $app,
-                        #    $x + $add_x,
-                        #    $y_ += $sdl_font_height,
-                        #    sprintf '%02d',
-                        #    ( 100 - $meminfo{swap_per} )
-                        #);
-                    }
                 }
 
                 if ( $C{shownet} && exists $NETSTATS_HAS{$host} ) {
@@ -1017,36 +949,6 @@ sub loop ($@) {
                         sdl_fill_rect( $app, $rect_tnetfree,
                             Loadbars::Constants->BLACK );
 
-                        if ( $C{showtext} ) {
-                            my $y_ = 5;
-                            #SDLx::SFont::print_text( $app, $x + $add_x,
-                            #    $y_, $net_int );
-                            #SDLx::SFont::print_text(
-                            #    $app,
-                            #    $x + $add_x,
-                            #    $y_ += $sdl_font_height, 'Rxb:'
-                            #);
-                            #SDLx::SFont::print_text(
-                            #    $app,
-                            #    $x + $add_x,
-                            #    $y_ += $sdl_font_height,
-                            #    sprintf '%02d',
-                            #    ($net_per)
-                            #);
-                            #SDLx::SFont::print_text(
-                            #    $app,
-                            #    $x + $add_x,
-                            #    $y_ += $sdl_font_height, 'Trb:'
-                            #);
-                            #SDLx::SFont::print_text(
-                            #    $app,
-                            #    $x + $add_x,
-                            #    $y_ += $sdl_font_height,
-                            #    sprintf '%02d',
-                            #    ($tnet_per)
-                            #);
-                        }
-
                         # No netstats available for this host;device pair.
                     }
                     else {
@@ -1063,17 +965,6 @@ sub loop ($@) {
                             Loadbars::Constants->RED );
                         sdl_fill_rect( $app, $rect_tnetfree,
                             Loadbars::Constants->RED );
-
-                        if ( $C{showtext} ) {
-                            my $y_ = 5;
-                            #SDLx::SFont::print_text( $app, $x + $add_x,
-                            #    $y_, $net_int );
-                            #SDLx::SFont::print_text(
-                            #    $app,
-                            #    $x + $add_x,
-                            #    $y_ += $sdl_font_height, 'n/a'
-                            #);
-                        }
                     }
 
                 }
@@ -1146,126 +1037,6 @@ sub loop ($@) {
                 }
             };
 
-#            my $font_surface = SDL::TTF::render_text_solid($font, "Hello!", Loadbars::Constants->COLOR_WHITE);
-#            SDL::Video::blit_surface($font_surface, 
-            if ( $C{showtext} ) {
-=cut
-                if ( $C{showtexthost} && $is_host_summary ) {
-
-                    # If hostname is printed don't use FQDN
-                    # because of its length.
-                    $host =~ /([^\.]*)/;
-                    #SDLx::SFont::print_text( $app, $x, $y, sprintf '%s:', $1 );
-
-                }
-                else {
-                  #SDLx::SFont::print_text( $app, $x, $y, sprintf '%i:',
-                  #      $C{showcores}
-                  #    ? $current_corenum
-                  #    : $current_barnum + 1 );
-                }
-
-                if ( $C{extended} ) {
-                    SDLx::SFont::print_text(
-                        $app, $x,
-                        $y += $sdl_font_height,
-                        sprintf '%02d%s',
-                        norm $cpu_loads_r->{steal}, 'st'
-                    );
-                    SDLx::SFont::print_text(
-                        $app, $x,
-                        $y += $sdl_font_height,
-                        sprintf '%02d%s',
-                        norm $cpu_loads_r->{guest}, 'gt'
-                    );
-                    SDLx::SFont::print_text(
-                        $app, $x,
-                        $y += $sdl_font_height,
-                        sprintf '%02d%s',
-                        norm $cpu_loads_r->{softirq}, 'sr'
-                    );
-                    SDLx::SFont::print_text(
-                        $app, $x,
-                        $y += $sdl_font_height,
-                        sprintf '%02d%s',
-                        norm $cpu_loads_r->{irq}, 'ir'
-                    );
-
-                }
-
-                SDLx::SFont::print_text(
-                    $app, $x,
-                    $y += $sdl_font_height,
-                    sprintf '%02d%s',
-                    norm $cpu_loads_r->{iowait}, 'io'
-                );
-
-                SDLx::SFont::print_text(
-                    $app, $x,
-                    $y += $sdl_font_height,
-                    sprintf '%02d%s',
-                    norm $cpu_loads_r->{idle}, 'id'
-                ) if $C{extended};
-
-                SDLx::SFont::print_text(
-                    $app, $x,
-                    $y += $sdl_font_height,
-                    sprintf '%02d%s',
-                    norm $cpu_loads_r->{nice}, 'ni'
-                );
-                SDLx::SFont::print_text(
-                    $app, $x,
-                    $y += $sdl_font_height,
-                    sprintf '%02d%s',
-                    norm $cpu_loads_r->{user}, 'us'
-                );
-                SDLx::SFont::print_text(
-                    $app, $x,
-                    $y += $sdl_font_height,
-                    sprintf '%02d%s',
-                    norm $cpu_loads_r->{system}, 'sy'
-                );
-                SDLx::SFont::print_text(
-                    $app, $x,
-                    $y += $sdl_font_height,
-                    sprintf '%02d%s',
-                    norm $all, 'to'
-                );
-
-                SDLx::SFont::print_text(
-                    $app, $x,
-                    $y += $sdl_font_height,
-                    sprintf '%02d%s',
-                    norm $max_all, 'pk'
-                ) if $C{extended};
-
-
-                if ($is_host_summary) {
-                    if ( defined $loadavg[2] ) {
-                        SDLx::SFont::print_text( $app, $x,
-                            $y += $sdl_font_height, 'Avg:' );
-                        SDLx::SFont::print_text(
-                            $app, $x,
-                            $y += $sdl_font_height,
-                            sprintf "%.2f",
-                            $loadavg[0]
-                        );
-                        SDLx::SFont::print_text(
-                            $app, $x,
-                            $y += $sdl_font_height,
-                            sprintf "%.2f",
-                            $loadavg[1]
-                        );
-                        SDLx::SFont::print_text(
-                            $app, $x,
-                            $y += $sdl_font_height,
-                            sprintf "%.2f",
-                            $loadavg[2]
-                        );
-                    }
-                }
-=cut
-            }
             $app->sync();
             $x += $width + 1 + $add_x;
         }
@@ -1318,13 +1089,10 @@ sub loop ($@) {
             %CPUSTATS              = ();
         }
 
-        auto_off_text $width;
-
     } until $quit;
 
     say "Good bye";
 
-    SDL::TTF::quit();
     exit Loadbars::Constants->SUCCESS;
 }
 

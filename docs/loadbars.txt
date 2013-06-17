@@ -2,6 +2,10 @@ NAME
     loadbars - A small and humble tool to observe server loads
 
 SYNOPSIS
+  Tested platforms
+    This version of loadbars has only been tested on Debian GNU/Linux
+    Squeeze.
+
   I like flying elephants
     For any startup params help check out --help on command line or 'h'
     during program execution.
@@ -55,8 +59,6 @@ INFO
 
     1px horizontal line: Maximum sy+us+io of last 'avg' samples (extended)
 
-    Extended means: text display only if extended mode is turned on
-
   Memory stuff
     Ram: System ram usage in %, Color: Dark grey
 
@@ -81,13 +83,9 @@ INFO
 
         showcores=1 # Always show cores on startup
 
-        showtext=0 # Always don't display text on startup
-
-        extended=1 # Always use extended mode on startup
-
-    will always show all CPU cores in extended mode but no text display. If
-    you press the 'w' hotkey during program execution your config file will
-    be overwritten using the current settings.
+    will always show all CPU cores. If you press the 'w' hotkey during
+    program execution your config file will be overwritten using the current
+    settings.
 
 LICENSE
     See package description or project website.

@@ -124,7 +124,7 @@
 .\" ========================================================================
 .\"
 .IX Title "LOADBARS 1"
-.TH LOADBARS 1 "2013-04-08" "loadbars 0.6.0.99" "User Commands"
+.TH LOADBARS 1 "2013-06-17" "loadbars 0.6.0.99" "User Commands"
 .\" For nroff, turn off justification.  Always turn off hyphenation; it makes
 .\" way too many mistakes in technical documents.
 .if n .ad l
@@ -133,6 +133,9 @@
 loadbars \- A small and humble tool to observe server loads
 .SH "SYNOPSIS"
 .IX Header "SYNOPSIS"
+.SS "Tested platforms"
+.IX Subsection "Tested platforms"
+This version of loadbars has only been tested on Debian GNU/Linux Squeeze.
 .SS "I like flying elephants"
 .IX Subsection "I like flying elephants"
 For any startup params help check out \-\-help on command line or 'h' during program
@@ -176,8 +179,6 @@ pk = Max us+sy peak of last avg. samples (extended)
 avg = System load average; desc. order: 1, 5 and 15 min. avg.
 .PP
 1px horizontal line: Maximum sy+us+io of last 'avg' samples (extended)
-.PP
-Extended means: text display only if extended mode is turned on
 .SS "Memory stuff"
 .IX Subsection "Memory stuff"
 Ram: System ram usage in %, Color: Dark grey
@@ -198,13 +199,9 @@ Loadbars tries to read ~/.loadbarsrc and it's possible to configure any option y
 .Sp
 .RS 4
 showcores=1 # Always show cores on startup
-.Sp
-showtext=0 # Always don't display text on startup
-.Sp
-extended=1 # Always use extended mode on startup
 .RE
 .PP
-will always show all \s-1CPU\s0 cores in extended mode but no text display. If you press the 'w' hotkey during program execution your config file will be overwritten using the current settings.
+will always show all \s-1CPU\s0 cores. If you press the 'w' hotkey during program execution your config file will be overwritten using the current settings.
 .SH "LICENSE"
 .IX Header "LICENSE"
 See package description or project website.

@@ -56,8 +56,6 @@ avg = System load average; desc. order: 1, 5 and 15 min. avg.
 
 1px horizontal line: Maximum sy+us+io of last 'avg' samples (extended)
 
-Extended means: text display only if extended mode is turned on
-
 =head2 Memory stuff
 
 Ram: System ram usage in %, Color: Dark grey
@@ -80,13 +78,9 @@ Loadbars tries to read ~/.loadbarsrc and it's possible to configure any option y
 
 showcores=1 # Always show cores on startup
 
-showtext=0 # Always don't display text on startup
-
-extended=1 # Always use extended mode on startup
-
 =back
 
-will always show all CPU cores in extended mode but no text display. If you press the 'w' hotkey during program execution your config file will be overwritten using the current settings. 
+will always show all CPU cores. If you press the 'w' hotkey during program execution your config file will be overwritten using the current settings. 
 
 
 =head1 LICENSE

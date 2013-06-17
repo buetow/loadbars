@@ -27,7 +27,7 @@ use constant {
     DARK_GREY          => [ 0x15, 0x15, 0x15 ],
     YELLOW0            => [ 0xff, 0xa0, 0x00 ],
     YELLOW             => [ 0xff, 0xc0, 0x00 ],
-    COLOR_WHITE        => SDL::Color->new(0xff, 0xff, 0xff),
+    COLOR_WHITE        => SDL::Color->new( 0xff, 0xff, 0xff ),
     SYSTEM_BLUE0       => 30,
     USER_ORANGE        => 70,
     USER_YELLOW0       => 50,

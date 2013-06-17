@@ -94,7 +94,6 @@ sub threads_terminate_pids (@) {
         #$_->join() for @threads;
     }
 
-
     say '';
 
     display_info 'Terminating done. I\'ll be back!';

@@ -40,20 +40,20 @@ our %I : shared;
 
 # Setting defaults
 %C = (
-    title        => undef,
-    barwidth     => 35,
-    cpuaverage   => 15,
-    extended     => 0,
-    hasagent     => 0,
-    height       => 230,
-    maxwidth     => 1250,
-    netaverage   => 15,
-    netint       => '',
-    netlink      => 'gbit',
-    showcores    => 0,
-    showmem      => 0,
-    shownet      => 0,
-    sshopts      => '',
+    title      => undef,
+    barwidth   => 35,
+    cpuaverage => 15,
+    extended   => 0,
+    hasagent   => 0,
+    height     => 230,
+    maxwidth   => 1250,
+    netaverage => 15,
+    netint     => '',
+    netlink    => 'gbit',
+    showcores  => 0,
+    showmem    => 0,
+    shownet    => 0,
+    sshopts    => '',
 );
 
 %I = (

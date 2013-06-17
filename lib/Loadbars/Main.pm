@@ -115,10 +115,8 @@ sub threads_stats ($;$) {
 
     my $modeswitch_re = qr/^M /;
 
-    until ($sigterm) {
-
-        # UGLY!
-        my $remotecode = <<"REMOTECODE";
+    # UGLY!
+    my $remotecode = <<"REMOTECODE";
             perl -le '
                 use strict;
                 use Time::HiRes qw(usleep);
@@ -180,86 +178,81 @@ sub threads_stats ($;$) {
         '
 REMOTECODE
 
-        my $cmd =
-          ( $host eq 'localhost' || $host eq '127.0.0.1' )
-          ? "bash -c \"$remotecode\""
-          : "ssh $user -o StrictHostKeyChecking=no $C{sshopts} $host \"$remotecode\"";
+    my $cmd =
+      ( $host eq 'localhost' || $host eq '127.0.0.1' )
+      ? "bash -c \"$remotecode\""
+      : "ssh $user -o StrictHostKeyChecking=no $C{sshopts} $host \"$remotecode\"";
 
-        my $pid = open my $pipe, "$cmd |" or do {
-            say "Warning: $!";
-            sleep 1;
+    my $pid = open my $pipe, "$cmd |" or do {
+        say "Warning: $!";
+        sleep 1;
+        next;
+    };
+
+    $PIDS{$pid} = 1;
+
+    # Toggle CPUs
+    $SIG{USR1} = sub { $sigusr1 = 1 };
+    $SIG{TERM} = sub { threads->exit(); };
+
+    my $mode = 0;
+
+    while (<$pipe>) {
+        chomp;
+
+        if ( $_ =~ $modeswitch_re ) {
+            if ( $_ eq 'M CPUSTATS' ) {
+                $mode = 1;
+            }
+            elsif ( $_ eq 'M MEMSTATS' ) {
+                $mode = 2;
+            }
+            elsif ( $_ eq 'M NETSTATS' ) {
+                $mode = 3;
+            }
+            elsif ( $_ eq 'M LOADAVG' ) {
+                $mode = 0;
+            }
             next;
-        };
-
-        $PIDS{$pid} = 1;
-
-        # Toggle CPUs
-        $SIG{USR1} = sub { $sigusr1 = 1 };
-        $SIG{TERM} = sub { $sigterm = 1; threads->exit(); };
-
-        my $mode = 0;
-
-        while (<$pipe>) {
-            chomp;
-
-            if ( $_ =~ $modeswitch_re ) {
-                if ( $_ eq 'M CPUSTATS' ) {
-                    $mode = 1;
-                }
-                elsif ( $_ eq 'M MEMSTATS' ) {
-                    $mode = 2;
-                }
-                elsif ( $_ eq 'M NETSTATS' ) {
-                    $mode = 3;
-                }
-                elsif ( $_ eq 'M LOADAVG' ) {
-                    $mode = 0;
-                }
-                next;
-            }
-
-            if ( $mode == 0 ) {
-                $AVGSTATS{$host}     = $_;
-                $AVGSTATS_HAS{$host} = 1;
-            }
-            elsif ( $mode == 1 ) {
-                if ( 0 == index $_, $cpustring ) {
-                    my ( $name, $load ) = cpu_parse_line $_;
-                    $CPUSTATS{"$host;$name"} = join ';',
-                      map  { $_ . '=' . $load->{$_} }
-                      grep { defined $load->{$_} } keys %$load;
-                }
-            }
-            elsif ( $mode == 2 ) {
-                for my $meminfo (@meminfo) {
-                    if ( $_ =~ $meminfo->[1] ) {
-                        $MEMSTATS{"$host;$meminfo->[0]"} = $1;
-                        $MEMSTATS_HAS{$host} = 1
-                          unless defined $MEMSTATS_HAS{$host};
-                    }
-                }
-            }
-            elsif ( $mode == 3 ) {
-                my ( $int, @stats ) = split ':', $_;
-                $NETSTATS{"$host;$int"}       = "@stats";
-                $NETSTATS{"$host;$int;stamp"} = Time::HiRes::time();
-                $NETSTATS_INT{$int}  = 1 unless defined $NETSTATS_INT{$int};
-                $NETSTATS_HAS{$host} = 1 unless defined $NETSTATS_HAS{$host};
-            }
-
-            if ($sigusr1) {
-                $cpustring = $I{cpustring};
-                $sigusr1   = 0;
-
-            }
-            elsif ($sigterm) {
-                close $pipe;
-                last;
-            }
         }
 
-        delete $PIDS{$pid};
+        if ( $mode == 0 ) {
+            $AVGSTATS{$host}     = $_;
+            $AVGSTATS_HAS{$host} = 1;
+        }
+        elsif ( $mode == 1 ) {
+            if ( 0 == index $_, $cpustring ) {
+                my ( $name, $load ) = cpu_parse_line $_;
+                $CPUSTATS{"$host;$name"} = join ';',
+                  map  { $_ . '=' . $load->{$_} }
+                  grep { defined $load->{$_} } keys %$load;
+            }
+        }
+        elsif ( $mode == 2 ) {
+            for my $meminfo (@meminfo) {
+                if ( $_ =~ $meminfo->[1] ) {
+                    $MEMSTATS{"$host;$meminfo->[0]"} = $1;
+                    $MEMSTATS_HAS{$host} = 1
+                      unless defined $MEMSTATS_HAS{$host};
+                }
+            }
+        }
+        elsif ( $mode == 3 ) {
+            my ( $int, @stats ) = split ':', $_;
+            $NETSTATS{"$host;$int"}       = "@stats";
+            $NETSTATS{"$host;$int;stamp"} = Time::HiRes::time();
+            $NETSTATS_INT{$int}  = 1 unless defined $NETSTATS_INT{$int};
+            $NETSTATS_HAS{$host} = 1 unless defined $NETSTATS_HAS{$host};
+        }
+
+        if ($sigusr1) {
+            $cpustring = $I{cpustring};
+            $sigusr1   = 0;
+
+        }
     }
+
+    delete $PIDS{$pid};
 
     return undef;
 }

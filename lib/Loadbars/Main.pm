@@ -90,7 +90,10 @@ sub threads_terminate_pids (@) {
 
         print $pid . ' ';
         kill 'TERM', $pid;
+
+        #$_->join() for @threads;
     }
+
 
     say '';
 
@@ -442,19 +445,6 @@ sub loop ($@) {
         depth      => Loadbars::Constants->COLOR_DEPTH,
         resizeable => 1,
     );
-
-=cut
-    my $font = do {
-        my $fontbase = 'fonts/font.png';
-
-        if ( -f "./$fontbase" ) {
-            "./$fontbase";
-        }
-        elsif ( -f "/usr/share/loadbars/$fontbase" ) {
-            "/usr/share/loadbars/$fontbase";
-        }
-    };
-=cut
 
     my $rects = {};
     my %cpu_history;

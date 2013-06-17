@@ -196,7 +196,7 @@ REMOTECODE
 
         # Toggle CPUs
         $SIG{USR1} = sub { $sigusr1 = 1 };
-        $SIG{TERM} = sub { $sigterm = 1 };
+        $SIG{TERM} = sub { $sigterm = 1; threads->exit(); };
 
         my $mode = 0;
 

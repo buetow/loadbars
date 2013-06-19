@@ -41,12 +41,12 @@ our %I : shared;
 # Setting defaults
 %C = (
     title      => undef,
-    barwidth   => 35,
-    cpuaverage => 15,
+    barwidth   => 20,
+    cpuaverage => 10,
     extended   => 0,
     hasagent   => 0,
     height     => 150,
-    maxwidth   => 600,
+    maxwidth   => 1900,
     netaverage => 15,
     netint     => '',
     netlink    => 'gbit',

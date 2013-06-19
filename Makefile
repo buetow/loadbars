@@ -23,14 +23,22 @@ install:
 deinstall:
 	test ! -z "$(DESTDIR)" && test -f $(DESTDIR)/usr/bin/$(NAME) && rm $(DESTDIR)/usr/bin/$(NAME) || exit 0
 	test ! -z "$(DESTDIR)/usr/share/$(NAME)" && -d $(DESTDIR)/usr/share/$(NAME) && rm -r $(DESTDIR)/usr/share/$(NAME) || exit 0
+dch:
+	dch -i
 deb: version
 	dpkg-buildpackage
 cleanall: clean-top
 	test -f nytprof.out && rm nytprof.out
 	test -f tmon.out && rm tmon.out
 	test -d nytprof && rm -Rf nytprof
+release: dch deb version documentation perltidy
+	git commit -a -m 'New release'
+	bash -c "git tag $$(cat .version)"
+	git push --tags
+	git push origin master
 clean-top:
 	rm ../$(NAME)_*.tar.gz
 	rm ../$(NAME)_*.dsc
 	rm ../$(NAME)_*.changes
 	rm ../$(NAME)_*.deb
+

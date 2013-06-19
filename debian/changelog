@@ -1,3 +1,19 @@
+loadbars (0.7.0) stable; urgency=low
+
+  * Initial version for Debian GNU/Linux Wheezy
+
+  * Has only been tested on Wheezy
+
+  * Major code cleanup. Removed the text display stuff from the code.
+
+  * Minor performance enhancements
+
+  * It is now possible to specify a list of hosts using shell espansion.
+
+    E.g.: loadbars server{01,10..20}.example.com [OPTIONS]
+
+ -- Paul Buetow <paul@buetow.org>  Wed, 19 Jun 2013 19:25:57 +0200
+
 loadbars (0.6.0.99) precise; urgency=low
 
   * New dev branch

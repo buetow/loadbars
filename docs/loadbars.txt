@@ -2,9 +2,11 @@ NAME
     loadbars - A small and humble tool to observe server loads
 
 SYNOPSIS
+    loadbars [LIST OF HOSTNAMES] [OPTIONS]
+
   Tested platforms
     This version of loadbars has only been tested on Debian GNU/Linux
-    Squeeze.
+    Wheezy.
 
   I like flying elephants
     For any startup params help check out --help on command line or 'h'
@@ -17,6 +19,11 @@ SYNOPSIS
 
     loadbars --cluster foocluster (foocluster is in /etc/clusters
     [ClusterSSH])
+
+  More examples, using bash expansion
+    loadbars servername{01,02,03}.example.com
+
+    loadbars servername{01..50}.example.com --showcores 1
 
 DESCRIPTION
     Loadbars is a small script that can be used to observe CPU loads of
@@ -54,8 +61,6 @@ INFO
     to = Total CPU usage, which is (100% - id)
 
     pk = Max us+sy peak of last avg. samples (extended)
-
-    avg = System load average; desc. order: 1, 5 and 15 min. avg.
 
     1px horizontal line: Maximum sy+us+io of last 'avg' samples (extended)
 

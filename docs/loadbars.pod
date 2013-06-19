@@ -4,9 +4,11 @@ loadbars - A small and humble tool to observe server loads
 
 =head1 SYNOPSIS
 
+loadbars [LIST OF HOSTNAMES] [OPTIONS]
+
 =head2 Tested platforms
 
-This version of loadbars has only been tested on Debian GNU/Linux Squeeze.
+This version of loadbars has only been tested on Debian GNU/Linux Wheezy.
 
 =head2 I like flying elephants
 
@@ -20,6 +22,12 @@ loadbars --extended 1 --showcores 1 --height 300 --hosts localhost
 loadbars --hosts localhost,server1.example.com,server2.example.com
 
 loadbars --cluster foocluster (foocluster is in /etc/clusters [ClusterSSH])
+
+=head2 More examples, using shell expansion
+
+loadbars servername{01,02,03}.example.com
+
+loadbars servername{01..50}.example.com --showcores 1
 
 =head1 DESCRIPTION
 
@@ -51,8 +59,6 @@ sy = System cpu sage in %, Color: Blue, lighter blue if >30%
 to = Total CPU usage, which is (100% - id)
 
 pk = Max us+sy peak of last avg. samples (extended)
-
-avg = System load average; desc. order: 1, 5 and 15 min. avg. 
 
 1px horizontal line: Maximum sy+us+io of last 'avg' samples (extended)
 

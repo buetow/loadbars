@@ -38,6 +38,10 @@ say( 'Loadbars ' . get_version . ' ' . Loadbars::Constants->COPYRIGHT );
 
 Loadbars::Config::read;
 
+my @hosts_extra;
+push @hosts_extra, shift @ARGV while @ARGV and $ARGV[0] !~ /^-/;
+
+
 GetOptions( 'help|?' => \$usage, $dispatch->('options') );
 
 if ( defined $usage ) {
@@ -52,6 +56,8 @@ my @hosts = map {
     defined $b ? "$b:$a" : $a;
 } split ',', $$hosts;
 
+push @hosts, @hosts_extra;
+
 if ( @hosts || defined $Loadbars::Main::C{cluster} ) {
     push @hosts, Loadbars::Config::get_cluster_hosts $C{cluster}
       if defined $C{cluster};
@@ -63,6 +69,26 @@ else {
     Loadbars::Main::say $dispatch->('usage');
     exit Loadbars::Constants->E_NOHOST;
 }
+
+# Expand a host 'hostname[08..10,13].example.com' to 
+# hostname08.example.com 
+# hostname09.example.com
+# hostname10.example.com
+# hostname13.example.com
+
+=cut
+my @expanded_hosts;
+
+for my $host (@hosts) {
+  my @expands = $host =~ /\[(.+\)\].*/g;
+
+  k
+
+  } else {
+    push @expanded_hosts, $host;
+  }
+}
+=cut
 
 my @threads = Loadbars::Main::threads_create @hosts;
 Loadbars::Main::loop $dispatch, @threads;

@@ -124,7 +124,7 @@
 .\" ========================================================================
 .\"
 .IX Title "LOADBARS 1"
-.TH LOADBARS 1 "2013-06-17" "loadbars 0.6.0.99" "User Commands"
+.TH LOADBARS 1 "2013-06-19" "loadbars 0.6.0.99" "User Commands"
 .\" For nroff, turn off justification.  Always turn off hyphenation; it makes
 .\" way too many mistakes in technical documents.
 .if n .ad l
@@ -133,9 +133,10 @@
 loadbars \- A small and humble tool to observe server loads
 .SH "SYNOPSIS"
 .IX Header "SYNOPSIS"
+loadbars [\s-1LIST\s0 \s-1OF\s0 \s-1HOSTNAMES\s0] [\s-1OPTIONS\s0]
 .SS "Tested platforms"
 .IX Subsection "Tested platforms"
-This version of loadbars has only been tested on Debian GNU/Linux Squeeze.
+This version of loadbars has only been tested on Debian GNU/Linux Wheezy.
 .SS "I like flying elephants"
 .IX Subsection "I like flying elephants"
 For any startup params help check out \-\-help on command line or 'h' during program
@@ -147,6 +148,11 @@ loadbars \-\-extended 1 \-\-showcores 1 \-\-height 300 \-\-hosts localhost
 loadbars \-\-hosts localhost,server1.example.com,server2.example.com
 .PP
 loadbars \-\-cluster foocluster (foocluster is in /etc/clusters [ClusterSSH])
+.SS "More examples, using bash expansion"
+.IX Subsection "More examples, using bash expansion"
+loadbars servername{01,02,03}.example.com
+.PP
+loadbars servername{01..50}.example.com \-\-showcores 1
 .SH "DESCRIPTION"
 .IX Header "DESCRIPTION"
 Loadbars is a small script that can be used to observe \s-1CPU\s0 loads of several remote servers at once in real time. It connects with \s-1SSH\s0 (using \s-1SSH\s0 public/private key auth) to several servers at once and vizualizes all server CPUs and memory statistics right next each other (either summarized or each core separately). Loadbars is not a tool for collecting \s-1CPU\s0 loads and drawing graphs for later analysis. However, since such tools require a significant amount of time before producing results, Loadbars lets you observe the current state immediately. Loadbars does not remember or record any load information. It just shows the current \s-1CPU\s0 usages like top or vmstat does.
@@ -175,8 +181,6 @@ sy = System cpu sage in %, Color: Blue, lighter blue if >30%
 to = Total \s-1CPU\s0 usage, which is (100% \- id)
 .PP
 pk = Max us+sy peak of last avg. samples (extended)
-.PP
-avg = System load average; desc. order: 1, 5 and 15 min. avg.
 .PP
 1px horizontal line: Maximum sy+us+io of last 'avg' samples (extended)
 .SS "Memory stuff"

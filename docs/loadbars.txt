@@ -20,7 +20,7 @@ SYNOPSIS
     loadbars --cluster foocluster (foocluster is in /etc/clusters
     [ClusterSSH])
 
-  More examples, using bash expansion
+  More examples, using shell expansion
     loadbars servername{01,02,03}.example.com
 
     loadbars servername{01..50}.example.com --showcores 1

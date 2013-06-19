@@ -41,7 +41,6 @@ Loadbars::Config::read;
 my @hosts_extra;
 push @hosts_extra, shift @ARGV while @ARGV and $ARGV[0] !~ /^-/;
 
-
 GetOptions( 'help|?' => \$usage, $dispatch->('options') );
 
 if ( defined $usage ) {
@@ -70,8 +69,8 @@ else {
     exit Loadbars::Constants->E_NOHOST;
 }
 
-# Expand a host 'hostname[08..10,13].example.com' to 
-# hostname08.example.com 
+# Expand a host 'hostname[08..10,13].example.com' to
+# hostname08.example.com
 # hostname09.example.com
 # hostname10.example.com
 # hostname13.example.com

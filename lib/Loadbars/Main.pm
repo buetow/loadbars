@@ -466,8 +466,9 @@ sub loop ($@) {
 
         # While there are events to poll, poll them all!
         while ( SDL::Events::poll_event($event) ) {
+
             # Videoresize
-            if ($event->type() == 16) {
+            if ( $event->type() == 16 ) {
                 $newsize{width}  = $event->resize_w;
                 $newsize{height} = $event->resize_h;
                 $resize_window   = 1;

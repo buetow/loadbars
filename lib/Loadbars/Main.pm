@@ -466,6 +466,14 @@ sub loop ($@) {
 
         # While there are events to poll, poll them all!
         while ( SDL::Events::poll_event($event) ) {
+            # Videoresize
+            if ($event->type() == 16) {
+                $newsize{width}  = $event->resize_w;
+                $newsize{height} = $event->resize_h;
+                $resize_window   = 1;
+            }
+
+            # Not a key
             next if $event->type() != 2;
             my $key_sym = $event->key_sym();
 

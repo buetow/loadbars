@@ -6,7 +6,8 @@ Build-Depends: perl, perltidy
 Standards-Version: 3.9.2
 Homepage: http://loadbars.buetow.org
 Vcs-Git: https://github.com/rantanplan/loadbars
-Vcs-Browser: http://web.buetow.org/git/?p=loadbars.git;a=summary
+Vcs-Browser: https://github.com/rantanplan/loadbars
+Vcs-Browser: https://github.com/rantanplan/loadbars
 
 Package: loadbars
 Architecture: all

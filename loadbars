@@ -69,26 +69,6 @@ else {
     exit Loadbars::Constants->E_NOHOST;
 }
 
-# Expand a host 'hostname[08..10,13].example.com' to
-# hostname08.example.com
-# hostname09.example.com
-# hostname10.example.com
-# hostname13.example.com
-
-=cut
-my @expanded_hosts;
-
-for my $host (@hosts) {
-  my @expands = $host =~ /\[(.+\)\].*/g;
-
-  k
-
-  } else {
-    push @expanded_hosts, $host;
-  }
-}
-=cut
-
 my @threads = Loadbars::Main::threads_create @hosts;
 Loadbars::Main::loop $dispatch, @threads;
 

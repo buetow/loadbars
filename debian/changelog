@@ -1,3 +1,9 @@
+loadbars (0.7.2) stable; urgency=low
+
+  * Add Debian Jessie Package
+
+ -- Paul Buetow <paul@buetow.org>  Sat, 14 Jun 2014 11:05:34 +0200
+
 loadbars (0.7.1) stable; urgency=low
 
   * It's now possible to resize the window via mouse

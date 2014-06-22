@@ -33,7 +33,7 @@ cleanall: clean-top
 	test -f nytprof.out && rm nytprof.out
 	test -f tmon.out && rm tmon.out
 	test -d nytprof && rm -Rf nytprof
-release: dch deb version documentation perltidy
+release: dch deb version documentation perltidy dput
 	git commit -a -m 'New release'
 	bash -c "git tag $$(cat .version)"
 	git push --tags

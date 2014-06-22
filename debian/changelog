@@ -1,3 +1,9 @@
+loadbars (0.7.5) stable; urgency=low
+
+  * Remove README.md
+
+ -- Paul Buetow <paul@buetow.org>  Sun, 22 Jun 2014 11:42:04 +0200
+
 loadbars (0.7.4) stable; urgency=low
 
   * Now really add README.pod

@@ -13,6 +13,8 @@ documentation:
 	pod2man --release="$(NAME) $$(cat .version)" \
                        --center="User Commands" ./docs/$(NAME).pod > ./docs/$(NAME).1
 	pod2text ./docs/$(NAME).pod > ./docs/$(NAME).txt
+	# For github page
+	cp ./docs/$(NAME).pod README.pod
 install:
 	test ! -d $(DESTDIR)/usr/bin && mkdir -p $(DESTDIR)/usr/bin || exit 0
 	test ! -d $(DESTDIR)/usr/share/$(NAME) && mkdir -p $(DESTDIR)/usr/share/$(NAME) || exit 0

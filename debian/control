@@ -5,8 +5,8 @@ Maintainer: Paul Buetow <paul@buetow.org>
 Build-Depends: perl, perltidy
 Standards-Version: 3.9.2
 Homepage: http://loadbars.buetow.org
-Vcs-Git: https://github.com/rantanplan/loadbars.git
-Vcs-Browser: https://github.com/rantanplan/loadbars
+Vcs-Git: https://github.com/buetow/loadbars.git
+Vcs-Browser: https://github.com/buetow/loadbars
 
 Package: loadbars
 Architecture: all

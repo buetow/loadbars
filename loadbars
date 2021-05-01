@@ -1,7 +1,7 @@
 #!/usr/bin/perl
 
 # loadbars (c) 2010 - 2013, Paul Buetow
-# E-Mail: loadbars@mx.buetow.org WWW: http://loadbars.buetow.org
+# E-Mail: loadbars@dev.buetow.org WWW: http://buetow.org
 # For legal informations see COPYING and COPYING.FONT
 
 use strict;

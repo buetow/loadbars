@@ -6,7 +6,7 @@ use warnings;
 use SDL::Color;
 
 use constant {
-    COPYRIGHT          => '2010-2013 (c) Paul Buetow <loadbars@mx.buetow.org>',
+    COPYRIGHT          => '2010-2013 (c) Paul Buetow <loadbars@dev.buetow.org>',
     CONFFILE           => $ENV{HOME} . '/.loadbarsrc',
     CSSH_CONFFILE      => '/etc/clusters',
     CSSH_MAX_RECURSION => 10,
